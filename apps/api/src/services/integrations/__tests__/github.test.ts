@@ -8,7 +8,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mockFetchWithJson(data: unknown): ReturnType<typeof vi.spyOn> {
+function mockFetchWithJson(data: unknown) {
   return vi
     .spyOn(globalThis, 'fetch')
     .mockResolvedValue(new Response(JSON.stringify(data), {

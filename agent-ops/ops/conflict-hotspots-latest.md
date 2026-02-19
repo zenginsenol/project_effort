@@ -1,8 +1,8 @@
 # Conflict Hotspots Report
 
-Updated: 2026-02-19T12:54:00.565Z
+Updated: 2026-02-19T13:20:15.321Z
 Branch: `main`
-Working tree: tracked=11, untracked=0, total=11
+Working tree: tracked=11, untracked=1, total=12
 
 ## Active Hotspots
 
@@ -15,6 +15,8 @@ Safe merge order: 1) services/oauth 2) server callback route 3) api-keys router
 |---|---|
 | `M` | `apps/api/src/routers/api-keys/router.ts` |
 | `M` | `apps/api/src/routers/api-keys/schema.ts` |
+| `M` | `apps/api/src/services/oauth/oauth-credential-store.ts` |
+| `??` | `apps/api/src/services/oauth/claude-oauth.ts` |
 
 ### P1 - Provider schema and DB alignment
 
@@ -52,7 +54,7 @@ Safe merge order: 1) compare route 2) settings page 3) sidebar/nav links
 
 ## Unmapped Files
 
-- `M` `agent-ops/ops/go-live-wave2-status.md`
+- None
 
 ## Operator Notes
 

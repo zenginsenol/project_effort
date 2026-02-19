@@ -955,9 +955,29 @@ Completed in Wave-2 so far:
 - `node scripts/agent-orchestrator.mjs done <TASK_ID>`
 - `pnpm agent:report`
 - `pnpm ops:wave2:status`
+- `pnpm ops:conflicts`
 
 ### 14.5 Exit Target
 
 Wave-2 closes only when:
 - Phase H summary reaches `todo=0`, `in_progress=0`, `blocked=0`
 - Final production cutover and hypercare sign-off tasks (`H-015`, `H-016`, `H-017`) are done.
+
+### 14.6 Conflict Automation + Latest Gate Snapshot (2026-02-19)
+
+Conflict management is now automated and reproducible:
+
+| Command | Output | Purpose |
+|---|---|---|
+| `pnpm ops:conflicts` | `agent-ops/ops/conflict-hotspots-latest.md` | Groups active modified files by hotspot with safe merge order |
+| `pnpm ops:wave2:status` | `agent-ops/ops/go-live-wave2-status.md` | Gate-level progress and active/blocked tasks |
+
+Latest snapshot:
+- `ops:wave2:status`: `todo=14`, `in_progress=1`, `blocked=0`, `done=3` (Phase-H view).
+- `ops:conflicts`: detected P0 OAuth convergence + P1 schema/document + P2 web consistency hotspots.
+- `pnpm quality:gate`: pass (build/lint/typecheck/test).
+
+Operational rule for parallel development:
+1. Resolve and commit exactly one hotspot batch at a time.
+2. Re-run `pnpm quality:gate` after each batch.
+3. Keep OpenAI OAuth auth path operational while converging callback strategy.

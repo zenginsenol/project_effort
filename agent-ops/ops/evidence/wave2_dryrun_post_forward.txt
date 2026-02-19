@@ -1,0 +1,17 @@
+ enumlabel  
+------------
+ openai
+ anthropic
+ openrouter
+(3 rows)
+
+   column_name    
+------------------
+ reasoning_effort
+(1 row)
+
+            conname            
+-------------------------------
+ chk_api_keys_reasoning_effort
+(1 row)
+

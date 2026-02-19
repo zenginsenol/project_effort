@@ -1,12 +1,12 @@
 # Agent Next Tasks
 
-Updated: 2026-02-19T04:13:47.929Z
+Updated: 2026-02-19T12:30:58.573Z
 
-Summary: todo=0, in_progress=0, blocked=0, done=46
+Summary: todo=14, in_progress=1, blocked=0, done=49
 
 | Owner | Active Task | Next Task |
 |---|---|---|
-| Agent-A | - | - |
+| Agent-A | `H-001` Reconcile OpenAI OAuth callback architecture for local and deployed environments | `H-006` Finalize comparative analysis API contract and deterministic response shape |
 | Agent-B | - | - |
 | Agent-C | - | - |
 | QA | - | - |
@@ -26,4 +26,5 @@ Summary: todo=0, in_progress=0, blocked=0, done=46
 - Phase E: 6/6
 - Phase F: 6/6
 - Phase G: 8/8
+- Phase H: 3/18
 

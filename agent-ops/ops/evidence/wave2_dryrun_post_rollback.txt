@@ -1,0 +1,14 @@
+ enumlabel 
+-----------
+ openai
+ anthropic
+(2 rows)
+
+ column_name 
+-------------
+(0 rows)
+
+ conname 
+---------
+(0 rows)
+

@@ -1,9 +1,9 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-19 09:11
-> Current Phase: Full Internal Application Complete (Effort + Tracking + Advanced GitHub Mapping + Regression Tests)
-> Overall Progress: Core delivery plus full-scope internal application finalized with detailed GitHub sync mappings, operational cost visibility, and targeted regression coverage
-> Agent Backlog Progress: `46/46` done (`todo=0`, `in_progress=0`, `blocked=0`)
+> Last Updated: 2026-02-19 15:31
+> Current Phase: Wave-2 Go-Live Hardening In Progress (Conflict Resolution + Cutover Readiness)
+> Overall Progress: Previous scope is complete; Wave-2 is opened to close remaining OAuth/DB/callback/cutover integration risks before live transition
+> Agent Backlog Progress: `49/64` done (`todo=14`, `in_progress=1`, `blocked=0`)
 
 ## Status Icons
 - ⬜ Pending
@@ -37,16 +37,16 @@ Continuous loop (run after every completed task):
 5. `pnpm agent:report`
 6. Repeat until backlog summary reaches `todo=0`, `in_progress=0`, `blocked=0`
 
-### Current Active Assignments (2026-02-19, Closed)
+### Current Active Assignments (2026-02-19, Wave-2 Open)
 
 | Owner | Active Task | Title |
 |---|---|---|
-| Agent-A | - | All assigned tasks closed |
-| Agent-B | - | All assigned tasks closed |
-| Agent-C | - | All assigned tasks closed |
-| QA | - | All assigned tasks closed |
-| Ops | - | All assigned tasks closed |
-| Manager | - | All assigned tasks closed |
+| Agent-A | `H-001` | OAuth callback architecture reconciliation (active) |
+| Agent-B | - | `H-003` completed, waiting downstream tasks |
+| Agent-C | - | Waiting for `H-006` to unlock `H-005` |
+| QA | - | Waiting for engineering hardening tasks to unlock `H-007` |
+| Ops | - | `H-004` completed, waiting `H-001` for `H-008` |
+| Manager | - | `H-000` completed, waiting Gate-1 dependencies for `H-009` |
 
 ---
 
@@ -904,3 +904,58 @@ Validation:
 Parallel development control:
 - Only agent-authored files were staged and pushed.
 - Existing unrelated modified files were intentionally left untouched to avoid accidental overwrite.
+
+---
+
+## 14) Wave-2 Go-Live Hardening (Active)
+
+Wave-2 is launched to close remaining deployment-risk items discovered during parallel development integration.
+
+### 14.1 Wave-2 Inputs
+
+| Input | Status | Evidence |
+|---|---|---|
+| Conflict baseline published | ✅ | `CONFLICT_RISK_REPORT.md` |
+| Phase H backlog created with detailed subtasks | ✅ | `agent-ops/agent-backlog.json` (`H-000`..`H-017`) |
+| Agent orchestration resumed | ✅ | `pnpm agent:advance` started `H-000` |
+| Live queue report refreshed | ✅ | `agent-ops/agent-next-tasks.md` |
+
+### 14.2 Gate Model
+
+1. Gate-1 Technical Hardening: OAuth callback/concurrency + DB migration readiness.
+2. Gate-2 Product + QA Readiness: compare flow, provider edge cases, validation pack.
+3. Gate-3 Cutover Authorization: rehearsal, go/no-go, production deployment.
+4. Gate-4 Hypercare Closure: week-1 stabilization and final sign-off.
+
+Detailed execution doc:
+- `agent-ops/ops/go-live-wave2-agent-execution-2026-02-19.md`
+
+### 14.3 Current Task Snapshot (Live)
+
+| Owner | Active | Next Unlock Condition |
+|---|---|---|
+| Manager | - | `H-009` waits Gate-1 dependencies |
+| Agent-A | `H-001` | Complete OAuth callback reconciliation to unlock `H-002`/`H-008` paths |
+| Agent-B | - | `H-011` waits `H-006` |
+| Agent-C | - | `H-006` done -> `H-005` |
+| QA | - | `H-002`, `H-005`, `H-006` done -> `H-007` |
+| Ops | - | `H-008` waits `H-001` |
+
+Completed in Wave-2 so far:
+- `H-000` kickoff/governance baseline
+- `H-003` DB migration artifacts (forward/rollback + checklist)
+- `H-004` staging dry-run evidence package
+
+### 14.4 Immediate Control Commands
+
+- `pnpm agent:status`
+- `pnpm agent:next`
+- `pnpm agent:advance`
+- `node scripts/agent-orchestrator.mjs done <TASK_ID>`
+- `pnpm agent:report`
+
+### 14.5 Exit Target
+
+Wave-2 closes only when:
+- Phase H summary reaches `todo=0`, `in_progress=0`, `blocked=0`
+- Final production cutover and hypercare sign-off tasks (`H-015`, `H-016`, `H-017`) are done.

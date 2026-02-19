@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-02-19T04:13:29.749Z",
+  "updatedAt": "2026-02-19T12:30:58.504Z",
   "project": "EstimatePro Go-Live Recovery",
   "statusModel": [
     "todo",
@@ -652,6 +652,344 @@
       ],
       "acceptance": "Hypercare exit report completed and signed off",
       "completedAt": "2026-02-19T04:13:29.744Z"
+    },
+    {
+      "id": "H-000",
+      "title": "Re-open go-live program with conflict baseline and gate criteria",
+      "phase": "Phase H",
+      "owner": "Manager",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "Wave-2 scope, gate criteria, and conflict risk baseline are published and approved",
+      "subtasks": [
+        "Aggregate unresolved conflict risks from backend/frontend/db layers",
+        "Define P0/P1 release gate criteria and owner responsibilities",
+        "Publish execution sequence and lock freeze-window assumptions",
+        "Align tracker, backlog, and next-task report to Wave-2 scope"
+      ],
+      "startedAt": "2026-02-19T12:27:06.602Z",
+      "completedAt": "2026-02-19T12:28:24.247Z"
+    },
+    {
+      "id": "H-001",
+      "title": "Reconcile OpenAI OAuth callback architecture for local and deployed environments",
+      "phase": "Phase H",
+      "owner": "Agent-A",
+      "priority": "P0",
+      "status": "in_progress",
+      "dependsOn": [
+        "H-000"
+      ],
+      "acceptance": "OAuth login works both in local and server callback modes without breaking existing auth",
+      "subtasks": [
+        "Define callback strategy matrix (local temp server vs API callback route)",
+        "Implement runtime-safe callback resolver based on env and execution context",
+        "Keep backward compatibility for existing active OAuth users",
+        "Add regression tests for callback URL construction and token exchange path"
+      ],
+      "startedAt": "2026-02-19T12:28:24.691Z"
+    },
+    {
+      "id": "H-002",
+      "title": "Eliminate OAuth concurrency race conditions in callback handling",
+      "phase": "Phase H",
+      "owner": "Agent-A",
+      "priority": "P0",
+      "status": "todo",
+      "dependsOn": [
+        "H-001"
+      ],
+      "acceptance": "Concurrent OAuth starts do not cancel each other and state ownership remains isolated",
+      "subtasks": [
+        "Replace global callback singleton behavior with state-scoped session control",
+        "Add timeout and cleanup safety for abandoned auth sessions",
+        "Harden state validation and ownership checks",
+        "Add concurrent-flow unit tests and failure-mode assertions"
+      ]
+    },
+    {
+      "id": "H-003",
+      "title": "Prepare DB migration artifacts for openrouter provider and reasoning effort fields",
+      "phase": "Phase H",
+      "owner": "Agent-B",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "H-000"
+      ],
+      "acceptance": "Forward/rollback migration plan is documented and executable for staging and production",
+      "subtasks": [
+        "Generate schema migration for ai_provider enum expansion and reasoning_effort column",
+        "Define safe rollout order and lock behavior for enum changes",
+        "Prepare rollback SQL and data-safety notes",
+        "Publish migration checklist with pre/post validation queries"
+      ],
+      "startedAt": "2026-02-19T12:28:24.696Z",
+      "completedAt": "2026-02-19T12:29:30.766Z"
+    },
+    {
+      "id": "H-004",
+      "title": "Run staging DB migration dry-run with evidence capture",
+      "phase": "Phase H",
+      "owner": "Ops",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "H-003"
+      ],
+      "acceptance": "Staging migration succeeds with validation evidence and rollback rehearsal output",
+      "subtasks": [
+        "Apply migration on staging clone and record duration/lock impact",
+        "Execute post-migration schema and data validation queries",
+        "Run rollback rehearsal and capture revert outcome",
+        "Attach evidence to ops go-live docs"
+      ],
+      "startedAt": "2026-02-19T12:29:31.170Z",
+      "completedAt": "2026-02-19T12:30:58.093Z"
+    },
+    {
+      "id": "H-005",
+      "title": "Implement production-ready Compare AI dashboard flow",
+      "phase": "Phase H",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-000",
+        "H-006"
+      ],
+      "acceptance": "Compare AI page supports provider/model selection, request execution, and result table rendering",
+      "subtasks": [
+        "Build compare form with provider list, model, and reasoning effort controls",
+        "Wire page to comparativeAnalyze API endpoint and loading/error states",
+        "Render side-by-side estimation metrics and assumptions summary",
+        "Add UX guards for missing provider keys and unsupported combinations"
+      ]
+    },
+    {
+      "id": "H-006",
+      "title": "Finalize comparative analysis API contract and deterministic response shape",
+      "phase": "Phase H",
+      "owner": "Agent-A",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-000"
+      ],
+      "acceptance": "Document router returns stable structure for success, partial failure, and config-missing cases",
+      "subtasks": [
+        "Normalize comparativeAnalyze response envelope and error typing",
+        "Enforce provider override validation and tenant-safe config resolution",
+        "Add contract tests for mixed-success provider outcomes",
+        "Publish payload examples for frontend consumption"
+      ]
+    },
+    {
+      "id": "H-007",
+      "title": "Build OAuth and comparative-analysis regression test matrix",
+      "phase": "Phase H",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-002",
+        "H-005",
+        "H-006"
+      ],
+      "acceptance": "Regression suite covers auth + compare happy-path and failure-path scenarios",
+      "subtasks": [
+        "Define scenario matrix for OAuth start/callback/refresh/failure paths",
+        "Define comparativeAnalyze matrix for provider availability and partial errors",
+        "Implement automated tests and manual checks for edge cases",
+        "Publish traceable test evidence and pass/fail summary"
+      ]
+    },
+    {
+      "id": "H-008",
+      "title": "Update production cutover runbook for OAuth callback strategy and port constraints",
+      "phase": "Phase H",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-001"
+      ],
+      "acceptance": "Runbook explicitly defines callback behavior, required env vars, and failure recovery steps",
+      "subtasks": [
+        "Document environment-specific callback routing",
+        "Add port collision and firewall troubleshooting steps",
+        "Define on-call escalation path for auth failures during cutover",
+        "Cross-link runbook with release checklist"
+      ]
+    },
+    {
+      "id": "H-009",
+      "title": "Run release gate review #1 (technical blockers)",
+      "phase": "Phase H",
+      "owner": "Manager",
+      "priority": "P0",
+      "status": "todo",
+      "dependsOn": [
+        "H-002",
+        "H-004",
+        "H-006",
+        "H-008"
+      ],
+      "acceptance": "All P0 technical blockers are either resolved or explicitly waived with owner sign-off",
+      "subtasks": [
+        "Review blocker list against conflict report and technical evidence",
+        "Verify migration, OAuth, and contract readiness criteria",
+        "Capture unresolved risks with deadlines and accountable owners",
+        "Issue gate decision and update backlog statuses"
+      ]
+    },
+    {
+      "id": "H-010",
+      "title": "Harden API key provider handling and openrouter edge cases",
+      "phase": "Phase H",
+      "owner": "Agent-A",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-006"
+      ],
+      "acceptance": "API key router safely handles openrouter provider labels, validation, and update flows",
+      "subtasks": [
+        "Fix provider display/label mapping and defaults",
+        "Validate provider-specific model limits and metadata updates",
+        "Add router-level tests for openrouter add/update/get flows",
+        "Verify no regression for existing openai/anthropic credentials"
+      ]
+    },
+    {
+      "id": "H-011",
+      "title": "Perform tenant isolation verification for provider override paths",
+      "phase": "Phase H",
+      "owner": "Agent-B",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-006"
+      ],
+      "acceptance": "Provider/model overrides cannot cross tenant boundaries and leakage tests pass",
+      "subtasks": [
+        "Audit query filters in document and api-keys routers",
+        "Add negative tests for cross-tenant provider config access",
+        "Verify encrypted token/key handling remains tenant-scoped",
+        "Document findings and remediation notes"
+      ]
+    },
+    {
+      "id": "H-012",
+      "title": "Execute integrated validation pack (quality, security, smoke)",
+      "phase": "Phase H",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-007",
+        "H-010",
+        "H-011"
+      ],
+      "acceptance": "Validation pack is green and evidence package is attached for release decision",
+      "subtasks": [
+        "Run quality gate and targeted endpoint/API smoke tests",
+        "Run auth security checks and tenant isolation tests",
+        "Verify compare page UX with real provider combinations",
+        "Publish QA evidence with defects and disposition status"
+      ]
+    },
+    {
+      "id": "H-013",
+      "title": "Execute pre-prod deployment rehearsal with rollback drill",
+      "phase": "Phase H",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-009",
+        "H-012"
+      ],
+      "acceptance": "Rehearsal deploy + rollback completes within defined SLO and documented steps",
+      "subtasks": [
+        "Deploy release candidate to pre-prod/staging mirror",
+        "Run post-deploy smoke including OAuth and compare endpoints",
+        "Execute rollback drill and verify service/data consistency",
+        "Record timings and update cutover timeline assumptions"
+      ]
+    },
+    {
+      "id": "H-014",
+      "title": "Conduct go/no-go release review and production authorization",
+      "phase": "Phase H",
+      "owner": "Manager",
+      "priority": "P0",
+      "status": "todo",
+      "dependsOn": [
+        "H-013"
+      ],
+      "acceptance": "Formal go/no-go decision recorded with stakeholder sign-off",
+      "subtasks": [
+        "Review final evidence pack from QA/Ops/Engineering",
+        "Validate rollback readiness and on-call coverage",
+        "Issue production authorization or defer with action plan",
+        "Publish final cutover communication"
+      ]
+    },
+    {
+      "id": "H-015",
+      "title": "Execute production cutover and immediate verification",
+      "phase": "Phase H",
+      "owner": "Ops",
+      "priority": "P0",
+      "status": "todo",
+      "dependsOn": [
+        "H-014"
+      ],
+      "acceptance": "Production deployment succeeds with smoke checks and monitoring healthy",
+      "subtasks": [
+        "Apply production deployment and required DB changes in approved window",
+        "Run cutover smoke checklist including auth, integrations, and compare flow",
+        "Validate alerts, logs, and tracing baseline",
+        "Confirm no-go rollback trigger criteria remain unmet"
+      ]
+    },
+    {
+      "id": "H-016",
+      "title": "Run hypercare week-1 operations and incident triage",
+      "phase": "Phase H",
+      "owner": "Manager",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-015"
+      ],
+      "acceptance": "Week-1 hypercare report completed with incident resolutions and outstanding actions",
+      "subtasks": [
+        "Track incidents and SLA adherence daily",
+        "Coordinate rapid fixes and patch windows",
+        "Review support trends and high-frequency failure points",
+        "Publish week-1 status brief with action owners"
+      ]
+    },
+    {
+      "id": "H-017",
+      "title": "Close hypercare and finalize release sign-off package",
+      "phase": "Phase H",
+      "owner": "Manager",
+      "priority": "P1",
+      "status": "todo",
+      "dependsOn": [
+        "H-016"
+      ],
+      "acceptance": "Hypercare exit criteria met and final sign-off package archived",
+      "subtasks": [
+        "Verify all P0/P1 post-go-live defects are resolved or accepted",
+        "Finalize operational handover to steady-state support",
+        "Publish release retrospective and improvement actions",
+        "Mark Wave-2 program as complete in tracker and backlog"
+      ]
     }
   ]
 }

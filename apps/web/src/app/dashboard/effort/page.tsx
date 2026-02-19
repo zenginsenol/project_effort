@@ -64,6 +64,14 @@ type AdditionalCostDraft = {
   note: string;
 };
 
+type ApiKeyListItem = {
+  id: string;
+  provider: AIProviderOption;
+  model: string | null;
+  reasoningEffort: string | null;
+  isActive: boolean;
+};
+
 export default function EffortPage(): React.ReactElement {
   const utils = trpc.useUtils();
 
@@ -90,6 +98,7 @@ export default function EffortPage(): React.ReactElement {
   const [aiProvider, setAiProvider] = useState<AIProviderOption>('openai');
   const [aiModel, setAiModel] = useState('');
   const [aiReasoningEffort, setAiReasoningEffort] = useState<AIReasoningOption>('medium');
+  const [useSettingsAiProfile, setUseSettingsAiProfile] = useState(true);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostDraft[]>([]);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState('');
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
@@ -135,6 +144,39 @@ export default function EffortPage(): React.ReactElement {
   const allProjectsQuery = trpc.project.list.useQuery({
     organizationId: '',
   }, { retry: false });
+  const apiKeysQuery = trpc.apiKeys.list.useQuery(undefined, { retry: false });
+
+  const activeProviderKeys = useMemo(() => {
+    const providerMap = new Map<AIProviderOption, ApiKeyListItem>();
+    const entries = (apiKeysQuery.data ?? []) as Array<{
+      id: string;
+      provider: string;
+      model: string | null;
+      reasoningEffort: string | null;
+      isActive: boolean;
+    }>;
+    for (const key of entries) {
+      if (!key.isActive) {
+        continue;
+      }
+      if (!AI_PROVIDER_OPTIONS.includes(key.provider as AIProviderOption)) {
+        continue;
+      }
+      providerMap.set(key.provider as AIProviderOption, {
+        id: key.id,
+        provider: key.provider as AIProviderOption,
+        model: key.model,
+        reasoningEffort: key.reasoningEffort,
+        isActive: key.isActive,
+      });
+    }
+    return providerMap;
+  }, [apiKeysQuery.data]);
+
+  const availableProviders = useMemo(
+    () => AI_PROVIDER_OPTIONS.filter((provider) => activeProviderKeys.has(provider)),
+    [activeProviderKeys],
+  );
 
   const analysesQuery = trpc.effort.listAnalyses.useQuery(
     { projectId: selectedProjectId },
@@ -235,6 +277,32 @@ export default function EffortPage(): React.ReactElement {
     setCompareSelection([]);
     setGithubRepositoryOverride('');
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (availableProviders.length === 0) {
+      return;
+    }
+    if (!availableProviders.includes(aiProvider)) {
+      const firstProvider = availableProviders[0];
+      if (firstProvider) {
+        setAiProvider(firstProvider);
+      }
+    }
+  }, [aiProvider, availableProviders]);
+
+  useEffect(() => {
+    if (!useSettingsAiProfile) {
+      return;
+    }
+    const activeKey = activeProviderKeys.get(aiProvider);
+    if (!activeKey) {
+      return;
+    }
+    setAiModel(activeKey.model ?? '');
+    if (activeKey.reasoningEffort && AI_REASONING_OPTIONS.includes(activeKey.reasoningEffort as AIReasoningOption)) {
+      setAiReasoningEffort(activeKey.reasoningEffort as AIReasoningOption);
+    }
+  }, [activeProviderKeys, aiProvider, useSettingsAiProfile]);
 
   useEffect(() => {
     if (selectedAnalysisId || !analysesQuery.data?.[0]) {
@@ -375,6 +443,14 @@ export default function EffortPage(): React.ReactElement {
       return;
     }
 
+    const providerKey = activeProviderKeys.get(aiProvider);
+    if (!providerKey) {
+      setAnalysisNotice(`Selected provider is not active in Settings: ${aiProvider}`);
+      return;
+    }
+
+    const manualModel = aiModel.trim();
+
     createAiAnalysisMutation.mutate({
       projectId: selectedProjectId,
       name: analysisName.trim() || undefined,
@@ -390,8 +466,8 @@ export default function EffortPage(): React.ReactElement {
       text: aiInputText.trim(),
       projectContext: aiProjectContext.trim() || undefined,
       provider: aiProvider,
-      model: aiModel.trim() || undefined,
-      reasoningEffort: aiReasoningEffort,
+      model: useSettingsAiProfile ? undefined : (manualModel || undefined),
+      reasoningEffort: useSettingsAiProfile ? undefined : aiReasoningEffort,
     });
   }
 
@@ -1215,8 +1291,27 @@ export default function EffortPage(): React.ReactElement {
               AI Cost Analysis (OpenAI / Claude / Other)
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Generate a new analysis from document text using your configured provider keys.
+              Generate a new analysis from document text using active provider/model settings.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <label className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={useSettingsAiProfile}
+                  onChange={(event) => setUseSettingsAiProfile(event.target.checked)}
+                  className="h-4 w-4"
+                />
+                Use model/effort from Settings
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Active providers: {availableProviders.length > 0 ? availableProviders.join(', ') : 'none'}
+              </p>
+            </div>
+            {availableProviders.length === 0 && (
+              <p className="mt-3 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
+                No active provider found. Enable at least one provider in Settings.
+              </p>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Provider</label>
@@ -1226,26 +1321,34 @@ export default function EffortPage(): React.ReactElement {
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
                 >
                   {AI_PROVIDER_OPTIONS.map((provider) => (
-                    <option key={provider} value={provider}>{provider}</option>
+                    <option key={provider} value={provider} disabled={!activeProviderKeys.has(provider)}>
+                      {provider}{activeProviderKeys.has(provider) ? '' : ' (no active key)'}
+                    </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Model (optional)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Model {useSettingsAiProfile ? '(from Settings)' : '(manual override)'}
+                </label>
                 <input
                   type="text"
                   value={aiModel}
                   onChange={(event) => setAiModel(event.target.value)}
                   placeholder="gpt-5.2 / claude-sonnet-4-6"
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  disabled={useSettingsAiProfile}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm disabled:opacity-60"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Reasoning</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Reasoning {useSettingsAiProfile ? '(from Settings)' : '(manual override)'}
+                </label>
                 <select
                   value={aiReasoningEffort}
                   onChange={(event) => setAiReasoningEffort(event.target.value as AIReasoningOption)}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  disabled={useSettingsAiProfile}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm disabled:opacity-60"
                 >
                   {AI_REASONING_OPTIONS.map((effort) => (
                     <option key={effort} value={effort}>{effort}</option>
@@ -1255,7 +1358,7 @@ export default function EffortPage(): React.ReactElement {
               <div className="flex items-end">
                 <button
                   onClick={handleCreateAiAnalysis}
-                  disabled={!aiInputText.trim() || createAiAnalysisMutation.isPending}
+                  disabled={!aiInputText.trim() || createAiAnalysisMutation.isPending || availableProviders.length === 0}
                   className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
                   {createAiAnalysisMutation.isPending ? 'Analyzing...' : 'Create AI Analysis'}
@@ -1281,6 +1384,11 @@ export default function EffortPage(): React.ReactElement {
                 />
               </div>
             </div>
+            {useSettingsAiProfile && activeProviderKeys.get(aiProvider) && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Effective config: {aiProvider} / {activeProviderKeys.get(aiProvider)?.model ?? 'provider default'} / {activeProviderKeys.get(aiProvider)?.reasoningEffort ?? 'provider default'}
+              </p>
+            )}
           </div>
 
           <div className="rounded-lg border bg-card p-6">

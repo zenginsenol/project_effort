@@ -331,9 +331,52 @@ async function runCheck(options: CliOptions): Promise<{
       return `json=${json.content.length}B, csv=${csv.content.length}B, md=${md.content.length}B`;
     });
 
-    if (state.activeProviders.length === 0) {
+    if (!state.baselineAnalysisId) {
       state.stepResults.push(toStepResult(
         '9',
+        'GitHub Sync (optional)',
+        'skip',
+        'Missing baseline analysis id',
+      ));
+    } else {
+      try {
+        const sync = await caller.effort.syncAnalysisToGithub({
+          analysisId: state.baselineAnalysisId,
+        });
+        state.stepResults.push(toStepResult(
+          '9',
+          'GitHub Sync (optional)',
+          'pass',
+          `issue=${sync.issueUrl}`,
+        ));
+      } catch (error) {
+        const message = normalizeError(error);
+        if (
+          message.includes('not connected')
+          || message.includes('not linked')
+          || message.includes('GitHub integration')
+          || message.includes('PRECONDITION_FAILED')
+        ) {
+          state.stepResults.push(toStepResult(
+            '9',
+            'GitHub Sync (optional)',
+            'skip',
+            message,
+          ));
+        } else {
+          state.stepResults.push(toStepResult(
+            '9',
+            'GitHub Sync (optional)',
+            'warn',
+            message,
+          ));
+        }
+      }
+    }
+
+    if (state.activeProviders.length === 0) {
+      state.stepResults.push(toStepResult(
+        '10',
         'AI Analysis (Settings Provider Model)',
         'skip',
         'No active provider configured in settings',
@@ -341,7 +384,7 @@ async function runCheck(options: CliOptions): Promise<{
     } else {
       for (const provider of state.activeProviders) {
         await execute(
-          `9-${provider}`,
+          `10-${provider}`,
           `AI Analysis (${provider})`,
           async () => {
             const ai = await caller.effort.createAiAnalysis({
@@ -407,7 +450,8 @@ function buildReport(state: CheckState): string {
   lines.push('4. Analysis update');
   lines.push('5. Analysis compare');
   lines.push('6. Export formats');
-  lines.push('7. AI analysis with active settings profile (provider/model/effort)');
+  lines.push('7. GitHub sync (optional, requires active integration + linked repo)');
+  lines.push('8. AI analysis with active settings profile (provider/model/effort)');
   lines.push('');
 
   return `${lines.join('\n')}\n`;

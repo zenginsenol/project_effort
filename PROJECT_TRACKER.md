@@ -1,6 +1,6 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-20 02:34
+> Last Updated: 2026-02-20 02:36
 > Current Phase: Wave-2 Go-Live Hardening In Progress (Conflict Resolution + Cutover Readiness)
 > Overall Progress: Previous scope is complete; Wave-2 is opened to close remaining OAuth/DB/callback/cutover integration risks before live transition
 > Agent Backlog Progress: `49/64` done (`todo=14`, `in_progress=1`, `blocked=0`)
@@ -1179,7 +1179,7 @@ Implemented validation tooling:
    - `agent-ops/ops/cost-workflow-check-latest.md`
 
 Latest execution (2026-02-20):
-1. Result summary: `pass=8`, `warn=1`, `fail=0`.
+1. Result summary: `pass=8`, `warn=1`, `skip=1`, `fail=0`.
 2. Passed process chain:
    - Effort calculate
    - Roadmap generate
@@ -1187,7 +1187,9 @@ Latest execution (2026-02-20):
    - Analysis update
    - Compare
    - Export (`json/csv/md`)
-3. Warning reason:
+3. Skip reason:
+   - GitHub sync step skipped because active GitHub integration is not connected in current org.
+4. Warning reason:
    - OpenAI provider returned quota/rate-limit (`429`) during AI extraction.
    - This is provider billing/quota state, not a workflow integration failure.
 

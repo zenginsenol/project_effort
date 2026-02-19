@@ -59,11 +59,13 @@ Source:
 Summary:
 1. `pass=8`
 2. `warn=1`
-3. `fail=0`
+3. `skip=1`
+4. `fail=0`
 
 Interpretation:
 1. Core cost/effort pipeline is operational end-to-end.
 2. Warning is provider quota/rate-limit related (OpenAI 429), not integration breakage.
+3. Skipped step is GitHub sync because GitHub integration was not connected in the active org.
 
 ## Manual UI Process Test (Step-by-Step)
 

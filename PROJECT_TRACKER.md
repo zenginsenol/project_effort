@@ -1,6 +1,6 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-19 23:47
+> Last Updated: 2026-02-20 02:34
 > Current Phase: Wave-2 Go-Live Hardening In Progress (Conflict Resolution + Cutover Readiness)
 > Overall Progress: Previous scope is complete; Wave-2 is opened to close remaining OAuth/DB/callback/cutover integration risks before live transition
 > Agent Backlog Progress: `49/64` done (`todo=14`, `in_progress=1`, `blocked=0`)
@@ -1161,3 +1161,40 @@ Added workspace blocks:
 5. Select 2+ analyses and compare deltas.
 6. Export selected analysis to JSON/CSV/MD.
 7. Sync selected analysis to GitHub issue for stakeholder traceability.
+
+### 14.12 Cost/Effort Process Flow Test (Step-by-Step Validation)
+
+Primary focus check requested:
+1. Is project flow coherent?
+2. Are cost analyses correctly generated and efforted?
+3. Are process steps testable and documented?
+
+Implemented validation tooling:
+1. Script:
+   - `apps/api/scripts/cost-workflow-check.ts`
+2. Commands:
+   - `pnpm ops:effort:workflow:check`
+   - `pnpm ops:effort:workflow:check:keep`
+3. Output:
+   - `agent-ops/ops/cost-workflow-check-latest.md`
+
+Latest execution (2026-02-20):
+1. Result summary: `pass=8`, `warn=1`, `fail=0`.
+2. Passed process chain:
+   - Effort calculate
+   - Roadmap generate
+   - Baseline/variant analysis save
+   - Analysis update
+   - Compare
+   - Export (`json/csv/md`)
+3. Warning reason:
+   - OpenAI provider returned quota/rate-limit (`429`) during AI extraction.
+   - This is provider billing/quota state, not a workflow integration failure.
+
+Step-by-step process doc added:
+1. `agent-ops/ops/cost-effort-process-validation-2026-02-19.md`
+2. Contains:
+   - Preconditions
+   - Automated command flow
+   - Manual UI test flow
+   - Result decision rules for go-live

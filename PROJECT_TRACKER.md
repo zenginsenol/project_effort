@@ -1009,3 +1009,32 @@ Verification executed after latest push:
 - `pnpm quality:gate` -> ✅ pass (build/lint/typecheck/test).
 - `pnpm ops:conflicts` -> active hotspots reduced; OAuth service/server files are no longer in local conflict set.
 - `pnpm ops:wave2:status` -> `todo=14`, `in_progress=1`, `blocked=0`, `done=3`.
+
+### 14.9 Module Integration Closure Plan (Step-by-Step)
+
+New playbook and automated checks added to prevent module communication drift:
+
+1. Playbook:
+- `agent-ops/ops/module-integration-playbook-2026-02-19.md`
+
+2. Automated contract check:
+- Script: `scripts/module-integration-check.mjs`
+- Commands:
+  - `pnpm ops:integration:check` (contract-only quick check)
+  - `pnpm ops:integration:gate` (contract + full quality gate)
+- Latest output:
+  - `agent-ops/ops/module-integration-check-latest.md`
+  - Result: `4/4` critical cross-module contracts pass.
+
+3. Critical integration areas under automatic verification:
+- Effort module <-> Kanban apply flow.
+- Project detail <-> GitHub link/sync integration.
+- Settings page <-> OAuth start + callback bridge.
+- Analyzer UI <-> document analysis REST endpoint.
+
+Operational usage:
+1. Run `pnpm ops:conflicts`.
+2. Merge one hotspot batch.
+3. Run `pnpm ops:integration:check`.
+4. Repeat until no hotspot remains.
+5. Run `pnpm ops:integration:gate` before production cutover.

@@ -34,6 +34,8 @@
     "agent:validate": "node scripts/agent-orchestrator.mjs validate",
     "ops:wave2:status": "node scripts/go-live-wave2-status.mjs --write",
     "ops:conflicts": "node scripts/conflict-hotspots.mjs --write",
+    "ops:integration:check": "node scripts/module-integration-check.mjs --write",
+    "ops:integration:gate": "node scripts/module-integration-check.mjs --write --with-gate",
     "ops:staging:check": "node scripts/staging-parity-check.mjs",
     "clean": "turbo clean && rm -rf node_modules",
     "prepare": "husky"

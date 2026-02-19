@@ -954,6 +954,7 @@ Completed in Wave-2 so far:
 - `pnpm agent:advance`
 - `node scripts/agent-orchestrator.mjs done <TASK_ID>`
 - `pnpm agent:report`
+- `pnpm ops:wave2:status`
 
 ### 14.5 Exit Target
 

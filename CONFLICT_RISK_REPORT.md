@@ -1,6 +1,6 @@
 # Conflict Risk Report
 
-Updated: 2026-02-19T12:46:20Z
+Updated: 2026-02-19T12:54:00Z
 Scope: Parallel in-progress changes across OAuth, provider schema, document analysis, and web settings/compare flow.
 Source snapshot: `pnpm ops:conflicts` + `agent-ops/ops/conflict-hotspots-latest.md`
 
@@ -10,14 +10,10 @@ Source snapshot: `pnpm ops:conflicts` + `agent-ops/ops/conflict-hotspots-latest.
 - Files:
   - `apps/api/src/routers/api-keys/router.ts`
   - `apps/api/src/routers/api-keys/schema.ts`
-  - `apps/api/src/server.ts`
-  - `apps/api/src/services/oauth/openai-oauth.ts`
-  - `apps/api/src/services/oauth/__tests__/openai-oauth.test.ts`
-  - `apps/api/src/services/oauth/oauth-credential-store.ts` (new)
-- Risk: Partial merge of router/service/server paths can break OAuth login and callback completion in deployed environments.
+- Risk: Router/schema convergence is still pending; partial merge can break login initiation flow.
 - Mandatory control:
   - Keep existing OpenAI auth callback support intact during merge.
-  - Merge in order: `services/oauth` -> `server callback route` -> `api-keys router`.
+  - Merge in order: `api-keys schema` -> `api-keys router`.
 
 ## P1 - High
 
@@ -65,3 +61,7 @@ Source snapshot: `pnpm ops:conflicts` + `agent-ops/ops/conflict-hotspots-latest.
 3. Parallel-safe commit discipline
 - Only single-hotspot staging is allowed.
 - Do not include unrelated modified files in the same commit.
+
+4. Mitigations completed (already pushed)
+- `a205349`: backward-compatible dual-mode OAuth helpers + regression tests.
+- `8dc2ff1`: callback credential-upsert refactor (`oauth-credential-store`) in API callback path.

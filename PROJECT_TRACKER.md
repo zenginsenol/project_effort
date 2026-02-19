@@ -993,3 +993,19 @@ Scope included in this roadmap:
 3. Date-window execution cadence (Gate-1 to Gate-4).
 4. Operational budget alternatives (starter/growth/scale) for go-live month planning.
 5. Step-by-step Kanban auto-apply + GitHub sync execution path.
+
+### 14.8 Latest Execution Log (2026-02-19)
+
+Commits pushed (own-scope only):
+
+| Commit | Scope | Result |
+|---|---|---|
+| `a82c589` | Conflict hotspot automation + tracker integration | ✅ pushed |
+| `b9023fe` | Wave-2 effort/cost roadmap + Kanban/GitHub execution doc | ✅ pushed |
+| `a205349` | Backward-compatible dual-mode OpenAI OAuth helpers + tests | ✅ pushed |
+| `8dc2ff1` | API callback credential-upsert refactor (`oauth-credential-store`) | ✅ pushed |
+
+Verification executed after latest push:
+- `pnpm quality:gate` -> ✅ pass (build/lint/typecheck/test).
+- `pnpm ops:conflicts` -> active hotspots reduced; OAuth service/server files are no longer in local conflict set.
+- `pnpm ops:wave2:status` -> `todo=14`, `in_progress=1`, `blocked=0`, `done=3`.

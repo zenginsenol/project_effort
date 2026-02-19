@@ -1,8 +1,8 @@
 # Conflict Hotspots Report
 
-Updated: 2026-02-19T12:47:24.239Z
+Updated: 2026-02-19T12:54:00.565Z
 Branch: `main`
-Working tree: tracked=17, untracked=3, total=20
+Working tree: tracked=11, untracked=0, total=11
 
 ## Active Hotspots
 
@@ -15,10 +15,6 @@ Safe merge order: 1) services/oauth 2) server callback route 3) api-keys router
 |---|---|
 | `M` | `apps/api/src/routers/api-keys/router.ts` |
 | `M` | `apps/api/src/routers/api-keys/schema.ts` |
-| `M` | `apps/api/src/server.ts` |
-| `M` | `apps/api/src/services/oauth/__tests__/openai-oauth.test.ts` |
-| `M` | `apps/api/src/services/oauth/openai-oauth.ts` |
-| `??` | `apps/api/src/services/oauth/oauth-credential-store.ts` |
 
 ### P1 - Provider schema and DB alignment
 
@@ -56,12 +52,7 @@ Safe merge order: 1) compare route 2) settings page 3) sidebar/nav links
 
 ## Unmapped Files
 
-- `M` `CONFLICT_RISK_REPORT.md`
-- `M` `PROJECT_TRACKER.md`
 - `M` `agent-ops/ops/go-live-wave2-status.md`
-- `M` `package.json`
-- `??` `agent-ops/ops/conflict-hotspots-latest.md`
-- `??` `scripts/conflict-hotspots.mjs`
 
 ## Operator Notes
 

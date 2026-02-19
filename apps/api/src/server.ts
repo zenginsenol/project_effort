@@ -6,14 +6,23 @@ import multipart from '@fastify/multipart';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify from 'fastify';
 
+import { eq, and } from 'drizzle-orm';
+
+import { db } from '@estimate-pro/db';
+import { apiKeys, users } from '@estimate-pro/db/schema';
+
 import { createContext } from './trpc/context';
 import { appRouter } from './routers/index';
 import { parseDocument } from './services/document/parser';
 import { extractTasksFromText } from './services/document/task-extractor';
 import { setupWebSocket } from './websocket/index';
+import { exchangeCodeForTokens, decodeJwtPayload } from './services/oauth/openai-oauth';
+import { getPendingFlow, removePendingFlow } from './services/oauth/oauth-store';
+import { encrypt } from './services/crypto';
 
 const PORT = Number(process.env.API_PORT) || 4000;
 const HOST = process.env.API_HOST || '0.0.0.0';
+const WEB_APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim() || 'http://127.0.0.1:3000';
 
 async function start(): Promise<void> {
   const fastify = Fastify({
@@ -68,6 +77,102 @@ async function start(): Promise<void> {
     }
   });
 
+  // ============================================================
+  // OpenAI OAuth Callback - handles redirect from auth.openai.com
+  // ============================================================
+  fastify.get('/auth/openai/callback', async (request, reply) => {
+    const { code, state } = request.query as { code?: string; state?: string };
+
+    if (!code || !state) {
+      return reply.status(400).send(errorPage('Missing code or state parameter', WEB_APP_URL));
+    }
+
+    const pendingFlow = getPendingFlow(state);
+    if (!pendingFlow) {
+      return reply.status(400).send(errorPage('Invalid or expired OAuth state. Please try signing in again.', WEB_APP_URL));
+    }
+
+    try {
+      // Exchange code for tokens
+      const tokens = await exchangeCodeForTokens({
+        code,
+        codeVerifier: pendingFlow.codeVerifier,
+        redirectUri: pendingFlow.redirectUri,
+      });
+
+      removePendingFlow(state);
+
+      // Decode id_token to get email
+      let email: string | null = null;
+      try {
+        if (tokens.id_token) {
+          const payload = decodeJwtPayload(tokens.id_token);
+          email = typeof payload.email === 'string' ? payload.email : null;
+        }
+      } catch { /* ignore */ }
+
+      // Find user in DB
+      const user = await db.query.users.findFirst({
+        columns: { id: true },
+        where: eq(users.clerkId, pendingFlow.userId),
+      });
+
+      if (!user) {
+        return reply.status(400).send(errorPage('User not found', WEB_APP_URL));
+      }
+
+      // Upsert OpenAI OAuth entry
+      const existing = await db.query.apiKeys.findFirst({
+        where: and(
+          eq(apiKeys.userId, user.id),
+          eq(apiKeys.provider, 'openai'),
+        ),
+      });
+
+      const encryptedRefreshToken = tokens.refresh_token
+        ? encrypt(tokens.refresh_token)
+        : existing?.encryptedRefreshToken ?? null;
+
+      if (!encryptedRefreshToken) {
+        return reply.status(500).send(errorPage('OAuth failed: missing refresh token', WEB_APP_URL));
+      }
+
+      const tokenData = {
+        authMethod: 'oauth' as const,
+        encryptedAccessToken: encrypt(tokens.access_token),
+        encryptedRefreshToken,
+        tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+        oauthEmail: email,
+        encryptedKey: null,
+        keyHint: email ? `OAuth: ${email}` : 'OAuth Connected',
+        label: email ? `ChatGPT (${email})` : 'ChatGPT Subscription',
+        model: 'gpt-4o',
+        isActive: true,
+      };
+
+      if (existing) {
+        await db.update(apiKeys).set(tokenData).where(eq(apiKeys.id, existing.id));
+      } else {
+        await db.insert(apiKeys).values({
+          userId: user.id,
+          provider: 'openai',
+          ...tokenData,
+        });
+      }
+
+      // Redirect to settings page with success
+      return reply
+        .header('Content-Type', 'text/html; charset=utf-8')
+        .send(successPage(email, WEB_APP_URL));
+
+    } catch (err) {
+      removePendingFlow(state);
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[oauth-callback] Error:', errMsg);
+      return reply.status(500).send(errorPage(`OAuth failed: ${errMsg}`, WEB_APP_URL));
+    }
+  });
+
   await fastify.register(fastifyTRPCPlugin, {
     prefix: '/trpc',
     trpcOptions: {
@@ -81,6 +186,55 @@ async function start(): Promise<void> {
   const io = setupWebSocket(fastify);
   console.log(`API server running at http://${HOST}:${PORT}`);
   console.log(`WebSocket server running at ws://${HOST}:${PORT}/ws`);
+}
+
+function escapeHtml(raw: string): string {
+  return raw
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function successPage(email: string | null, webAppUrl: string): string {
+  const settingsUrl = `${webAppUrl.replace(/\/+$/, '')}/dashboard/settings`;
+  const safeEmail = email ? escapeHtml(email) : null;
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>EstimatePro - Connected!</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff}
+.card{text-align:center;max-width:420px;padding:48px;border-radius:16px;background:#1a1a1a;border:1px solid #333}
+.icon{font-size:48px;margin-bottom:16px}h1{margin:0 0 8px;font-size:24px;color:#22c55e}
+p{margin:0;color:#888;line-height:1.5}
+.email{color:#60a5fa;font-weight:500}
+.btn{display:inline-block;margin-top:24px;padding:10px 24px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-weight:500}
+.btn:hover{background:#2563eb}</style></head>
+<body><div class="card">
+<div class="icon">✅</div>
+<h1>OpenAI Connected!</h1>
+<p>Your ChatGPT subscription is now linked to EstimatePro.${safeEmail ? `<br><span class="email">${safeEmail}</span>` : ''}</p>
+<p style="margin-top:12px;font-size:14px">You can now use AI-powered task extraction with your subscription.</p>
+<a href="${settingsUrl}" class="btn">Back to Settings</a>
+</div></body></html>`;
+}
+
+function errorPage(message: string, webAppUrl: string): string {
+  const settingsUrl = `${webAppUrl.replace(/\/+$/, '')}/dashboard/settings`;
+  const safeMessage = escapeHtml(message);
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>EstimatePro - Error</title>
+<style>body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff}
+.card{text-align:center;max-width:420px;padding:48px;border-radius:16px;background:#1a1a1a;border:1px solid #333}
+.icon{font-size:48px;margin-bottom:16px}h1{margin:0 0 8px;font-size:24px;color:#ef4444}
+p{margin:0;color:#888;line-height:1.5}
+.btn{display:inline-block;margin-top:24px;padding:10px 24px;background:#3b82f6;color:#fff;border-radius:8px;text-decoration:none;font-weight:500}
+.btn:hover{background:#2563eb}</style></head>
+<body><div class="card">
+<div class="icon">❌</div>
+<h1>Connection Failed</h1>
+<p>${safeMessage}</p>
+<a href="${settingsUrl}" class="btn">Back to Settings</a>
+</div></body></html>`;
 }
 
 start().catch((err: unknown) => {

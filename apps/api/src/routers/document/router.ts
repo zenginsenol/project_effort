@@ -7,13 +7,14 @@ import { apiKeys, users } from '@estimate-pro/db/schema';
 import { authedProcedure, orgProcedure, router } from '../../trpc/trpc';
 import { extractTasksFromText } from '../../services/document/task-extractor';
 import type { AIProviderConfig } from '../../services/document/task-extractor';
-import { decrypt } from '../../services/crypto';
+import { encrypt, decrypt } from '../../services/crypto';
+import { refreshAccessToken, isTokenExpired } from '../../services/oauth/openai-oauth';
 
 import { analyzeTextInput, bulkCreateTasksInput } from './schema';
 import { documentService } from './service';
 
 /**
- * Look up the user's active AI API key
+ * Look up the user's active AI config - supports both API key and OAuth token
  */
 async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null> {
   const user = await db.query.users.findFirst({
@@ -31,18 +32,58 @@ async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null
 
   if (keys.length === 0) return null;
 
-  // Pick first active key
   const [key] = keys;
   if (!key) return null;
 
   try {
-    return {
-      provider: key.provider,
-      apiKey: decrypt(key.encryptedKey),
-      model: key.model ?? undefined,
-    };
+    // OAuth flow - use access token (with auto-refresh)
+    if (key.authMethod === 'oauth' && key.encryptedAccessToken) {
+      let accessToken = decrypt(key.encryptedAccessToken);
+
+      // Auto-refresh if token is expired or about to expire
+      if (key.tokenExpiresAt && isTokenExpired(key.tokenExpiresAt) && key.encryptedRefreshToken) {
+        console.log('[document-router] OAuth token expired, refreshing...');
+        try {
+          const refreshToken = decrypt(key.encryptedRefreshToken);
+          const tokens = await refreshAccessToken(refreshToken);
+          const nextRefreshToken = tokens.refresh_token ?? refreshToken;
+
+          // Update stored tokens
+          await db.update(apiKeys).set({
+            encryptedAccessToken: encrypt(tokens.access_token),
+            encryptedRefreshToken: encrypt(nextRefreshToken),
+            tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+          }).where(eq(apiKeys.id, key.id));
+
+          accessToken = tokens.access_token;
+          console.log('[document-router] OAuth token refreshed successfully');
+        } catch (refreshErr) {
+          console.error('[document-router] Token refresh failed:', refreshErr);
+          // Mark as inactive so user knows to re-auth
+          await db.update(apiKeys).set({ isActive: false }).where(eq(apiKeys.id, key.id));
+          return null;
+        }
+      }
+
+      return {
+        provider: key.provider,
+        apiKey: accessToken,
+        model: key.model ?? undefined,
+      };
+    }
+
+    // API key flow
+    if (key.encryptedKey) {
+      return {
+        provider: key.provider,
+        apiKey: decrypt(key.encryptedKey),
+        model: key.model ?? undefined,
+      };
+    }
+
+    return null;
   } catch {
-    console.error('[document-router] Failed to decrypt API key');
+    console.error('[document-router] Failed to decrypt credentials');
     return null;
   }
 }
@@ -55,7 +96,7 @@ export const documentRouter = router({
     .input(analyzeTextInput)
     .mutation(async ({ ctx, input }) => {
       try {
-        // Look up user's AI config from their saved API keys
+        // Look up user's AI config (API key or OAuth token)
         const aiConfig = await getUserAIConfig(ctx.userId);
 
         const result = await extractTasksFromText(

@@ -1,0 +1,40 @@
+{
+  "name": "@estimate-pro/ui",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./globals.css": "./src/globals.css"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --external react",
+    "typecheck": "tsc --noEmit",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint \"src/**/*.{ts,tsx}\"",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.469.0",
+    "tailwind-merge": "^2.6.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@estimate-pro/typescript-config": "workspace:*",
+    "@estimate-pro/eslint-config": "workspace:*",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  }
+}

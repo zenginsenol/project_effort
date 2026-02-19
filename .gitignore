@@ -8,3 +8,38 @@
 .worktrees/
 .security-key
 logs/security/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# Misc
+*.log
+*.tsbuildinfo

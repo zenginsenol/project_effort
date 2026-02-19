@@ -1,0 +1,29 @@
+{
+  "name": "@estimate-pro/errors",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint \"src/**/*.{ts,tsx}\"",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "@estimate-pro/typescript-config": "workspace:*",
+    "@estimate-pro/eslint-config": "workspace:*",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

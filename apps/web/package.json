@@ -1,0 +1,45 @@
+{
+  "name": "@estimate-pro/web",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev --port 3000 --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "test:e2e": "playwright test",
+    "clean": "rm -rf .next .turbo"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.10.3",
+    "@estimate-pro/api": "workspace:*",
+    "@estimate-pro/types": "workspace:*",
+    "@estimate-pro/ui": "workspace:*",
+    "@tanstack/react-query": "^5.64.2",
+    "@trpc/client": "^11.0.0-rc.682",
+    "@trpc/react-query": "^11.0.0-rc.682",
+    "@trpc/server": "^11.0.0-rc.682",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.469.0",
+    "next": "^15.1.6",
+    "next-themes": "^0.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "socket.io-client": "^4.8.1",
+    "superjson": "^2.2.2",
+    "tailwind-merge": "^2.6.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@estimate-pro/typescript-config": "workspace:*",
+    "@playwright/test": "^1.58.2",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}

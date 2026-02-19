@@ -1,0 +1,50 @@
+{
+  "name": "estimate-pro",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:api": "turbo dev --filter=@estimate-pro/api",
+    "dev:web": "turbo dev --filter=@estimate-pro/web",
+    "build": "turbo build",
+    "build:api": "turbo build --filter=@estimate-pro/api",
+    "build:web": "turbo build --filter=@estimate-pro/web",
+    "test": "turbo test",
+    "test:coverage": "turbo test:coverage",
+    "test:e2e": "turbo test:e2e",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
+    "typecheck": "turbo typecheck",
+    "quality:gate": "node scripts/quality-gate.mjs",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
+    "check": "turbo lint typecheck && pnpm format:check",
+    "db:generate": "pnpm --filter @estimate-pro/db generate",
+    "db:push": "pnpm --filter @estimate-pro/db push",
+    "db:migrate": "pnpm --filter @estimate-pro/db migrate",
+    "db:seed": "pnpm --filter @estimate-pro/db seed",
+    "db:studio": "pnpm --filter @estimate-pro/db studio",
+    "agent:status": "node scripts/agent-orchestrator.mjs status",
+    "agent:next": "node scripts/agent-orchestrator.mjs next",
+    "agent:advance": "node scripts/agent-orchestrator.mjs advance",
+    "agent:report": "node scripts/agent-orchestrator.mjs report",
+    "agent:validate": "node scripts/agent-orchestrator.mjs validate",
+    "ops:staging:check": "node scripts/staging-parity-check.mjs",
+    "clean": "turbo clean && rm -rf node_modules",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,css}": ["prettier --write"]
+  }
+}

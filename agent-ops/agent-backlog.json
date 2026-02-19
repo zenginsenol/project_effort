@@ -1,0 +1,657 @@
+{
+  "version": 1,
+  "updatedAt": "2026-02-19T04:13:29.749Z",
+  "project": "EstimatePro Go-Live Recovery",
+  "statusModel": [
+    "todo",
+    "in_progress",
+    "blocked",
+    "done"
+  ],
+  "owners": [
+    "Agent-A",
+    "Agent-B",
+    "Agent-C",
+    "QA",
+    "Ops",
+    "Manager"
+  ],
+  "tasks": [
+    {
+      "id": "A-001",
+      "title": "Fix missing web dependencies (`clsx`, `tailwind-merge`) and verify web typecheck baseline",
+      "phase": "Phase A",
+      "owner": "Agent-C",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "pnpm --filter @estimate-pro/web typecheck exits 0 for dependency-related errors",
+      "startedAt": "2026-02-19T02:37:47.393Z",
+      "completedAt": "2026-02-19T02:39:53.412Z"
+    },
+    {
+      "id": "A-002",
+      "title": "Fix Next.js dynamic route typing errors in app router pages",
+      "phase": "Phase A",
+      "owner": "Agent-C",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "A-001"
+      ],
+      "acceptance": "No TS2344 route-prop type mismatch in web typecheck",
+      "startedAt": "2026-02-19T02:39:53.802Z",
+      "completedAt": "2026-02-19T02:40:15.427Z"
+    },
+    {
+      "id": "A-003",
+      "title": "Remove external Google font build dependency (self-host/fallback)",
+      "phase": "Phase A",
+      "owner": "Agent-C",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "pnpm build succeeds in restricted network environments",
+      "startedAt": "2026-02-19T02:40:15.811Z",
+      "completedAt": "2026-02-19T02:50:00.133Z"
+    },
+    {
+      "id": "A-004",
+      "title": "Align API lint configuration with ESLint v9 flat config or pin compatible ESLint",
+      "phase": "Phase A",
+      "owner": "Agent-A",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "pnpm --filter @estimate-pro/api lint exits 0",
+      "startedAt": "2026-02-19T02:37:47.381Z",
+      "completedAt": "2026-02-19T02:50:00.208Z"
+    },
+    {
+      "id": "A-005",
+      "title": "Implement root quality gate script ensuring build/lint/typecheck/test pass",
+      "phase": "Phase A",
+      "owner": "Agent-A",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "A-002",
+        "A-003",
+        "A-004"
+      ],
+      "acceptance": "Single command validates release baseline in CI",
+      "startedAt": "2026-02-19T03:09:27.984Z",
+      "completedAt": "2026-02-19T03:15:13.672Z"
+    },
+    {
+      "id": "A-006",
+      "title": "Normalize tracker statuses based on verified command evidence",
+      "phase": "Phase A",
+      "owner": "Manager",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "PROJECT_TRACKER re-audit section published"
+    },
+    {
+      "id": "B-000",
+      "title": "Perform data isolation and schema-level security audit baseline",
+      "phase": "Phase B",
+      "owner": "Agent-B",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "Tenant isolation gaps are documented with actionable patch list",
+      "startedAt": "2026-02-19T02:38:31.650Z",
+      "completedAt": "2026-02-19T02:50:00.280Z"
+    },
+    {
+      "id": "B-001",
+      "title": "Re-enable Clerk middleware route protection in web app",
+      "phase": "Phase B",
+      "owner": "Agent-C",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "A-002",
+        "A-003"
+      ],
+      "acceptance": "Protected routes redirect unauthenticated users",
+      "startedAt": "2026-02-19T02:50:00.905Z",
+      "completedAt": "2026-02-19T02:52:54.449Z"
+    },
+    {
+      "id": "B-002",
+      "title": "Populate API context from verified auth token and organization claims",
+      "phase": "Phase B",
+      "owner": "Agent-A",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "A-004"
+      ],
+      "acceptance": "Context contains userId/orgId for authenticated requests",
+      "startedAt": "2026-02-19T02:50:00.901Z",
+      "completedAt": "2026-02-19T02:52:54.520Z"
+    },
+    {
+      "id": "B-003",
+      "title": "Migrate sensitive routers from publicProcedure to authed/org procedures",
+      "phase": "Phase B",
+      "owner": "Agent-A",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "B-002"
+      ],
+      "acceptance": "Unauthorized and cross-tenant requests are blocked",
+      "startedAt": "2026-02-19T02:52:54.911Z",
+      "completedAt": "2026-02-19T03:04:11.814Z"
+    },
+    {
+      "id": "B-004",
+      "title": "Add tenant filter enforcement in service layer queries",
+      "phase": "Phase B",
+      "owner": "Agent-B",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "B-002"
+      ],
+      "acceptance": "DB queries enforce organization boundaries",
+      "startedAt": "2026-02-19T02:52:54.915Z",
+      "completedAt": "2026-02-19T03:04:16.731Z"
+    },
+    {
+      "id": "B-005",
+      "title": "Implement WebSocket JWT handshake validation",
+      "phase": "Phase B",
+      "owner": "Agent-A",
+      "priority": "P0",
+      "status": "done",
+      "dependsOn": [
+        "B-002"
+      ],
+      "acceptance": "Unauthenticated socket connections are rejected",
+      "startedAt": "2026-02-19T03:04:11.827Z",
+      "completedAt": "2026-02-19T03:09:15.209Z"
+    },
+    {
+      "id": "B-006",
+      "title": "Encrypt integration access/refresh tokens at rest",
+      "phase": "Phase B",
+      "owner": "Agent-B",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "B-003"
+      ],
+      "acceptance": "Token fields are encrypted before DB write and decrypted on use",
+      "startedAt": "2026-02-19T03:04:22.021Z",
+      "completedAt": "2026-02-19T03:09:19.895Z"
+    },
+    {
+      "id": "C-001",
+      "title": "Replace dashboard mock cards with live API-based data",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "B-003"
+      ],
+      "acceptance": "Dashboard metrics sourced from backend APIs",
+      "startedAt": "2026-02-19T03:04:11.831Z",
+      "completedAt": "2026-02-19T03:09:24.869Z"
+    },
+    {
+      "id": "C-002",
+      "title": "Implement projects page with list/create/edit wired to project router",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "B-003"
+      ],
+      "acceptance": "Project CRUD completed from UI",
+      "startedAt": "2026-02-19T03:09:27.988Z",
+      "completedAt": "2026-02-19T03:15:18.219Z"
+    },
+    {
+      "id": "C-003",
+      "title": "Implement tasks list filtering/sorting with persisted query state",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "C-002"
+      ],
+      "acceptance": "Task list supports filter/sort and reflects server data",
+      "startedAt": "2026-02-19T03:15:28.482Z",
+      "completedAt": "2026-02-19T03:19:24.099Z"
+    },
+    {
+      "id": "C-004",
+      "title": "Implement Kanban drag-drop board with persistence and optimistic updates",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "C-003"
+      ],
+      "acceptance": "Drag-drop updates task status/order and persists in DB",
+      "startedAt": "2026-02-19T03:19:28.223Z",
+      "completedAt": "2026-02-19T03:24:34.762Z"
+    },
+    {
+      "id": "C-005",
+      "title": "Build task detail panel with full CRUD and estimation actions",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "C-003"
+      ],
+      "acceptance": "Task detail edits sync with backend and refresh related views",
+      "startedAt": "2026-02-19T03:26:06.464Z",
+      "completedAt": "2026-02-19T03:36:33.048Z"
+    },
+    {
+      "id": "C-006",
+      "title": "Wire sessions page to real session data and creation flow",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "B-005"
+      ],
+      "acceptance": "Users can list/create/join sessions from UI",
+      "startedAt": "2026-02-19T03:36:38.768Z",
+      "completedAt": "2026-02-19T03:39:30.610Z"
+    },
+    {
+      "id": "C-007",
+      "title": "Integrate session detail UI with WebSocket events and tRPC state",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "C-006",
+        "B-005"
+      ],
+      "acceptance": "Vote/reveal/new-round work in multi-user real-time mode",
+      "startedAt": "2026-02-19T03:39:41.001Z",
+      "completedAt": "2026-02-19T03:43:18.811Z"
+    },
+    {
+      "id": "C-008",
+      "title": "Implement sprints page with CRUD and board linkage",
+      "phase": "Phase C",
+      "owner": "Agent-C",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "C-002"
+      ],
+      "acceptance": "Sprint planning UI uses sprint APIs and project tasks",
+      "startedAt": "2026-02-19T03:49:22.666Z",
+      "completedAt": "2026-02-19T03:51:36.478Z"
+    },
+    {
+      "id": "D-001",
+      "title": "Refactor analytics page to consume real overview/velocity/accuracy/teamBias APIs",
+      "phase": "Phase D",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "C-001"
+      ],
+      "acceptance": "No mock constants in analytics page",
+      "startedAt": "2026-02-19T03:43:31.885Z",
+      "completedAt": "2026-02-19T03:44:59.645Z"
+    },
+    {
+      "id": "D-002",
+      "title": "Implement burndown/burnup computations and chart rendering",
+      "phase": "Phase D",
+      "owner": "Agent-A",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "D-001"
+      ],
+      "acceptance": "Burndown/Burnup charts display real sprint progression",
+      "startedAt": "2026-02-19T03:45:12.343Z",
+      "completedAt": "2026-02-19T03:49:13.387Z"
+    },
+    {
+      "id": "D-003",
+      "title": "Implement CSV export endpoint consumption in UI",
+      "phase": "Phase D",
+      "owner": "Agent-A",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "D-001"
+      ],
+      "acceptance": "Users can download CSV from analytics screen",
+      "startedAt": "2026-02-19T03:49:22.662Z",
+      "completedAt": "2026-02-19T03:51:41.216Z"
+    },
+    {
+      "id": "D-004",
+      "title": "Implement XLSX export generation and API endpoint",
+      "phase": "Phase D",
+      "owner": "Agent-A",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "D-003"
+      ],
+      "acceptance": "XLSX report export works for project analytics",
+      "startedAt": "2026-02-19T03:51:47.823Z",
+      "completedAt": "2026-02-19T03:54:08.256Z"
+    },
+    {
+      "id": "D-005",
+      "title": "Implement PDF export generation and API endpoint",
+      "phase": "Phase D",
+      "owner": "Agent-A",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "D-003"
+      ],
+      "acceptance": "PDF report export works for project analytics",
+      "completedAt": "2026-02-19T03:54:12.555Z"
+    },
+    {
+      "id": "E-001",
+      "title": "Finalize provider support matrix and hide unsupported integrations in UI",
+      "phase": "Phase E",
+      "owner": "Manager",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "Supported providers documented and reflected in frontend",
+      "startedAt": "2026-02-19T02:37:47.393Z",
+      "completedAt": "2026-02-19T02:50:00.494Z"
+    },
+    {
+      "id": "E-002",
+      "title": "Harden Jira OAuth/import/export/sync flow and error handling",
+      "phase": "Phase E",
+      "owner": "Agent-A",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "E-001",
+        "B-006"
+      ],
+      "acceptance": "Jira integration works reliably with token refresh and retries",
+      "startedAt": "2026-02-19T03:15:28.478Z",
+      "completedAt": "2026-02-19T03:36:15.886Z"
+    },
+    {
+      "id": "E-003",
+      "title": "Harden GitHub integration and align endpoints with repo context model",
+      "phase": "Phase E",
+      "owner": "Agent-A",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "E-001",
+        "B-006"
+      ],
+      "acceptance": "GitHub issue import/export works end-to-end",
+      "startedAt": "2026-02-19T03:36:21.992Z",
+      "completedAt": "2026-02-19T03:39:34.274Z"
+    },
+    {
+      "id": "E-004",
+      "title": "Implement GitLab integration or disable card from UI until ready",
+      "phase": "Phase E",
+      "owner": "Agent-A",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "E-001"
+      ],
+      "acceptance": "No broken GitLab flow exposed to users",
+      "startedAt": "2026-02-19T03:39:40.997Z",
+      "completedAt": "2026-02-19T03:43:22.654Z"
+    },
+    {
+      "id": "E-005",
+      "title": "Implement Azure DevOps integration or disable card from UI until ready",
+      "phase": "Phase E",
+      "owner": "Agent-A",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "E-001"
+      ],
+      "acceptance": "No broken Azure DevOps flow exposed to users",
+      "completedAt": "2026-02-19T03:43:25.845Z"
+    },
+    {
+      "id": "E-006",
+      "title": "Wire integrations UI to backend APIs (list/connect/callback/disconnect status)",
+      "phase": "Phase E",
+      "owner": "Agent-C",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "E-002",
+        "E-003"
+      ],
+      "acceptance": "Integrations page reflects real backend state",
+      "startedAt": "2026-02-19T03:45:12.347Z",
+      "completedAt": "2026-02-19T03:49:10.022Z"
+    },
+    {
+      "id": "F-000",
+      "title": "Create QA test strategy baseline (unit/integration/e2e matrix and gates)",
+      "phase": "Phase F",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "QA strategy document and release quality gates are approved",
+      "startedAt": "2026-02-19T02:38:31.654Z",
+      "completedAt": "2026-02-19T02:50:00.355Z"
+    },
+    {
+      "id": "F-001",
+      "title": "Add API router unit tests for auth-sensitive and critical business paths",
+      "phase": "Phase F",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "B-003",
+        "C-004",
+        "C-007"
+      ],
+      "acceptance": "apps/api test suite contains meaningful passing coverage",
+      "startedAt": "2026-02-19T03:43:31.889Z",
+      "completedAt": "2026-02-19T03:49:16.697Z"
+    },
+    {
+      "id": "F-002",
+      "title": "Set up Playwright E2E project scaffold and CI integration",
+      "phase": "Phase F",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "C-002",
+        "C-007"
+      ],
+      "acceptance": "E2E test job runs in CI and reports pass/fail",
+      "startedAt": "2026-02-19T03:49:22.666Z",
+      "completedAt": "2026-02-19T04:00:54.225Z"
+    },
+    {
+      "id": "F-003",
+      "title": "Implement E2E critical user flows (auth, project CRUD, session vote, analyzer)",
+      "phase": "Phase F",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "F-002"
+      ],
+      "acceptance": "Critical path E2E scenarios pass reliably",
+      "startedAt": "2026-02-19T04:01:05.706Z",
+      "completedAt": "2026-02-19T04:13:29.236Z"
+    },
+    {
+      "id": "F-004",
+      "title": "Run OWASP-focused security checklist and patch critical findings",
+      "phase": "Phase F",
+      "owner": "QA",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "B-003",
+        "B-005",
+        "B-006"
+      ],
+      "acceptance": "No critical/high unresolved security issues",
+      "startedAt": "2026-02-19T03:09:27.988Z",
+      "completedAt": "2026-02-19T03:15:23.383Z"
+    },
+    {
+      "id": "F-005",
+      "title": "Run performance baseline (Lighthouse and API p95 measurements)",
+      "phase": "Phase F",
+      "owner": "QA",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "D-001",
+        "D-002"
+      ],
+      "acceptance": "Performance report captured and tracked in tracker",
+      "completedAt": "2026-02-19T04:13:29.309Z"
+    },
+    {
+      "id": "G-000",
+      "title": "Build infrastructure inventory and environment topology document",
+      "phase": "Phase G",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [],
+      "acceptance": "Current and target infra topology documented with ownership and risks",
+      "startedAt": "2026-02-19T02:38:31.654Z",
+      "completedAt": "2026-02-19T02:50:00.425Z"
+    },
+    {
+      "id": "G-001",
+      "title": "Finalize staging environment parity (DB, Redis, env, migrations)",
+      "phase": "Phase G",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "A-005",
+        "F-001"
+      ],
+      "acceptance": "Staging environment reproducible and validated",
+      "startedAt": "2026-02-19T03:49:22.666Z",
+      "completedAt": "2026-02-19T04:00:58.028Z"
+    },
+    {
+      "id": "G-002",
+      "title": "Configure production infrastructure, domain, SSL, and deployment secrets",
+      "phase": "Phase G",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "G-001"
+      ],
+      "acceptance": "Production environment deploy-ready with secure secrets",
+      "startedAt": "2026-02-19T04:01:05.718Z",
+      "completedAt": "2026-02-19T04:13:29.381Z"
+    },
+    {
+      "id": "G-003",
+      "title": "Set up monitoring/alerting/log retention and incident notification channels",
+      "phase": "Phase G",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "G-001"
+      ],
+      "acceptance": "Alerts trigger and route to on-call channels",
+      "completedAt": "2026-02-19T04:13:29.453Z"
+    },
+    {
+      "id": "G-004",
+      "title": "Implement backup and disaster recovery runbooks (restore test included)",
+      "phase": "Phase G",
+      "owner": "Ops",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "G-001"
+      ],
+      "acceptance": "Backup restore test documented with RPO/RTO evidence",
+      "completedAt": "2026-02-19T04:13:29.526Z"
+    },
+    {
+      "id": "G-005",
+      "title": "Prepare release checklist, go-live runbook, rollback plan",
+      "phase": "Phase G",
+      "owner": "Manager",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "F-003",
+        "F-004",
+        "G-002",
+        "G-003",
+        "G-004"
+      ],
+      "acceptance": "Release governance doc complete and approved",
+      "completedAt": "2026-02-19T04:13:29.598Z"
+    },
+    {
+      "id": "G-006",
+      "title": "Execute production cutover and smoke tests",
+      "phase": "Phase G",
+      "owner": "Manager",
+      "priority": "P1",
+      "status": "done",
+      "dependsOn": [
+        "G-005"
+      ],
+      "acceptance": "Go-live complete with smoke tests passing",
+      "completedAt": "2026-02-19T04:13:29.672Z"
+    },
+    {
+      "id": "G-007",
+      "title": "Run hypercare (2 weeks) and close remaining production defects",
+      "phase": "Phase G",
+      "owner": "Manager",
+      "priority": "P2",
+      "status": "done",
+      "dependsOn": [
+        "G-006"
+      ],
+      "acceptance": "Hypercare exit report completed and signed off",
+      "completedAt": "2026-02-19T04:13:29.744Z"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-19 08:42
-> Current Phase: Full Internal Application Complete (Effort + Tracking + Advanced GitHub Mapping)
-> Overall Progress: Core delivery plus full-scope internal application finalized with detailed GitHub sync mappings and operational cost visibility
+> Last Updated: 2026-02-19 09:11
+> Current Phase: Full Internal Application Complete (Effort + Tracking + Advanced GitHub Mapping + Regression Tests)
+> Overall Progress: Core delivery plus full-scope internal application finalized with detailed GitHub sync mappings, operational cost visibility, and targeted regression coverage
 > Agent Backlog Progress: `46/46` done (`todo=0`, `in_progress=0`, `blocked=0`)
 
 ## Status Icons
@@ -883,3 +883,24 @@ For full-scope internal delivery visibility:
 - Recurring infra/domain/maintenance lines are governed by Section 9 tables.
 - GitHub sync + roadmap apply creates a continuous loop:
   - external workload intake -> internal task board -> effort/cost recalculation -> roadmap refresh.
+
+### 13.6 Regression Test Hardening (Parallel Development Safe Mode)
+
+Goal: keep integration quality increasing while avoiding conflicts with concurrently modified core files.
+
+Delivered (own-scope only):
+
+| Commit | Scope | Files |
+|---|---|---|
+| `6336d70` | GitHub mapping + OpenAI OAuth helper regression tests | `apps/api/src/services/integrations/__tests__/github.test.ts`, `apps/api/src/services/oauth/__tests__/openai-oauth.test.ts` |
+| `d2ee5d7` | GitHub repository link input schema tests | `apps/api/src/routers/integration/__tests__/schema.test.ts` |
+
+Validation:
+
+| Command | Result |
+|---|---|
+| `pnpm --filter @estimate-pro/api test` | ✅ pass (`15/15` tests) |
+
+Parallel development control:
+- Only agent-authored files were staged and pushed.
+- Existing unrelated modified files were intentionally left untouched to avoid accidental overwrite.

@@ -48,6 +48,9 @@ export default function EffortPage(): React.ReactElement {
   const [currency, setCurrency] = useState('TRY');
   const [contingency, setContingency] = useState(20);
   const [workHoursPerDay, setWorkHoursPerDay] = useState(8);
+  const [monthlyInfraOpsCost, setMonthlyInfraOpsCost] = useState(15000);
+  const [annualDomainCost, setAnnualDomainCost] = useState(1200);
+  const [monthlyMaintenanceHours, setMonthlyMaintenanceHours] = useState(80);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [autoApplyKanban, setAutoApplyKanban] = useState(true);
@@ -151,6 +154,11 @@ export default function EffortPage(): React.ReactElement {
     if (currency === 'EUR') return `${amount.toLocaleString('de-DE')} EUR`;
     return `${amount.toLocaleString()} ${currency}`;
   };
+
+  const annualMaintenanceCost = monthlyMaintenanceHours * hourlyRate * 12;
+  const annualInfraOpsCost = monthlyInfraOpsCost * 12;
+  const firstYearOpsCost = annualInfraOpsCost + annualMaintenanceCost + annualDomainCost;
+  const firstYearTotalCost = (data?.summary.totalCost ?? 0) + firstYearOpsCost;
 
   function handleApplyRoadmap(): void {
     if (!selectedProjectId) {
@@ -292,6 +300,45 @@ export default function EffortPage(): React.ReactElement {
         {kanbanSyncNotice && (
           <p className="mt-3 text-sm text-muted-foreground">{kanbanSyncNotice}</p>
         )}
+
+        <div className="mt-5 rounded-md border border-dashed p-4">
+          <h3 className="text-sm font-semibold">Operational Cost Inputs (Year-1 Projection)</h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Infra/Ops Monthly</label>
+              <input
+                type="number"
+                value={monthlyInfraOpsCost}
+                onChange={(event) => setMonthlyInfraOpsCost(Number(event.target.value))}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                min={0}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Domain/SSL Annual</label>
+              <input
+                type="number"
+                value={annualDomainCost}
+                onChange={(event) => setAnnualDomainCost(Number(event.target.value))}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                min={0}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Maintenance Hours / Month</label>
+              <input
+                type="number"
+                value={monthlyMaintenanceHours}
+                onChange={(event) => setMonthlyMaintenanceHours(Number(event.target.value))}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                min={0}
+              />
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Calculation: Infra(12 ay) + Bakim isciligi(12 ay) + Domain/SSL (yillik)
+          </p>
+        </div>
       </div>
 
       {!selectedProjectId && (
@@ -454,6 +501,26 @@ export default function EffortPage(): React.ReactElement {
               <p className="mt-2 text-3xl font-bold text-primary">{formatCurrency(data.summary.totalCost)}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Base: {formatCurrency(data.summary.baseCost)} + Buffer: {formatCurrency(data.summary.contingencyCost)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Annual Infra/Ops</p>
+              <p className="mt-1 text-xl font-semibold">{formatCurrency(annualInfraOpsCost)}</p>
+              <p className="text-xs text-muted-foreground">{formatCurrency(monthlyInfraOpsCost)}/month x 12</p>
+            </div>
+            <div className="rounded-lg border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Annual Maintenance</p>
+              <p className="mt-1 text-xl font-semibold">{formatCurrency(annualMaintenanceCost)}</p>
+              <p className="text-xs text-muted-foreground">{monthlyMaintenanceHours}h/month x {formatCurrency(hourlyRate)}/h</p>
+            </div>
+            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+              <p className="text-xs text-muted-foreground">Year-1 Total (Dev + Ops)</p>
+              <p className="mt-1 text-xl font-semibold text-primary">{formatCurrency(firstYearTotalCost)}</p>
+              <p className="text-xs text-muted-foreground">
+                Dev: {formatCurrency(data.summary.totalCost)} + Ops: {formatCurrency(firstYearOpsCost)}
               </p>
             </div>
           </div>

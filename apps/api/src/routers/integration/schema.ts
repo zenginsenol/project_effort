@@ -4,7 +4,10 @@ const githubRepositorySchema = z
   .string()
   .trim()
   .min(3)
-  .regex(/^[^/\s]+\/[^/\s]+$/, 'Repository must be in owner/repo format');
+  .refine(
+    (value) => /^(?:https?:\/\/github\.com\/|github\.com\/)?[^/\s]+\/[^/\s]+(?:\.git)?$/i.test(value),
+    'Repository must be owner/repo or GitHub URL',
+  );
 
 export const connectIntegrationInput = z.object({
   organizationId: z.string().uuid(),

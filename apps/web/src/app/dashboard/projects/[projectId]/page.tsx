@@ -472,7 +472,7 @@ export default function ProjectDetailPage(): React.ReactElement {
               type="text"
               value={githubRepoInput}
               onChange={(event) => setGithubRepoInput(event.target.value)}
-              placeholder="owner/repo"
+              placeholder="owner/repo or https://github.com/owner/repo"
               className="rounded-md border px-3 py-2 text-sm"
             />
             <button
@@ -505,6 +505,17 @@ export default function ProjectDetailPage(): React.ReactElement {
             Auto-sync when project is opened
           </label>
         )}
+
+        <div className="mt-3 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+          <p className="font-medium text-foreground">GitHub entegrasyonu ne sağlar?</p>
+          <ul className="mt-1 list-disc space-y-1 pl-4">
+            <li>Repo issue&apos;larını projeye task olarak çeker (duplicate başlıkları atlar).</li>
+            <li>Label&apos;lardan tür eşlemesi yapar: epic, feature, story, subtask, bug, task.</li>
+            <li>Label&apos;lardan öncelik eşler: critical/high/medium/low (P0-P3 dahil).</li>
+            <li>Label&apos;lardan story point okur: `sp:3`, `points:5`, `estimate:8` formatları.</li>
+            <li>Proje bazlı repo linki saklar, istenirse proje açılışında otomatik senkron yapar.</li>
+          </ul>
+        </div>
 
         {githubProjectLinkQuery.data?.link?.externalProjectId && (
           <p className="mt-2 text-xs text-muted-foreground">

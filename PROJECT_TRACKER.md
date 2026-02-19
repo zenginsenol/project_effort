@@ -1,8 +1,8 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-19 08:14
-> Current Phase: Post-Closure Remediation Complete (Roadmap/Kanban/GitHub Integration)
-> Overall Progress: Re-audit recovery plus roadmap-to-kanban automation and project-based GitHub integration are implemented and validated
+> Last Updated: 2026-02-19 08:42
+> Current Phase: Full Internal Application Complete (Effort + Tracking + Advanced GitHub Mapping)
+> Overall Progress: Core delivery plus full-scope internal application finalized with detailed GitHub sync mappings and operational cost visibility
 > Agent Backlog Progress: `46/46` done (`todo=0`, `in_progress=0`, `blocked=0`)
 
 ## Status Icons
@@ -822,3 +822,64 @@ Delivered capabilities:
 2. Roadmap can be auto-applied to Kanban when selecting/configuring project.
 3. Selected project can be linked to real GitHub repository and synced (manual + optional auto-sync on open).
 4. End-to-end checks (type/build/quality/runtime) executed and recorded.
+
+---
+
+## 13) Full-Scope Internal Project Application (EstimatePro as Real Client Project)
+
+This section treats our own product backlog as a real delivery project and defines “done” at operational depth.
+
+### 13.1 Full Application Targets
+
+| Target | Status | Evidence |
+|---|---|---|
+| Effort model fully applied on project tasks | ✅ | `apps/web/src/app/dashboard/effort/page.tsx` roadmap + apply flow |
+| Kanban auto-application active on selection/config | ✅ | `trpc.effort.applyRoadmap` + auto-signature logic |
+| Project-level GitHub integration active | ✅ | Project detail GitHub panel + backend projectLinks |
+| Real sync + mapping (status/type/priority/points) | ✅ | `apps/api/src/services/integrations/github.ts` |
+| Follow-up docs updated for implementation governance | ✅ | `PROJECT_TRACKER.md`, `README.md` |
+
+### 13.2 GitHub Integration Capability Matrix (Detailed)
+
+| Capability | Implemented Behavior | Status |
+|---|---|---|
+| Repository linking | Per-project repo binding via `integrations.settings.projectLinks[projectId]` | ✅ |
+| Supported repo input | `owner/repo`, `github.com/owner/repo`, `https://github.com/owner/repo(.git)` | ✅ |
+| Sync mode | Manual (`Sync Now`) + Auto sync when project is opened | ✅ |
+| Entity import | GitHub Issues imported; Pull Requests ignored | ✅ |
+| Duplicate strategy | Existing task titles are skipped | ✅ |
+| Status mapping | `open->todo`, `closed->done` | ✅ |
+| Type mapping | Label-derived `epic/feature/story/subtask/bug/task` | ✅ |
+| Priority mapping | Label-derived `critical/high/medium/low` (P0-P3, priority labels) | ✅ |
+| Story point mapping | Label patterns: `sp:X`, `points:X`, `estimate:X` | ✅ |
+| Tenant safety | Org/project access enforced before link/sync | ✅ |
+
+### 13.3 Acceptance Criteria (Real-Project Level)
+
+1. A connected GitHub integration must be selectable for a concrete project.
+2. Linking a repository must persist and be retrievable after refresh/reopen.
+3. Sync must create new tasks from external issues without re-importing duplicates.
+4. Imported tasks must carry mapped type/priority/story points when labels exist.
+5. Effort roadmap must be generatable from synced tasks.
+6. Kanban order/status updates must be applied from roadmap with deterministic order.
+7. All changes must pass typecheck/build/quality-gate.
+
+Status against criteria: ✅ all satisfied.
+
+### 13.4 Execution Verification (Latest)
+
+| Command | Result |
+|---|---|
+| `pnpm --filter @estimate-pro/api typecheck` | ✅ pass |
+| `pnpm --filter @estimate-pro/web typecheck` | ✅ pass |
+| `pnpm --filter @estimate-pro/api lint` | ✅ pass (warnings only) |
+| `pnpm --filter @estimate-pro/web lint` | ✅ pass (warnings only) |
+| `pnpm quality:gate` | ✅ pass |
+
+### 13.5 Cost/Tracking Governance Note
+
+For full-scope internal delivery visibility:
+- Development cost uses effort calculator outputs.
+- Recurring infra/domain/maintenance lines are governed by Section 9 tables.
+- GitHub sync + roadmap apply creates a continuous loop:
+  - external workload intake -> internal task board -> effort/cost recalculation -> roadmap refresh.

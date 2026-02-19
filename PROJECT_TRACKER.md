@@ -919,6 +919,7 @@ Wave-2 is launched to close remaining deployment-risk items discovered during pa
 | Phase H backlog created with detailed subtasks | ✅ | `agent-ops/agent-backlog.json` (`H-000`..`H-017`) |
 | Agent orchestration resumed | ✅ | `pnpm agent:advance` started `H-000` |
 | Live queue report refreshed | ✅ | `agent-ops/agent-next-tasks.md` |
+| OAuth dual-mode design package drafted | ✅ | `agent-ops/ops/oauth-callback-dual-mode-design-2026-02-19.md` |
 
 ### 14.2 Gate Model
 

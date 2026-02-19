@@ -981,3 +981,15 @@ Operational rule for parallel development:
 1. Resolve and commit exactly one hotspot batch at a time.
 2. Re-run `pnpm quality:gate` after each batch.
 3. Keep OpenAI OAuth auth path operational while converging callback strategy.
+
+### 14.7 Wave-2 Remaining Effort + Cost Roadmap (Detailed)
+
+Detailed roadmap document created:
+- `agent-ops/ops/wave2-effort-roadmap-kanban-2026-02-19.md`
+
+Scope included in this roadmap:
+1. Remaining Phase-H task-level effort (`H-001`..`H-017`) with owner/dependency mapping.
+2. TRY cost projection using the project baseline rate (`1,200 TRY/h`) + contingency.
+3. Date-window execution cadence (Gate-1 to Gate-4).
+4. Operational budget alternatives (starter/growth/scale) for go-live month planning.
+5. Step-by-step Kanban auto-apply + GitHub sync execution path.

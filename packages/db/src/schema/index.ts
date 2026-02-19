@@ -4,6 +4,7 @@ export * from './users';
 export * from './projects';
 export * from './tasks';
 export * from './estimates';
+export * from './cost-analyses';
 export * from './sessions';
 export * from './sprints';
 export * from './integrations';

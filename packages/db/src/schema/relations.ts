@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 
 import { apiKeys } from './api-keys';
+import { costAnalyses } from './cost-analyses';
 import { estimates } from './estimates';
 import { integrations } from './integrations';
 import { organizationMembers, users } from './users';
@@ -14,6 +15,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   members: many(organizationMembers),
   projects: many(projects),
   integrations: many(integrations),
+  costAnalyses: many(costAnalyses),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -21,6 +23,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assignedTasks: many(tasks),
   estimates: many(estimates),
   apiKeys: many(apiKeys),
+  createdCostAnalyses: many(costAnalyses),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
@@ -42,6 +45,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   tasks: many(tasks),
   sessions: many(sessions),
   sprints: many(sprints),
+  costAnalyses: many(costAnalyses),
 }));
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
@@ -123,6 +127,25 @@ export const integrationsRelations = relations(integrations, ({ one }) => ({
   organization: one(organizations, {
     fields: [integrations.organizationId],
     references: [organizations.id],
+  }),
+}));
+
+export const costAnalysesRelations = relations(costAnalyses, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [costAnalyses.organizationId],
+    references: [organizations.id],
+  }),
+  project: one(projects, {
+    fields: [costAnalyses.projectId],
+    references: [projects.id],
+  }),
+  createdByUser: one(users, {
+    fields: [costAnalyses.createdByUserId],
+    references: [users.id],
+  }),
+  githubIntegration: one(integrations, {
+    fields: [costAnalyses.githubIntegrationId],
+    references: [integrations.id],
   }),
 }));
 

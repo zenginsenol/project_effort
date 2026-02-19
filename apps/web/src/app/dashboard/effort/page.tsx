@@ -2,13 +2,19 @@
 
 import {
   AlertTriangle,
+  Download,
+  Github,
+  GitCompare,
   Calculator,
   ChevronDown,
   ChevronUp,
   Clock,
   DollarSign,
   FileText,
+  Save,
+  Sparkles,
   TrendingUp,
+  Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -41,6 +47,23 @@ const TYPE_COLORS: Record<string, string> = {
   bug: 'bg-red-100 text-red-700',
 };
 
+const EMPTY_UUID = '00000000-0000-0000-0000-000000000000';
+const AI_PROVIDER_OPTIONS = ['openai', 'anthropic', 'openrouter'] as const;
+const AI_REASONING_OPTIONS = ['low', 'medium', 'high', 'xhigh'] as const;
+const ADDITIONAL_COST_FREQUENCIES = ['one_time', 'monthly', 'annual'] as const;
+
+type AIProviderOption = typeof AI_PROVIDER_OPTIONS[number];
+type AIReasoningOption = typeof AI_REASONING_OPTIONS[number];
+type AdditionalCostFrequency = typeof ADDITIONAL_COST_FREQUENCIES[number];
+
+type AdditionalCostDraft = {
+  id?: string;
+  label: string;
+  amount: number;
+  frequency: AdditionalCostFrequency;
+  note: string;
+};
+
 export default function EffortPage(): React.ReactElement {
   const utils = trpc.useUtils();
 
@@ -59,6 +82,20 @@ export default function EffortPage(): React.ReactElement {
   const [showTasks, setShowTasks] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>('summary');
   const autoAppliedSignatureRef = useRef<string | null>(null);
+  const [analysisName, setAnalysisName] = useState('');
+  const [analysisDescription, setAnalysisDescription] = useState('');
+  const [analysisAssumptionsText, setAnalysisAssumptionsText] = useState('');
+  const [aiInputText, setAiInputText] = useState('');
+  const [aiProjectContext, setAiProjectContext] = useState('');
+  const [aiProvider, setAiProvider] = useState<AIProviderOption>('openai');
+  const [aiModel, setAiModel] = useState('');
+  const [aiReasoningEffort, setAiReasoningEffort] = useState<AIReasoningOption>('medium');
+  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostDraft[]>([]);
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState('');
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
+  const [githubRepositoryOverride, setGithubRepositoryOverride] = useState('');
+  const [analysisNotice, setAnalysisNotice] = useState('');
+  const [exportingFormat, setExportingFormat] = useState<'json' | 'csv' | 'md' | null>(null);
 
   const effortQuery = trpc.effort.calculate.useQuery({
     projectId: selectedProjectId,
@@ -99,6 +136,81 @@ export default function EffortPage(): React.ReactElement {
     organizationId: '',
   }, { retry: false });
 
+  const analysesQuery = trpc.effort.listAnalyses.useQuery(
+    { projectId: selectedProjectId },
+    { enabled: Boolean(selectedProjectId), retry: false },
+  );
+
+  const selectedAnalysisQuery = trpc.effort.getAnalysis.useQuery(
+    { analysisId: selectedAnalysisId || EMPTY_UUID },
+    { enabled: Boolean(selectedAnalysisId), retry: false },
+  );
+
+  const compareAnalysesQuery = trpc.effort.compareAnalyses.useQuery(
+    { projectId: selectedProjectId, analysisIds: compareSelection },
+    { enabled: Boolean(selectedProjectId) && compareSelection.length >= 2, retry: false },
+  );
+
+  const saveCurrentAnalysisMutation = trpc.effort.saveCurrentAnalysis.useMutation({
+    onSuccess: async (analysis) => {
+      setAnalysisNotice(`Analysis saved: ${analysis.name}`);
+      setSelectedAnalysisId(analysis.id);
+      await analysesQuery.refetch();
+    },
+    onError: (error) => {
+      setAnalysisNotice(`Save failed: ${error.message}`);
+    },
+  });
+
+  const createAiAnalysisMutation = trpc.effort.createAiAnalysis.useMutation({
+    onSuccess: async (analysis) => {
+      setAnalysisNotice(`AI analysis created: ${analysis.name}`);
+      setSelectedAnalysisId(analysis.id);
+      await analysesQuery.refetch();
+    },
+    onError: (error) => {
+      setAnalysisNotice(`AI analysis failed: ${error.message}`);
+    },
+  });
+
+  const updateAnalysisMutation = trpc.effort.updateAnalysis.useMutation({
+    onSuccess: async (analysis) => {
+      setAnalysisNotice(`Analysis updated: ${analysis.name}`);
+      await Promise.all([
+        analysesQuery.refetch(),
+        selectedAnalysisQuery.refetch(),
+      ]);
+    },
+    onError: (error) => {
+      setAnalysisNotice(`Update failed: ${error.message}`);
+    },
+  });
+
+  const deleteAnalysisMutation = trpc.effort.deleteAnalysis.useMutation({
+    onSuccess: async () => {
+      setAnalysisNotice('Analysis deleted.');
+      setSelectedAnalysisId('');
+      setCompareSelection([]);
+      await analysesQuery.refetch();
+    },
+    onError: (error) => {
+      setAnalysisNotice(`Delete failed: ${error.message}`);
+    },
+  });
+
+  const syncAnalysisToGithubMutation = trpc.effort.syncAnalysisToGithub.useMutation({
+    onSuccess: async (result) => {
+      setAnalysisNotice(`GitHub sync complete: #${result.issueNumber}`);
+      await Promise.all([
+        analysesQuery.refetch(),
+        selectedAnalysisQuery.refetch(),
+      ]);
+    },
+    onError: (error) => {
+      setAnalysisNotice(`GitHub sync failed: ${error.message}`);
+    },
+  });
+
   const data = effortQuery.data;
   const roadmapData = roadmapQuery.data;
 
@@ -118,7 +230,46 @@ export default function EffortPage(): React.ReactElement {
   useEffect(() => {
     setKanbanSyncNotice('');
     autoAppliedSignatureRef.current = null;
+    setAnalysisNotice('');
+    setSelectedAnalysisId('');
+    setCompareSelection([]);
+    setGithubRepositoryOverride('');
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (selectedAnalysisId || !analysesQuery.data?.[0]) {
+      return;
+    }
+    setSelectedAnalysisId(analysesQuery.data[0].id);
+  }, [analysesQuery.data, selectedAnalysisId]);
+
+  useEffect(() => {
+    if (!selectedAnalysisQuery.data) {
+      return;
+    }
+
+    const analysis = selectedAnalysisQuery.data;
+    setAnalysisName(analysis.name ?? '');
+    setAnalysisDescription(analysis.description ?? '');
+    setAnalysisAssumptionsText((analysis.assumptions ?? []).join('\n'));
+    setHourlyRate(analysis.parameters.hourlyRate);
+    setCurrency(analysis.parameters.currency);
+    setContingency(analysis.parameters.contingencyPercent);
+    setWorkHoursPerDay(analysis.parameters.workHoursPerDay);
+    setMonthlyInfraOpsCost(analysis.editableSections.monthlyInfraOpsCost);
+    setAnnualDomainCost(analysis.editableSections.annualDomainCost);
+    setMonthlyMaintenanceHours(analysis.editableSections.monthlyMaintenanceHours);
+    setAdditionalCosts(
+      (analysis.editableSections.additionalCosts ?? []).map((item) => ({
+        id: item.id,
+        label: item.label,
+        amount: item.amount,
+        frequency: item.frequency as AdditionalCostFrequency,
+        note: item.note ?? '',
+      })),
+    );
+    setGithubRepositoryOverride(analysis.github.repository ?? '');
+  }, [selectedAnalysisQuery.data]);
 
   useEffect(() => {
     if (!selectedProjectId || !autoApplyKanban || !roadmapData || applyRoadmapMutation.isPending) {
@@ -172,6 +323,181 @@ export default function EffortPage(): React.ReactElement {
       workHoursPerDay,
       includeCompleted,
       autoMoveFirstWeekToTodo,
+    });
+  }
+
+  function assumptionsFromText(): string[] {
+    return analysisAssumptionsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  function editableSectionsPayload() {
+    return {
+      monthlyInfraOpsCost,
+      annualDomainCost,
+      monthlyMaintenanceHours,
+      additionalCosts: additionalCosts
+        .filter((item) => item.label.trim().length > 0)
+        .map((item) => ({
+          id: item.id,
+          label: item.label.trim(),
+          amount: Number.isFinite(item.amount) ? Math.max(0, item.amount) : 0,
+          frequency: item.frequency,
+          note: item.note.trim() || undefined,
+        })),
+    };
+  }
+
+  function handleSaveCurrentAnalysis(): void {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    saveCurrentAnalysisMutation.mutate({
+      projectId: selectedProjectId,
+      name: analysisName.trim() || undefined,
+      description: analysisDescription.trim() || undefined,
+      assumptions: assumptionsFromText(),
+      parameters: {
+        hourlyRate,
+        currency,
+        contingencyPercent: contingency,
+        workHoursPerDay,
+      },
+      editableSections: editableSectionsPayload(),
+    });
+  }
+
+  function handleCreateAiAnalysis(): void {
+    if (!selectedProjectId || !aiInputText.trim()) {
+      return;
+    }
+
+    createAiAnalysisMutation.mutate({
+      projectId: selectedProjectId,
+      name: analysisName.trim() || undefined,
+      description: analysisDescription.trim() || undefined,
+      assumptions: assumptionsFromText(),
+      parameters: {
+        hourlyRate,
+        currency,
+        contingencyPercent: contingency,
+        workHoursPerDay,
+      },
+      editableSections: editableSectionsPayload(),
+      text: aiInputText.trim(),
+      projectContext: aiProjectContext.trim() || undefined,
+      provider: aiProvider,
+      model: aiModel.trim() || undefined,
+      reasoningEffort: aiReasoningEffort,
+    });
+  }
+
+  function handleUpdateSelectedAnalysis(): void {
+    if (!selectedAnalysisId) {
+      return;
+    }
+
+    updateAnalysisMutation.mutate({
+      analysisId: selectedAnalysisId,
+      name: analysisName.trim() || undefined,
+      description: analysisDescription.trim() || null,
+      assumptions: assumptionsFromText(),
+      parameters: {
+        hourlyRate,
+        currency,
+        contingencyPercent: contingency,
+        workHoursPerDay,
+      },
+      editableSections: editableSectionsPayload(),
+    });
+  }
+
+  function handleDeleteSelectedAnalysis(): void {
+    if (!selectedAnalysisId) {
+      return;
+    }
+    if (!window.confirm('Delete selected analysis permanently?')) {
+      return;
+    }
+    deleteAnalysisMutation.mutate({ analysisId: selectedAnalysisId });
+  }
+
+  function addAdditionalCost(): void {
+    setAdditionalCosts((previous) => [
+      ...previous,
+      {
+        id: crypto.randomUUID(),
+        label: '',
+        amount: 0,
+        frequency: 'one_time',
+        note: '',
+      },
+    ]);
+  }
+
+  function updateAdditionalCost(index: number, patch: Partial<AdditionalCostDraft>): void {
+    setAdditionalCosts((previous) => previous.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, ...patch } : item
+    )));
+  }
+
+  function removeAdditionalCost(index: number): void {
+    setAdditionalCosts((previous) => previous.filter((_item, itemIndex) => itemIndex !== index));
+  }
+
+  function toggleCompareSelection(analysisId: string): void {
+    setCompareSelection((previous) => {
+      if (previous.includes(analysisId)) {
+        return previous.filter((item) => item !== analysisId);
+      }
+      if (previous.length >= 6) {
+        return previous;
+      }
+      return [...previous, analysisId];
+    });
+  }
+
+  async function handleExportAnalysis(format: 'json' | 'csv' | 'md'): Promise<void> {
+    if (!selectedAnalysisId || exportingFormat) {
+      return;
+    }
+
+    try {
+      setExportingFormat(format);
+      const response = await utils.effort.exportAnalysis.fetch({
+        analysisId: selectedAnalysisId,
+        format,
+      });
+      const blob = new Blob([response.content], { type: response.mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = response.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setAnalysisNotice(`Export ready: ${response.filename}`);
+    } catch (error) {
+      setAnalysisNotice(
+        `Export failed: ${error instanceof Error ? error.message : 'Unexpected error'}`,
+      );
+    } finally {
+      setExportingFormat(null);
+    }
+  }
+
+  function handleSyncSelectedAnalysisToGithub(): void {
+    if (!selectedAnalysisId) {
+      return;
+    }
+
+    syncAnalysisToGithubMutation.mutate({
+      analysisId: selectedAnalysisId,
+      repository: githubRepositoryOverride.trim() || undefined,
     });
   }
 
@@ -801,6 +1127,407 @@ export default function EffortPage(): React.ReactElement {
                 <p className="text-4xl font-bold text-primary">{formatCurrency(data.summary.totalCost)}</p>
               </div>
             </div>
+          </div>
+        </>
+      )}
+
+      {selectedProjectId && (
+        <>
+          <div className="rounded-lg border bg-card p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Save className="h-5 w-5 text-primary" />
+                  Cost Analysis Workspace
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Save, edit, and reuse cost analysis snapshots for this project.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveCurrentAnalysis}
+                  disabled={saveCurrentAnalysisMutation.isPending}
+                  className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                >
+                  {saveCurrentAnalysisMutation.isPending ? 'Saving...' : 'Save Current Snapshot'}
+                </button>
+                <button
+                  onClick={handleUpdateSelectedAnalysis}
+                  disabled={!selectedAnalysisId || updateAnalysisMutation.isPending}
+                  className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+                >
+                  {updateAnalysisMutation.isPending ? 'Updating...' : 'Update Selected'}
+                </button>
+                <button
+                  onClick={handleDeleteSelectedAnalysis}
+                  disabled={!selectedAnalysisId || deleteAnalysisMutation.isPending}
+                  className="rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {analysisNotice && (
+              <p className="mt-3 rounded-md border bg-muted/40 px-3 py-2 text-sm">{analysisNotice}</p>
+            )}
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Analysis Name</label>
+                <input
+                  type="text"
+                  value={analysisName}
+                  onChange={(event) => setAnalysisName(event.target.value)}
+                  placeholder="e.g. Q1 launch baseline"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
+                <input
+                  type="text"
+                  value={analysisDescription}
+                  onChange={(event) => setAnalysisDescription(event.target.value)}
+                  placeholder="Scope or scenario details"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Assumptions (one per line)</label>
+                <textarea
+                  value={analysisAssumptionsText}
+                  onChange={(event) => setAnalysisAssumptionsText(event.target.value)}
+                  placeholder={'Single squad, 8h/day\nNo major architecture rewrite\nProd monitoring included'}
+                  className="h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Cost Analysis (OpenAI / Claude / Other)
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Generate a new analysis from document text using your configured provider keys.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Provider</label>
+                <select
+                  value={aiProvider}
+                  onChange={(event) => setAiProvider(event.target.value as AIProviderOption)}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                >
+                  {AI_PROVIDER_OPTIONS.map((provider) => (
+                    <option key={provider} value={provider}>{provider}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Model (optional)</label>
+                <input
+                  type="text"
+                  value={aiModel}
+                  onChange={(event) => setAiModel(event.target.value)}
+                  placeholder="gpt-5.2 / claude-sonnet-4-6"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Reasoning</label>
+                <select
+                  value={aiReasoningEffort}
+                  onChange={(event) => setAiReasoningEffort(event.target.value as AIReasoningOption)}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                >
+                  {AI_REASONING_OPTIONS.map((effort) => (
+                    <option key={effort} value={effort}>{effort}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={handleCreateAiAnalysis}
+                  disabled={!aiInputText.trim() || createAiAnalysisMutation.isPending}
+                  className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {createAiAnalysisMutation.isPending ? 'Analyzing...' : 'Create AI Analysis'}
+                </button>
+              </div>
+              <div className="sm:col-span-2 lg:col-span-4">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">AI Project Context (optional)</label>
+                <input
+                  type="text"
+                  value={aiProjectContext}
+                  onChange={(event) => setAiProjectContext(event.target.value)}
+                  placeholder="Tech stack, team composition, release constraints"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-4">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Requirements / Scope Text</label>
+                <textarea
+                  value={aiInputText}
+                  onChange={(event) => setAiInputText(event.target.value)}
+                  placeholder="Paste PRD, scope notes, or analysis text..."
+                  className="h-40 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold">Editable Operational Cost Sections</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Maintain alternative infra/domain/maintenance cost items in saved analyses.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {additionalCosts.map((item, index) => (
+                <div key={item.id ?? `extra-${index}`} className="grid gap-2 rounded-md border p-3 sm:grid-cols-12">
+                  <input
+                    value={item.label}
+                    onChange={(event) => updateAdditionalCost(index, { label: event.target.value })}
+                    placeholder="Additional cost label"
+                    className="rounded-md border bg-background px-3 py-2 text-sm sm:col-span-4"
+                  />
+                  <input
+                    type="number"
+                    value={item.amount}
+                    onChange={(event) => updateAdditionalCost(index, { amount: Number(event.target.value) })}
+                    min={0}
+                    className="rounded-md border bg-background px-3 py-2 text-sm sm:col-span-2"
+                  />
+                  <select
+                    value={item.frequency}
+                    onChange={(event) => updateAdditionalCost(index, { frequency: event.target.value as AdditionalCostFrequency })}
+                    className="rounded-md border bg-background px-3 py-2 text-sm sm:col-span-2"
+                  >
+                    {ADDITIONAL_COST_FREQUENCIES.map((frequency) => (
+                      <option key={frequency} value={frequency}>{frequency}</option>
+                    ))}
+                  </select>
+                  <input
+                    value={item.note}
+                    onChange={(event) => updateAdditionalCost(index, { note: event.target.value })}
+                    placeholder="Notes"
+                    className="rounded-md border bg-background px-3 py-2 text-sm sm:col-span-3"
+                  />
+                  <button
+                    onClick={() => removeAdditionalCost(index)}
+                    className="rounded-md border border-red-200 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 sm:col-span-1"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addAdditionalCost}
+                className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Add Cost Item
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold">Saved Analyses</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Select one record to edit/export. Select multiple records to compare.
+            </p>
+
+            {analysesQuery.isLoading && (
+              <p className="mt-3 text-sm text-muted-foreground">Loading analyses...</p>
+            )}
+
+            {!analysesQuery.isLoading && (analysesQuery.data?.length ?? 0) === 0 && (
+              <p className="mt-3 text-sm text-muted-foreground">No saved analysis yet for this project.</p>
+            )}
+
+            {(analysesQuery.data ?? []).length > 0 && (
+              <div className="mt-4 overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 text-left">
+                      <th className="p-2 font-medium">Edit</th>
+                      <th className="p-2 font-medium">Compare</th>
+                      <th className="p-2 font-medium">Name</th>
+                      <th className="p-2 font-medium">Source</th>
+                      <th className="p-2 font-medium text-right">Hours</th>
+                      <th className="p-2 font-medium text-right">Cost</th>
+                      <th className="p-2 font-medium text-right">Year-1 Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(analysesQuery.data ?? []).map((analysis) => (
+                      <tr key={analysis.id} className="border-t">
+                        <td className="p-2">
+                          <input
+                            type="radio"
+                            checked={selectedAnalysisId === analysis.id}
+                            onChange={() => setSelectedAnalysisId(analysis.id)}
+                            name="selected-analysis"
+                            className="h-4 w-4"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="checkbox"
+                            checked={compareSelection.includes(analysis.id)}
+                            onChange={() => toggleCompareSelection(analysis.id)}
+                            className="h-4 w-4"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <p className="font-medium">{analysis.name}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(analysis.createdAt).toLocaleString()}</p>
+                        </td>
+                        <td className="p-2 text-xs">{analysis.source.type}{analysis.source.provider ? `/${analysis.source.provider}` : ''}</td>
+                        <td className="p-2 text-right">{analysis.summary.totalWithContingency}h</td>
+                        <td className="p-2 text-right">{formatCurrency(analysis.summary.totalCost)}</td>
+                        <td className="p-2 text-right">{formatCurrency(analysis.summary.firstYearTotalCost)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <GitCompare className="h-5 w-5 text-primary" />
+              Compare Analyses
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose at least 2 analyses to compute deltas against baseline.
+            </p>
+            {compareSelection.length < 2 && (
+              <p className="mt-3 text-sm text-muted-foreground">Select 2+ analyses in the table above.</p>
+            )}
+            {compareSelection.length >= 2 && compareAnalysesQuery.isLoading && (
+              <p className="mt-3 text-sm text-muted-foreground">Comparing...</p>
+            )}
+            {compareAnalysesQuery.data && (
+              <div className="mt-4 overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 text-left">
+                      <th className="p-2 font-medium">Analysis</th>
+                      <th className="p-2 font-medium text-right">Hours</th>
+                      <th className="p-2 font-medium text-right">Cost</th>
+                      <th className="p-2 font-medium text-right">Year-1 Total</th>
+                      <th className="p-2 font-medium text-right">Delta Hours</th>
+                      <th className="p-2 font-medium text-right">Delta Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compareAnalysesQuery.data.analyses.map((item) => (
+                      <tr key={item.analysisId} className="border-t">
+                        <td className="p-2">
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.sourceLabel}</p>
+                        </td>
+                        <td className="p-2 text-right">{item.totalHours}h</td>
+                        <td className="p-2 text-right">{formatCurrency(item.totalCost)}</td>
+                        <td className="p-2 text-right">{formatCurrency(item.firstYearTotalCost)}</td>
+                        <td className={cn(
+                          'p-2 text-right',
+                          item.delta.hours > 0 ? 'text-red-600' : item.delta.hours < 0 ? 'text-green-600' : 'text-muted-foreground',
+                        )}
+                        >
+                          {item.delta.hours > 0 ? '+' : ''}{item.delta.hours}h
+                        </td>
+                        <td className={cn(
+                          'p-2 text-right',
+                          item.delta.totalCost > 0 ? 'text-red-600' : item.delta.totalCost < 0 ? 'text-green-600' : 'text-muted-foreground',
+                        )}
+                        >
+                          {item.delta.totalCost > 0 ? '+' : ''}{formatCurrency(item.delta.totalCost)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Github className="h-5 w-5 text-primary" />
+              Export & GitHub Integration
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Export selected analysis or sync it as GitHub issue in linked repository.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <button
+                onClick={() => { void handleExportAnalysis('json'); }}
+                disabled={!selectedAnalysisId || Boolean(exportingFormat)}
+                className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Download className="h-4 w-4" />
+                  {exportingFormat === 'json' ? 'Exporting...' : 'Export JSON'}
+                </span>
+              </button>
+              <button
+                onClick={() => { void handleExportAnalysis('csv'); }}
+                disabled={!selectedAnalysisId || Boolean(exportingFormat)}
+                className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Download className="h-4 w-4" />
+                  {exportingFormat === 'csv' ? 'Exporting...' : 'Export CSV'}
+                </span>
+              </button>
+              <button
+                onClick={() => { void handleExportAnalysis('md'); }}
+                disabled={!selectedAnalysisId || Boolean(exportingFormat)}
+                className="rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Download className="h-4 w-4" />
+                  {exportingFormat === 'md' ? 'Exporting...' : 'Export Markdown'}
+                </span>
+              </button>
+              <button
+                onClick={handleSyncSelectedAnalysisToGithub}
+                disabled={!selectedAnalysisId || syncAnalysisToGithubMutation.isPending}
+                className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {syncAnalysisToGithubMutation.isPending ? 'Syncing...' : 'Sync to GitHub'}
+              </button>
+              <div className="sm:col-span-2 lg:col-span-4">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Repository Override (optional)</label>
+                <input
+                  type="text"
+                  value={githubRepositoryOverride}
+                  onChange={(event) => setGithubRepositoryOverride(event.target.value)}
+                  placeholder="owner/repo or GitHub URL"
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            {selectedAnalysisQuery.data?.github.issueUrl && (
+              <a
+                href={selectedAnalysisQuery.data.github.issueUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                Open Synced GitHub Issue #{selectedAnalysisQuery.data.github.issueNumber}
+              </a>
+            )}
           </div>
         </>
       )}

@@ -1,6 +1,6 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-19 15:31
+> Last Updated: 2026-02-19 23:47
 > Current Phase: Wave-2 Go-Live Hardening In Progress (Conflict Resolution + Cutover Readiness)
 > Overall Progress: Previous scope is complete; Wave-2 is opened to close remaining OAuth/DB/callback/cutover integration risks before live transition
 > Agent Backlog Progress: `49/64` done (`todo=14`, `in_progress=1`, `blocked=0`)
@@ -1066,3 +1066,98 @@ Transfer behavior:
 1. GitHub issue creation (requires `GITHUB_REPO`, `GITHUB_TOKEN`)
 2. Kanban task insertion to selected project (requires `KANBAN_PROJECT_ID` or `--project-id`)
 3. Duplicate task-title skip is applied on Kanban insert.
+
+### 14.11 Effort/Cost Workspace Rebuild (AI + Edit + Compare + Export + GitHub)
+
+End-to-end cost analysis workspace is now implemented as a persistent module.
+
+#### 14.11.1 Scope (Delivered)
+
+1. Persistent cost-analysis snapshots (save/edit/delete) per project.
+2. AI-driven cost analysis creation via provider selection:
+- `openai`
+- `anthropic` (Claude)
+- `openrouter` (other model families)
+3. Compare section for multi-analysis delta review (hours/cost/year-1 total/week deltas).
+4. Export section for `json` / `csv` / `markdown`.
+5. GitHub full integration for selected analysis:
+- Upsert as GitHub Issue (create or update existing synced issue).
+- Store issue metadata in analysis record (`repository`, `issue number/url`, `syncedAt`).
+6. Editable cost sections (infra/domain/maintenance + additional cost lines) retained in snapshots.
+
+#### 14.11.2 Database Layer (Agent-B scope)
+
+Implemented schema + migration set:
+- New table: `packages/db/src/schema/cost-analyses.ts`
+- Export wired: `packages/db/src/schema/index.ts`
+- Relations wired: `packages/db/src/schema/relations.ts`
+- Migration:
+  - `packages/db/drizzle/20260219_wave3_cost_analysis_workspace.sql`
+  - `packages/db/drizzle/20260219_wave3_cost_analysis_workspace.rollback.sql`
+
+Stored analysis payload model:
+1. Source metadata (`project_tasks` / `ai_text` / `manual`, provider/model/reasoning).
+2. Parameters (`hourlyRate`, `currency`, `contingencyPercent`, `workHoursPerDay`).
+3. Editable ops sections (`monthlyInfraOpsCost`, `annualDomainCost`, `monthlyMaintenanceHours`, `additionalCosts[]`).
+4. Snapshot payload (`taskSnapshot`, `summarySnapshot`, `breakdownSnapshot`, `assumptions`).
+5. GitHub sync metadata fields.
+
+#### 14.11.3 API Layer (Agent-A scope)
+
+New cost analysis service:
+- `apps/api/src/routers/effort/cost-analysis-service.ts`
+
+New effort router procedures:
+1. `effort.listAnalyses`
+2. `effort.getAnalysis`
+3. `effort.saveCurrentAnalysis`
+4. `effort.createAiAnalysis`
+5. `effort.updateAnalysis`
+6. `effort.deleteAnalysis`
+7. `effort.compareAnalyses`
+8. `effort.exportAnalysis`
+9. `effort.syncAnalysisToGithub`
+
+Schema additions:
+- `apps/api/src/routers/effort/schema.ts`
+
+Router integration:
+- `apps/api/src/routers/effort/router.ts`
+
+Key behavior details:
+1. AI analysis path resolves user’s active provider credentials (API key / OAuth token refresh path support).
+2. Cost model includes development + first-year ops totals.
+3. Export returns filename + mimeType + content for direct download.
+4. GitHub sync uses active GitHub integration and linked repository (or override), then upserts issue.
+
+#### 14.11.4 Web Layer (Agent-C scope)
+
+Enhanced page:
+- `apps/web/src/app/dashboard/effort/page.tsx`
+
+Added workspace blocks:
+1. Cost analysis workspace (save/update/delete).
+2. AI generation panel (provider/model/reasoning/context + scope text).
+3. Editable operational costs with additional line items.
+4. Saved analysis table with edit/compare selections.
+5. Compare dashboard (baseline deltas).
+6. Export + GitHub sync panel.
+
+#### 14.11.5 Verification (Executed)
+
+1. `pnpm --filter @estimate-pro/db build` -> ✅
+2. `pnpm --filter @estimate-pro/db typecheck` -> ✅
+3. `pnpm --filter @estimate-pro/api typecheck` -> ✅
+4. `pnpm --filter @estimate-pro/api lint` -> ✅ (warnings only, no errors)
+5. `pnpm --filter @estimate-pro/web typecheck` -> ✅
+6. `pnpm --filter @estimate-pro/web lint` -> ✅ (warnings only, no errors)
+
+#### 14.11.6 Real Usage Scenario (Now Supported)
+
+1. Select project on `/dashboard/effort`.
+2. Build baseline from project tasks and save snapshot.
+3. Create AI analyses with OpenAI / Claude / OpenRouter from requirement text.
+4. Edit operational cost sections and assumptions on saved analyses.
+5. Select 2+ analyses and compare deltas.
+6. Export selected analysis to JSON/CSV/MD.
+7. Sync selected analysis to GitHub issue for stakeholder traceability.

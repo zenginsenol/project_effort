@@ -17,12 +17,77 @@ import {
   connectIntegrationInput,
   disconnectInput,
   exportEstimateInput,
+  getGithubProjectLinkInput,
   importItemsInput,
+  linkGithubProjectInput,
   listIntegrationsInput,
+  syncGithubProjectInput,
   syncItemsInput,
 } from './schema';
 
 type IntegrationRecord = InferSelectModel<typeof integrations>;
+
+type GithubProjectLink = {
+  externalProjectId: string;
+  autoSync: boolean;
+  updatedAt: string;
+};
+
+type IntegrationSettings = {
+  projectLinks: Record<string, GithubProjectLink>;
+};
+
+function toIntegrationSettings(raw: unknown): IntegrationSettings {
+  const result: IntegrationSettings = { projectLinks: {} };
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return result;
+  }
+
+  const rawRecord = raw as Record<string, unknown>;
+  const rawLinks = rawRecord.projectLinks;
+  if (!rawLinks || typeof rawLinks !== 'object' || Array.isArray(rawLinks)) {
+    return result;
+  }
+
+  for (const [projectId, value] of Object.entries(rawLinks as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      continue;
+    }
+
+    const candidate = value as Record<string, unknown>;
+    const externalProjectId = typeof candidate.externalProjectId === 'string'
+      ? candidate.externalProjectId.trim()
+      : '';
+
+    if (!externalProjectId) {
+      continue;
+    }
+
+    result.projectLinks[projectId] = {
+      externalProjectId,
+      autoSync: candidate.autoSync !== false,
+      updatedAt: typeof candidate.updatedAt === 'string'
+        ? candidate.updatedAt
+        : new Date().toISOString(),
+    };
+  }
+
+  return result;
+}
+
+function buildSettingsWithProjectLink(
+  currentSettings: unknown,
+  projectId: string,
+  link: GithubProjectLink,
+): IntegrationSettings {
+  const parsed = toIntegrationSettings(currentSettings);
+  return {
+    projectLinks: {
+      ...parsed.projectLinks,
+      [projectId]: link,
+    },
+  };
+}
 
 function getIntegrationClient(type: string): BaseIntegration {
   switch (type) {
@@ -120,6 +185,37 @@ async function getOwnedIntegration(integrationId: string, orgId: string): Promis
   }
 
   return integration;
+}
+
+async function getActiveGithubIntegration(
+  orgId: string,
+  integrationId?: string,
+): Promise<IntegrationRecord> {
+  if (integrationId) {
+    const owned = await getOwnedIntegration(integrationId, orgId);
+    if (owned.type !== 'github') {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Integration must be GitHub' });
+    }
+    if (!owned.isActive) {
+      throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'GitHub integration is not active' });
+    }
+    return owned;
+  }
+
+  const github = await db.query.integrations.findFirst({
+    where: and(
+      eq(integrations.organizationId, orgId),
+      eq(integrations.type, 'github'),
+      eq(integrations.isActive, true),
+    ),
+    orderBy: (i, { desc }) => [desc(i.updatedAt)],
+  });
+
+  if (!github) {
+    throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'GitHub integration is not connected' });
+  }
+
+  return github;
 }
 
 async function refreshIntegrationTokens(
@@ -328,6 +424,148 @@ export const integrationRouter = router({
         orderBy: (i, { desc }) => [desc(i.createdAt)],
       });
       return records.map(toSafeIntegrationResponse);
+    }),
+
+  getGithubProjectLink: orgProcedure
+    .input(getGithubProjectLinkInput)
+    .query(async ({ ctx, input }) => {
+      if (!(await hasProjectAccess(input.projectId, ctx.orgId))) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Project access denied' });
+      }
+
+      let integration: IntegrationRecord | undefined;
+      if (input.integrationId) {
+        integration = await getActiveGithubIntegration(ctx.orgId, input.integrationId);
+      } else {
+        integration = await db.query.integrations.findFirst({
+          where: and(
+            eq(integrations.organizationId, ctx.orgId),
+            eq(integrations.type, 'github'),
+            eq(integrations.isActive, true),
+          ),
+          orderBy: (i, { desc }) => [desc(i.updatedAt)],
+        });
+      }
+
+      if (!integration) {
+        return {
+          connected: false,
+          integrationId: null,
+          link: null,
+        };
+      }
+
+      const parsedSettings = toIntegrationSettings(integration.settings);
+      const projectLink = parsedSettings.projectLinks[input.projectId];
+      const fallbackExternalProjectId = integration.externalProjectId?.trim() || null;
+
+      const resolvedLink = projectLink ?? (
+        fallbackExternalProjectId
+          ? {
+            externalProjectId: fallbackExternalProjectId,
+            autoSync: false,
+            updatedAt: integration.updatedAt.toISOString(),
+          }
+          : null
+      );
+
+      return {
+        connected: true,
+        integrationId: integration.id,
+        link: resolvedLink,
+      };
+    }),
+
+  linkGithubProject: orgProcedure
+    .input(linkGithubProjectInput)
+    .mutation(async ({ ctx, input }) => {
+      if (!(await hasProjectAccess(input.projectId, ctx.orgId))) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Project access denied' });
+      }
+
+      const integration = await getActiveGithubIntegration(ctx.orgId, input.integrationId);
+      const nextLink: GithubProjectLink = {
+        externalProjectId: input.repository,
+        autoSync: input.autoSync,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const nextSettings = buildSettingsWithProjectLink(
+        integration.settings,
+        input.projectId,
+        nextLink,
+      );
+
+      const [updated] = await db
+        .update(integrations)
+        .set({
+          settings: nextSettings,
+          externalProjectId: nextLink.externalProjectId,
+          updatedAt: new Date(),
+        })
+        .where(eq(integrations.id, integration.id))
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to save GitHub project link' });
+      }
+
+      return {
+        integrationId: updated.id,
+        projectId: input.projectId,
+        repository: nextLink.externalProjectId,
+        autoSync: nextLink.autoSync,
+        updatedAt: nextLink.updatedAt,
+      };
+    }),
+
+  syncGithubProject: orgProcedure
+    .input(syncGithubProjectInput)
+    .mutation(async ({ ctx, input }) => {
+      if (!(await hasProjectAccess(input.projectId, ctx.orgId))) {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Project access denied' });
+      }
+
+      const integration = await getActiveGithubIntegration(ctx.orgId, input.integrationId);
+      const parsedSettings = toIntegrationSettings(integration.settings);
+      const projectLink = parsedSettings.projectLinks[input.projectId];
+
+      if (!projectLink?.externalProjectId) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'GitHub repository is not linked for this project',
+        });
+      }
+
+      const client = getIntegrationClient('github');
+
+      try {
+        const importedItems = await withIntegrationAccessToken(integration, client, (accessToken) => (
+          client.importItems(accessToken, projectLink.externalProjectId)
+        ));
+        const scopedItems = importedItems.slice(0, input.limit);
+        const syncedCount = await syncImportedItemsToProject(input.projectId, scopedItems);
+
+        await db
+          .update(integrations)
+          .set({
+            externalProjectId: projectLink.externalProjectId,
+            lastSyncAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(integrations.id, integration.id));
+
+        return {
+          integrationId: integration.id,
+          projectId: input.projectId,
+          repository: projectLink.externalProjectId,
+          importedCount: scopedItems.length,
+          syncedCount,
+          autoSync: projectLink.autoSync,
+        };
+      } catch (error) {
+        throw mapIntegrationError(error);
+      }
     }),
 
   importItems: orgProcedure

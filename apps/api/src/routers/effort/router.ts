@@ -2,7 +2,11 @@ import { TRPCError } from '@trpc/server';
 
 import { orgProcedure, router } from '../../trpc/trpc';
 
-import { effortCalculateInput, effortByTaskInput } from './schema';
+import {
+  effortApplyRoadmapInput,
+  effortCalculateInput,
+  effortRoadmapInput,
+} from './schema';
 import { effortService } from './service';
 
 export const effortRouter = router({
@@ -18,7 +22,40 @@ export const effortRouter = router({
           input.contingencyPercent,
           input.workHoursPerDay,
         );
-      } catch (err) {
+      } catch {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+      }
+    }),
+
+  roadmap: orgProcedure
+    .input(effortRoadmapInput)
+    .query(async ({ ctx, input }) => {
+      try {
+        return await effortService.generateRoadmap(
+          input.projectId,
+          ctx.orgId,
+          input.contingencyPercent,
+          input.workHoursPerDay,
+          input.includeCompleted,
+        );
+      } catch {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
+      }
+    }),
+
+  applyRoadmap: orgProcedure
+    .input(effortApplyRoadmapInput)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await effortService.applyRoadmapToKanban(
+          input.projectId,
+          ctx.orgId,
+          input.contingencyPercent,
+          input.workHoursPerDay,
+          input.includeCompleted,
+          input.autoMoveFirstWeekToTodo,
+        );
+      } catch {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
       }
     }),

@@ -1,9 +1,9 @@
 'use client';
 
-import { ArrowLeft, LayoutGrid, ListTodo, Plus, Save, Trash2, WandSparkles } from 'lucide-react';
+import { ArrowLeft, Github, LayoutGrid, Link2, ListTodo, Plus, RefreshCw, Save, Trash2, WandSparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { trpc } from '@/lib/trpc';
 
@@ -67,6 +67,10 @@ export default function ProjectDetailPage(): React.ReactElement {
   const [createTaskDraft, setCreateTaskDraft] = useState<CreateTaskDraft>(defaultCreateTaskDraft);
   const [taskDetailDraft, setTaskDetailDraft] = useState<TaskDetailDraft | null>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [githubRepoInput, setGithubRepoInput] = useState('');
+  const [githubAutoSync, setGithubAutoSync] = useState(true);
+  const [githubNotice, setGithubNotice] = useState('');
+  const autoSyncedKeysRef = useRef(new Set<string>());
 
   const statusParam = searchParams.get('status');
   const typeParam = searchParams.get('type');
@@ -94,6 +98,34 @@ export default function ProjectDetailPage(): React.ReactElement {
     { id: selectedTaskId ?? EMPTY_UUID },
     { enabled: Boolean(selectedTaskId), retry: false },
   );
+  const githubProjectLinkQuery = trpc.integration.getGithubProjectLink.useQuery(
+    { projectId },
+    { enabled: Boolean(projectId), retry: false },
+  );
+
+  const linkGithubProjectMutation = trpc.integration.linkGithubProject.useMutation({
+    onSuccess: async (result) => {
+      setGithubNotice(`GitHub repository linked: ${result.repository}`);
+      await githubProjectLinkQuery.refetch();
+    },
+    onError: (error) => {
+      setGithubNotice(`GitHub link failed: ${error.message}`);
+    },
+  });
+
+  const syncGithubProjectMutation = trpc.integration.syncGithubProject.useMutation({
+    onSuccess: async (result) => {
+      setGithubNotice(`GitHub sync completed: ${result.syncedCount}/${result.importedCount} task imported.`);
+      await Promise.all([
+        githubProjectLinkQuery.refetch(),
+        utils.task.list.invalidate(tasksInput),
+        selectedTaskId ? utils.task.getById.invalidate({ id: selectedTaskId }) : Promise.resolve(),
+      ]);
+    },
+    onError: (error) => {
+      setGithubNotice(`GitHub sync failed: ${error.message}`);
+    },
+  });
 
   useEffect(() => {
     if (!selectedTaskQuery.data) {
@@ -111,6 +143,44 @@ export default function ProjectDetailPage(): React.ReactElement {
       estimatedHours: selectedTaskQuery.data.estimatedHours?.toString() ?? '',
     });
   }, [selectedTaskQuery.data]);
+
+  useEffect(() => {
+    const link = githubProjectLinkQuery.data?.link;
+    if (!link) {
+      return;
+    }
+    setGithubRepoInput(link.externalProjectId);
+    setGithubAutoSync(link.autoSync);
+  }, [
+    githubProjectLinkQuery.data?.link?.autoSync,
+    githubProjectLinkQuery.data?.link?.externalProjectId,
+  ]);
+
+  useEffect(() => {
+    const link = githubProjectLinkQuery.data?.link;
+    if (
+      !githubProjectLinkQuery.data?.connected
+      || !link?.autoSync
+      || !link.externalProjectId
+      || syncGithubProjectMutation.isPending
+    ) {
+      return;
+    }
+
+    const autoSyncKey = `${projectId}:${link.externalProjectId}`;
+    if (autoSyncedKeysRef.current.has(autoSyncKey)) {
+      return;
+    }
+
+    autoSyncedKeysRef.current.add(autoSyncKey);
+    syncGithubProjectMutation.mutate({ projectId });
+  }, [
+    githubProjectLinkQuery.data?.connected,
+    githubProjectLinkQuery.data?.link?.autoSync,
+    githubProjectLinkQuery.data?.link?.externalProjectId,
+    projectId,
+    syncGithubProjectMutation,
+  ]);
 
   const createTaskMutation = trpc.task.create.useMutation({
     onSuccess: async (createdTask) => {
@@ -330,6 +400,33 @@ export default function ProjectDetailPage(): React.ReactElement {
     });
   }
 
+  function handleSaveGithubLink(): void {
+    const repository = githubRepoInput.trim();
+    if (!repository) {
+      return;
+    }
+
+    setGithubNotice('');
+    linkGithubProjectMutation.mutate({
+      projectId,
+      repository,
+      autoSync: githubAutoSync,
+      ...(githubProjectLinkQuery.data?.integrationId
+        ? { integrationId: githubProjectLinkQuery.data.integrationId }
+        : {}),
+    });
+  }
+
+  function handleSyncGithubNow(): void {
+    setGithubNotice('');
+    syncGithubProjectMutation.mutate({
+      projectId,
+      ...(githubProjectLinkQuery.data?.integrationId
+        ? { integrationId: githubProjectLinkQuery.data.integrationId }
+        : {}),
+    });
+  }
+
   return (
     <div>
       <div className="flex items-center gap-4">
@@ -340,6 +437,83 @@ export default function ProjectDetailPage(): React.ReactElement {
           <h1 className="text-2xl font-bold">{projectQuery.data?.name ?? 'Project Details'}</h1>
           <p className="text-sm text-muted-foreground">Project ID: {projectId}</p>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Github className="h-4 w-4" />
+            <h2 className="text-sm font-semibold">GitHub Integration</h2>
+          </div>
+          {githubProjectLinkQuery.data?.connected ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+              Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700">
+              Not connected
+            </span>
+          )}
+        </div>
+
+        {!githubProjectLinkQuery.data?.connected && (
+          <div className="mt-3 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+            Connect GitHub first from{' '}
+            <Link href="/dashboard/integrations" className="font-medium underline">
+              Integrations
+            </Link>
+            , then link this project to a repository.
+          </div>
+        )}
+
+        {githubProjectLinkQuery.data?.connected && (
+          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <input
+              type="text"
+              value={githubRepoInput}
+              onChange={(event) => setGithubRepoInput(event.target.value)}
+              placeholder="owner/repo"
+              className="rounded-md border px-3 py-2 text-sm"
+            />
+            <button
+              onClick={handleSaveGithubLink}
+              disabled={!githubRepoInput.trim() || linkGithubProjectMutation.isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+            >
+              <Link2 className="h-4 w-4" />
+              {linkGithubProjectMutation.isPending ? 'Linking...' : 'Save Link'}
+            </button>
+            <button
+              onClick={handleSyncGithubNow}
+              disabled={!githubRepoInput.trim() || syncGithubProjectMutation.isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncGithubProjectMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncGithubProjectMutation.isPending ? 'Syncing...' : 'Sync Now'}
+            </button>
+          </div>
+        )}
+
+        {githubProjectLinkQuery.data?.connected && (
+          <label className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={githubAutoSync}
+              onChange={(event) => setGithubAutoSync(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Auto-sync when project is opened
+          </label>
+        )}
+
+        {githubProjectLinkQuery.data?.link?.externalProjectId && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Linked repo: {githubProjectLinkQuery.data.link.externalProjectId}
+          </p>
+        )}
+        {githubNotice && (
+          <p className="mt-2 text-xs text-muted-foreground">{githubNotice}</p>
+        )}
       </div>
 
       <div className="mt-6 rounded-lg border bg-card p-4">

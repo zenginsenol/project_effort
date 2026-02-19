@@ -1,7 +1,16 @@
 'use client';
 
-import { Calculator, Clock, DollarSign, AlertTriangle, ChevronDown, ChevronUp, TrendingUp, Users, FileText } from 'lucide-react';
-import { useState } from 'react';
+import {
+  AlertTriangle,
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  DollarSign,
+  FileText,
+  TrendingUp,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -33,21 +42,20 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function EffortPage(): React.ReactElement {
+  const utils = trpc.useUtils();
+
   const [hourlyRate, setHourlyRate] = useState(150);
   const [currency, setCurrency] = useState('TRY');
   const [contingency, setContingency] = useState(20);
   const [workHoursPerDay, setWorkHoursPerDay] = useState(8);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [includeCompleted, setIncludeCompleted] = useState(false);
+  const [autoApplyKanban, setAutoApplyKanban] = useState(true);
+  const [autoMoveFirstWeekToTodo, setAutoMoveFirstWeekToTodo] = useState(true);
+  const [kanbanSyncNotice, setKanbanSyncNotice] = useState('');
   const [showTasks, setShowTasks] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>('summary');
-
-  // Get projects list
-  const projectsQuery = trpc.project.list.useQuery({
-    organizationId: '',  // will fetch all
-  }, { retry: false, enabled: false });
-
-  // Use direct effort query with hardcoded project for now
-  // We'll get project ID from the list
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const autoAppliedSignatureRef = useRef<string | null>(null);
 
   const effortQuery = trpc.effort.calculate.useQuery({
     projectId: selectedProjectId,
@@ -60,12 +68,82 @@ export default function EffortPage(): React.ReactElement {
     retry: false,
   });
 
+  const roadmapQuery = trpc.effort.roadmap.useQuery({
+    projectId: selectedProjectId,
+    contingencyPercent: contingency,
+    workHoursPerDay,
+    includeCompleted,
+  }, {
+    enabled: !!selectedProjectId,
+    retry: false,
+  });
+
+  const applyRoadmapMutation = trpc.effort.applyRoadmap.useMutation({
+    onSuccess: async (result) => {
+      setKanbanSyncNotice(
+        `Kanban updated: ${result.updatedCount} task(s), ${result.movedToTodo} moved to todo, ${result.movedToBacklog} moved to backlog.`,
+      );
+      await utils.task.list.invalidate({ projectId: result.project.id });
+    },
+    onError: (error) => {
+      autoAppliedSignatureRef.current = null;
+      setKanbanSyncNotice(`Kanban sync failed: ${error.message}`);
+    },
+  });
+
   // Also fetch project list to allow selection
   const allProjectsQuery = trpc.project.list.useQuery({
     organizationId: '',
   }, { retry: false });
 
   const data = effortQuery.data;
+  const roadmapData = roadmapQuery.data;
+
+  const autoApplySignature = useMemo(() => {
+    if (!selectedProjectId) {
+      return '';
+    }
+    return [
+      selectedProjectId,
+      contingency,
+      workHoursPerDay,
+      includeCompleted ? '1' : '0',
+      autoMoveFirstWeekToTodo ? '1' : '0',
+    ].join(':');
+  }, [autoMoveFirstWeekToTodo, contingency, includeCompleted, selectedProjectId, workHoursPerDay]);
+
+  useEffect(() => {
+    setKanbanSyncNotice('');
+    autoAppliedSignatureRef.current = null;
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!selectedProjectId || !autoApplyKanban || !roadmapData || applyRoadmapMutation.isPending) {
+      return;
+    }
+    if (autoAppliedSignatureRef.current === autoApplySignature) {
+      return;
+    }
+
+    autoAppliedSignatureRef.current = autoApplySignature;
+    applyRoadmapMutation.mutate({
+      projectId: selectedProjectId,
+      contingencyPercent: contingency,
+      workHoursPerDay,
+      includeCompleted,
+      autoMoveFirstWeekToTodo,
+    });
+  }, [
+    applyRoadmapMutation,
+    autoApplyKanban,
+    autoApplySignature,
+    autoMoveFirstWeekToTodo,
+    contingency,
+    includeCompleted,
+    roadmapData,
+    selectedProjectId,
+    workHoursPerDay,
+  ]);
 
   const formatCurrency = (amount: number) => {
     if (currency === 'TRY') return `${amount.toLocaleString('tr-TR')} TL`;
@@ -73,6 +151,21 @@ export default function EffortPage(): React.ReactElement {
     if (currency === 'EUR') return `${amount.toLocaleString('de-DE')} EUR`;
     return `${amount.toLocaleString()} ${currency}`;
   };
+
+  function handleApplyRoadmap(): void {
+    if (!selectedProjectId) {
+      return;
+    }
+
+    autoAppliedSignatureRef.current = autoApplySignature;
+    applyRoadmapMutation.mutate({
+      projectId: selectedProjectId,
+      contingencyPercent: contingency,
+      workHoursPerDay,
+      includeCompleted,
+      autoMoveFirstWeekToTodo,
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -148,7 +241,10 @@ export default function EffortPage(): React.ReactElement {
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => effortQuery.refetch()}
+              onClick={() => {
+                void effortQuery.refetch();
+                void roadmapQuery.refetch();
+              }}
               disabled={!selectedProjectId}
               className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
@@ -156,6 +252,46 @@ export default function EffortPage(): React.ReactElement {
             </button>
           </div>
         </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              checked={includeCompleted}
+              onChange={(event) => setIncludeCompleted(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Include completed tasks in roadmap
+          </label>
+          <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              checked={autoApplyKanban}
+              onChange={(event) => setAutoApplyKanban(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Auto-apply roadmap to Kanban
+          </label>
+          <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              checked={autoMoveFirstWeekToTodo}
+              onChange={(event) => setAutoMoveFirstWeekToTodo(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Move week-1 tasks to Todo
+          </label>
+          <button
+            onClick={handleApplyRoadmap}
+            disabled={!selectedProjectId || applyRoadmapMutation.isPending}
+            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+          >
+            {applyRoadmapMutation.isPending ? 'Applying...' : 'Apply Roadmap to Kanban'}
+          </button>
+        </div>
+        {kanbanSyncNotice && (
+          <p className="mt-3 text-sm text-muted-foreground">{kanbanSyncNotice}</p>
+        )}
       </div>
 
       {!selectedProjectId && (
@@ -176,6 +312,103 @@ export default function EffortPage(): React.ReactElement {
       {effortQuery.error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-6">
           <p className="text-red-700">Error: {effortQuery.error.message}</p>
+        </div>
+      )}
+
+      {roadmapQuery.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6">
+          <p className="text-red-700">Roadmap error: {roadmapQuery.error.message}</p>
+        </div>
+      )}
+
+      {roadmapData && (
+        <div className="rounded-lg border bg-card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">Execution Roadmap</h2>
+              <p className="text-sm text-muted-foreground">
+                Project: {roadmapData.project.name} ({roadmapData.project.key})
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {roadmapData.summary.totalWithContingency}h total / {roadmapData.summary.totalWeeks} week(s)
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Planned Hours</p>
+              <p className="text-lg font-semibold">{roadmapData.summary.totalPlannedHours}h</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Contingency</p>
+              <p className="text-lg font-semibold">{roadmapData.summary.contingencyHours}h</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Duration</p>
+              <p className="text-lg font-semibold">{roadmapData.summary.totalDays} day(s)</p>
+            </div>
+            <div className="rounded-md border p-3">
+              <p className="text-xs text-muted-foreground">Weekly Capacity</p>
+              <p className="text-lg font-semibold">{roadmapData.summary.hoursPerWeek}h/week</p>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {roadmapData.phases.map((phase) => (
+              <div key={phase.week} className="rounded-md border">
+                <div className="flex items-center justify-between border-b px-4 py-2">
+                  <p className="font-medium">
+                    Week {phase.week} (Day {phase.startDay}-{phase.endDay})
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {phase.taskCount} item(s) • {phase.totalHours}h
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted-foreground">
+                        <th className="px-4 py-2 font-medium">Task</th>
+                        <th className="px-4 py-2 font-medium">Priority</th>
+                        <th className="px-4 py-2 font-medium">Current</th>
+                        <th className="px-4 py-2 font-medium">Suggested</th>
+                        <th className="px-4 py-2 text-right font-medium">Hours</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {phase.tasks.map((task) => (
+                        <tr key={`${phase.week}-${task.taskId ?? task.title}`} className="border-t">
+                          <td className="px-4 py-2">{task.title}</td>
+                          <td className="px-4 py-2">
+                            <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', PRIORITY_COLORS[task.priority] || 'bg-gray-100')}>
+                              {task.priority}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', STATUS_COLORS[task.currentStatus] || 'bg-gray-100')}>
+                              {task.currentStatus}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', STATUS_COLORS[task.recommendedStatus] || 'bg-gray-100')}>
+                              {task.recommendedStatus}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2 text-right">{task.estimatedHours}h</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+            {roadmapData.phases.length === 0 && (
+              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No estimable tasks found to build a roadmap.
+              </div>
+            )}
+          </div>
         </div>
       )}
 

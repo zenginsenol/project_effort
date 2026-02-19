@@ -1,8 +1,8 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-19 07:15
-> Current Phase: Go-Live Recovery Closed (Agent Loop Complete)
-> Overall Progress: Re-audit recovery and backlog execution completed; see closure evidence sections below
+> Last Updated: 2026-02-19 08:14
+> Current Phase: Post-Closure Remediation Complete (Roadmap/Kanban/GitHub Integration)
+> Overall Progress: Re-audit recovery plus roadmap-to-kanban automation and project-based GitHub integration are implemented and validated
 > Agent Backlog Progress: `46/46` done (`todo=0`, `in_progress=0`, `blocked=0`)
 
 ## Status Icons
@@ -702,3 +702,123 @@ Going forward, status labels must follow evidence-based policy:
 - ⬜ Planned: approved backlog item not started
 
 No item should be marked “complete” with placeholder/mock-only behavior.
+
+---
+
+## 12) Post-Closure Remediation Log (2026-02-19)
+
+User request focus:
+1. Convert calculated effort into a roadmap.
+2. Auto-apply roadmap to Kanban when a project is selected.
+3. Add real GitHub integration bound to selected project (repo link + sync).
+4. Re-check missing parts in detail and document everything step-by-step.
+
+### 12.1 Step-by-Step Execution
+
+#### Step 1 - Baseline re-check and gap confirmation
+- Reviewed existing effort APIs and UI:
+  - `apps/api/src/routers/effort/schema.ts`
+  - `apps/api/src/routers/effort/service.ts`
+  - `apps/api/src/routers/effort/router.ts`
+  - `apps/web/src/app/dashboard/effort/page.tsx`
+- Reviewed integration stack and project detail page:
+  - `apps/api/src/routers/integration/schema.ts`
+  - `apps/api/src/routers/integration/router.ts`
+  - `apps/api/src/services/integrations/github.ts`
+  - `apps/web/src/app/dashboard/projects/[projectId]/page.tsx`
+
+Result:
+- `effort/service.ts` already had roadmap generation and kanban-apply service methods.
+- Missing pieces were router wiring, frontend wiring, and project-scoped GitHub repo binding + sync flow.
+
+#### Step 2 - Effort router wiring completed
+- Updated `apps/api/src/routers/effort/router.ts`.
+- Added:
+  - `roadmap` query => `effortService.generateRoadmap(...)`
+  - `applyRoadmap` mutation => `effortService.applyRoadmapToKanban(...)`
+- Existing `calculate` flow preserved.
+
+#### Step 3 - Integration schema extended for project-scoped GitHub operations
+- Updated `apps/api/src/routers/integration/schema.ts`.
+- Added validated repository format (`owner/repo`) and new inputs:
+  - `linkGithubProjectInput`
+  - `getGithubProjectLinkInput`
+  - `syncGithubProjectInput`
+
+#### Step 4 - Integration router extended with project-level GitHub linking/sync
+- Updated `apps/api/src/routers/integration/router.ts`.
+- Added settings helpers to safely manage `integrations.settings.projectLinks[projectId]`.
+- Added API procedures:
+  - `getGithubProjectLink`
+  - `linkGithubProject`
+  - `syncGithubProject`
+- Behavior:
+  - Validates project tenant access.
+  - Requires active GitHub integration/token.
+  - Persists project->repo mapping in `settings`.
+  - Imports issues from linked repo and syncs into project task board.
+  - Updates `lastSyncAt` and integration metadata.
+
+#### Step 5 - Effort page converted to roadmap + Kanban auto-apply UI flow
+- Updated `apps/web/src/app/dashboard/effort/page.tsx`.
+- Added:
+  - Roadmap query call (`trpc.effort.roadmap.useQuery`)
+  - Kanban apply mutation (`trpc.effort.applyRoadmap.useMutation`)
+  - Auto-apply logic on project selection/config signature
+  - Manual “Apply Roadmap to Kanban” action
+  - Option toggles:
+    - include completed tasks
+    - auto apply roadmap
+    - move week-1 tasks to todo
+  - Roadmap visual phases with weekly grouping and task-level suggested status
+
+#### Step 6 - Project detail page GitHub integration panel added
+- Updated `apps/web/src/app/dashboard/projects/[projectId]/page.tsx`.
+- Added:
+  - Project-level GitHub link query (`getGithubProjectLink`)
+  - Repo link save mutation (`linkGithubProject`)
+  - Manual sync mutation (`syncGithubProject`)
+  - Auto-sync-on-open behavior when repo link has `autoSync=true`
+  - Integration status/notice UI in project detail screen
+  - Task cache invalidation after sync so board/list updates immediately
+
+### 12.2 Validation and Verification Evidence
+
+#### Type checks
+- `pnpm --filter @estimate-pro/api typecheck` ✅
+- `pnpm --filter @estimate-pro/web typecheck` ✅
+
+#### Build checks
+- `pnpm --filter @estimate-pro/api build` ✅
+- `pnpm --filter @estimate-pro/web build` ✅
+
+#### Quality gate
+- `pnpm quality:gate` ✅
+- Includes build + lint + typecheck + test pipeline.
+- Result: all required steps passed.
+
+#### Runtime checks
+- Web dev runtime: `pnpm dev:web` started and served `http://localhost:3000` ✅
+- API port 4000 already in use (existing running process), verified live API via:
+  - `GET /trpc/health` => `status: ok` ✅
+- Browser route availability probe:
+  - `HEAD http://localhost:3000/dashboard/effort` => `200 OK` ✅
+
+### 12.3 Files Changed in This Remediation
+
+- `apps/api/src/routers/effort/router.ts`
+- `apps/api/src/routers/integration/schema.ts`
+- `apps/api/src/routers/integration/router.ts`
+- `apps/web/src/app/dashboard/effort/page.tsx`
+- `apps/web/src/app/dashboard/projects/[projectId]/page.tsx`
+- `PROJECT_TRACKER.md`
+
+### 12.4 Outcome
+
+Status: ✅ Complete for requested scope.
+
+Delivered capabilities:
+1. Effort output is now an actionable roadmap.
+2. Roadmap can be auto-applied to Kanban when selecting/configuring project.
+3. Selected project can be linked to real GitHub repository and synced (manual + optional auto-sync on open).
+4. End-to-end checks (type/build/quality/runtime) executed and recorded.

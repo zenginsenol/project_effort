@@ -1038,3 +1038,31 @@ Operational usage:
 3. Run `pnpm ops:integration:check`.
 4. Repeat until no hotspot remains.
 5. Run `pnpm ops:integration:gate` before production cutover.
+
+### 14.10 Kickoff Docs -> COS -> GitHub -> Kanban Bootstrap
+
+Initial project documents are now processable via a single bootstrap pipeline.
+
+Implemented:
+- Script: `apps/api/scripts/bootstrap-from-docs.mjs`
+- Commands:
+  - `pnpm ops:bootstrap:docs`
+  - `pnpm ops:bootstrap:docs:push -- --project-id <PROJECT_UUID>`
+- Workflow guide: `agent-ops/ops/docs-bootstrap-workflow-2026-02-19.md`
+
+Artifacts produced under `agent-ops/bootstrap/`:
+- `docs-bootstrap-analysis-latest.json`
+- `docs-bootstrap-github-issues-latest.json`
+- `docs-bootstrap-kanban-tasks-latest.json`
+- `docs-bootstrap-report-latest.md`
+
+Current baseline run (2026-02-19):
+- Documents analyzed: `3` kickoff `.docx` files
+- Generated tasks: `93`
+- COS effort: `1058h` (+20% contingency => `1269.6h`)
+- COS development cost: `1,523,520 TRY` (@ `1,200 TRY/h`)
+
+Transfer behavior:
+1. GitHub issue creation (requires `GITHUB_REPO`, `GITHUB_TOKEN`)
+2. Kanban task insertion to selected project (requires `KANBAN_PROJECT_ID` or `--project-id`)
+3. Duplicate task-title skip is applied on Kanban insert.

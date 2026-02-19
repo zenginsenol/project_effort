@@ -36,6 +36,8 @@
     "ops:conflicts": "node scripts/conflict-hotspots.mjs --write",
     "ops:integration:check": "node scripts/module-integration-check.mjs --write",
     "ops:integration:gate": "node scripts/module-integration-check.mjs --write --with-gate",
+    "ops:bootstrap:docs": "pnpm --filter @estimate-pro/api exec node scripts/bootstrap-from-docs.mjs --write",
+    "ops:bootstrap:docs:push": "pnpm --filter @estimate-pro/api exec node scripts/bootstrap-from-docs.mjs --write --push-github --push-kanban",
     "ops:staging:check": "node scripts/staging-parity-check.mjs",
     "clean": "turbo clean && rm -rf node_modules",
     "prepare": "husky"

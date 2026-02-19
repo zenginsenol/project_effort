@@ -1,0 +1,2012 @@
+{
+  "generatedAt": "2026-02-19T20:23:21.076Z",
+  "documents": [
+    {
+      "relativePath": "Estimate Pro Document - Claude.docx",
+      "lines": 267,
+      "characters": 6728
+    },
+    {
+      "relativePath": "Estimate Pro Document - Project Effort Estimation.docx",
+      "lines": 267,
+      "characters": 6728
+    },
+    {
+      "relativePath": "Estimate Pro Teknik Stack.docx",
+      "lines": 181,
+      "characters": 6521
+    }
+  ],
+  "tasks": [
+    {
+      "title": "ACID uyumlu, JSONB destegi, row-level security",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "critical",
+      "estimatedHours": 10,
+      "estimatedPoints": 2.5,
+      "sortOrder": 0
+    },
+    {
+      "title": "CSP (Content Security Policy) headerlari",
+      "description": "Guvenlik Onlemleri\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Guvenlik Onlemleri",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "critical",
+      "estimatedHours": 10,
+      "estimatedPoints": 2.5,
+      "sortOrder": 1
+    },
+    {
+      "title": "Guvenlik Onlemleri",
+      "description": "Guvenlik Onlemleri\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Guvenlik Onlemleri",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "critical",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 2
+    },
+    {
+      "title": "Row-Level Security (RLS): Multi-tenant izolasyon",
+      "description": "Veritabani - PostgreSQL + Drizzle\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Veritabani - PostgreSQL + Drizzle",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "critical",
+      "estimatedHours": 10,
+      "estimatedPoints": 2.5,
+      "sortOrder": 3
+    },
+    {
+      "title": "SSO (SAML 2.0, OAuth 2.0) entegrasyonu",
+      "description": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Entegrasyon ve API",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "critical",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 4
+    },
+    {
+      "title": "API Katmani",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 5
+    },
+    {
+      "title": "API yanit suresi",
+      "description": "Fonksiyonel Olmayan Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Fonksiyonel Olmayan Gereksinimler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 6
+    },
+    {
+      "title": "apps/api",
+      "description": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Monorepo Yapilandirmasi",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 7
+    },
+    {
+      "title": "Deploy ve DevOps Stratejisi",
+      "description": "Deploy ve DevOps Stratejisi\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Deploy ve DevOps Stratejisi",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 17,
+      "estimatedPoints": 4.5,
+      "sortOrder": 8
+    },
+    {
+      "title": "Deploy: Vercel (web), Railway (API), EAS (mobil)",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 17,
+      "estimatedPoints": 4.5,
+      "sortOrder": 9
+    },
+    {
+      "title": "Drizzle schema, migration, seed dosyalari",
+      "description": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Monorepo Yapilandirmasi",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 10
+    },
+    {
+      "title": "Edge functions, automatic preview deploys",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 11,
+      "estimatedPoints": 3,
+      "sortOrder": 11
+    },
+    {
+      "title": "End-to-end type-safe API, otomatik tip uretimi",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 12
+    },
+    {
+      "title": "Entegrasyon ve API",
+      "description": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Entegrasyon ve API",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 13
+    },
+    {
+      "title": "Expo Notifications: Push notification altyapisi (FCM + APNs)",
+      "description": "Mobil - React Native + Expo\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Mobil - React Native + Expo",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 14
+    },
+    {
+      "title": "GitHub / GitLab issue senkronizasyonu",
+      "description": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Entegrasyon ve API",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 11,
+      "estimatedPoints": 3,
+      "sortOrder": 15
+    },
+    {
+      "title": "GitHub Actions",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 11,
+      "estimatedPoints": 3,
+      "sortOrder": 16
+    },
+    {
+      "title": "GitHub Actions ile asagidaki pipeline otomatik olarak calisir",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 11,
+      "estimatedPoints": 3,
+      "sortOrder": 17
+    },
+    {
+      "title": "Hiyerarsik task yapisi: Epic > Feature > User Story > Task > Sub-task",
+      "description": "Task Yonetimi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Task Yonetimi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 10,
+      "estimatedPoints": 2.5,
+      "sortOrder": 18
+    },
+    {
+      "title": "Hosting (API)",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 19
+    },
+    {
+      "title": "Integration Tests: API testleri (test DB)",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 20
+    },
+    {
+      "title": "Mobil bildirim altyapisi",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 21
+    },
+    {
+      "title": "Monorepo Yapilandirmasi",
+      "description": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Monorepo Yapilandirmasi",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 22
+    },
+    {
+      "title": "OpenAI API + LangChain",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 23
+    },
+    {
+      "title": "Ortam Yapisi",
+      "description": "Ortam Yapisi\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Ortam Yapisi",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 24
+    },
+    {
+      "title": "Otomatik build, test, deploy pipeline",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "task",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 14,
+      "estimatedPoints": 3.5,
+      "sortOrder": 25
+    },
+    {
+      "title": "Post-deploy: Smoke tests + Sentry release tracking",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "task",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 14,
+      "estimatedPoints": 3.5,
+      "sortOrder": 26
+    },
+    {
+      "title": "PostgreSQL, ACID uyumlulugu ve JSONB destegi ile hem yapisal hem esnek veri modellemesine olanak tanir. Drizzle ORM ile migration, seed ve type-safe query yonetimi saglanir",
+      "description": "Veritabani - PostgreSQL + Drizzle\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Veritabani - PostgreSQL + Drizzle",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 10,
+      "estimatedPoints": 2.5,
+      "sortOrder": 27
+    },
+    {
+      "title": "Sapmalar tartisildiktan sonra gerekirse ikinci tur oylama yapilir",
+      "description": "Sapmalar tartisildiktan sonra gerekirse ikinci tur oylama yapilir\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Sapmalar tartisildiktan sonra gerekirse ikinci tur oylama yapilir",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 28
+    },
+    {
+      "title": "Tumu + Ozel API",
+      "description": "Is Modeli ve Monetizasyon\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Is Modeli ve Monetizasyon",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 29
+    },
+    {
+      "title": "Turborepo ile yonetilen monorepo yapisi asagidaki gibidir",
+      "description": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Monorepo Yapilandirmasi",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 30
+    },
+    {
+      "title": "Type-safe, hafif, migration destegi",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 31
+    },
+    {
+      "title": "Unit, integration, E2E test",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 32
+    },
+    {
+      "title": "Webhook destegi ve REST API",
+      "description": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Entegrasyon ve API",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 13,
+      "estimatedPoints": 3.5,
+      "sortOrder": 33
+    },
+    {
+      "title": "Zod: Schema validation (form ve API input dogrulama)",
+      "description": "Frontend (Web) - Next.js 15\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Frontend (Web) - Next.js 15",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "high",
+      "estimatedHours": 11,
+      "estimatedPoints": 3,
+      "sortOrder": 34
+    },
+    {
+      "title": "AI / ML Katmani",
+      "description": "AI / ML Katmani\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "AI / ML Katmani",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 35
+    },
+    {
+      "title": "AI motoru task basligini, aciklamasini ve etiketlerini analiz eder",
+      "description": "AI motoru task basligini, aciklamasini ve etiketlerini analiz eder\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "AI motoru task basligini, aciklamasini ve etiketlerini analiz eder",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 36
+    },
+    {
+      "title": "AI sistemi, bu tahmini gelecekteki oneriler icin ogrenir",
+      "description": "AI sistemi, bu tahmini gelecekteki oneriler icin ogrenir\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "AI sistemi, bu tahmini gelecekteki oneriler icin ogrenir",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 37
+    },
+    {
+      "title": "AI Tahmin Onerisi Is Akisi",
+      "description": "AI Tahmin Onerisi Is Akisi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "AI Tahmin Onerisi Is Akisi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 16,
+      "estimatedPoints": 4,
+      "sortOrder": 38
+    },
+    {
+      "title": "ANALIZ DOKUMANI",
+      "description": "ANALIZ DOKUMANI\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "ANALIZ DOKUMANI",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 39
+    },
+    {
+      "title": "Backend - Node.js + tRPC + Fastify",
+      "description": "Backend - Node.js + tRPC + Fastify\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Backend - Node.js + tRPC + Fastify",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 40
+    },
+    {
+      "title": "Background Jobs: BullMQ (rapor olusturma, AI analiz, bildirim gonderi)",
+      "description": "Backend - Node.js + tRPC + Fastify\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Backend - Node.js + tRPC + Fastify",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 10,
+      "estimatedPoints": 2.5,
+      "sortOrder": 41
+    },
+    {
+      "title": "Benzer tasklerin gerceklesen eforlarina dayali efor onerisi sunulur",
+      "description": "Benzer tasklerin gerceklesen eforlarina dayali efor onerisi sunulur\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Benzer tasklerin gerceklesen eforlarina dayali efor onerisi sunulur",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 42
+    },
+    {
+      "title": "Bu dokuman, uygulamanin kapsamini, fonksiyonel ve fonksiyonel olmayan gereksinimlerini, kullanici rollerini, benzer urun analizini ve temel is akislarini tanimlar",
+      "description": "Giris ve Amac\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Giris ve Amac",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 8,
+      "estimatedPoints": 2,
+      "sortOrder": 43
+    },
+    {
+      "title": "Canli Tahmin Oturumlari",
+      "description": "Canli Tahmin Oturumlari\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Canli Tahmin Oturumlari",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 44
+    },
+    {
+      "title": "CI/CD Pipeline",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 45
+    },
+    {
+      "title": "Detayli raporlama ve tahmin isabeti analizi",
+      "description": "Rekabet Avantajlari\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Rekabet Avantajlari",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 46
+    },
+    {
+      "title": "E2E Tests: Playwright (web) + Detox (mobil)",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 9,
+      "estimatedPoints": 2.5,
+      "sortOrder": 47
+    },
+    {
+      "title": "Efor Tahmin Oturumu Is Akisi",
+      "description": "Efor Tahmin Oturumu Is Akisi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Efor Tahmin Oturumu Is Akisi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 48
+    },
+    {
+      "title": "Efor Tahmin Sistemi",
+      "description": "Efor Tahmin Sistemi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Efor Tahmin Sistemi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 49
+    },
+    {
+      "title": "ESTIMATEPRO",
+      "description": "ESTIMATEPRO\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "ESTIMATEPRO",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 50
+    },
+    {
+      "title": "Fonksiyonel Gereksinimler",
+      "description": "Fonksiyonel Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Fonksiyonel Gereksinimler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 51
+    },
+    {
+      "title": "Fonksiyonel Olmayan Gereksinimler",
+      "description": "Fonksiyonel Olmayan Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Fonksiyonel Olmayan Gereksinimler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 52
+    },
+    {
+      "title": "Frontend (Web) - Next.js 15",
+      "description": "Frontend (Web) - Next.js 15\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Frontend (Web) - Next.js 15",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 53
+    },
+    {
+      "title": "Gecmis projelerden benzer taskler belirlenir (cosine similarity)",
+      "description": "Gecmis projelerden benzer taskler belirlenir (cosine similarity)\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Gecmis projelerden benzer taskler belirlenir (cosine similarity)",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 15,
+      "estimatedPoints": 4,
+      "sortOrder": 54
+    },
+    {
+      "title": "Genel Mimari Yaklasim",
+      "description": "Genel Mimari Yaklasim\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Genel Mimari Yaklasim",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 55
+    },
+    {
+      "title": "Gereksinim",
+      "description": "Fonksiyonel Olmayan Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Fonksiyonel Olmayan Gereksinimler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 56
+    },
+    {
+      "title": "Giris ve Amac",
+      "description": "Giris ve Amac\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Giris ve Amac",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 57
+    },
+    {
+      "title": "Guven araligi (%80, %90, %95) ile birlikte gosterilir",
+      "description": "Guven araligi (%80, %90, %95) ile birlikte gosterilir\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Guven araligi (%80, %90, %95) ile birlikte gosterilir",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 58
+    },
+    {
+      "title": "Is Modeli ve Monetizasyon",
+      "description": "Is Modeli ve Monetizasyon\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Is Modeli ve Monetizasyon",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 59
+    },
+    {
+      "title": "Katman Detaylari",
+      "description": "Katman Detaylari\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Katman Detaylari",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 60
+    },
+    {
+      "title": "Kullanici oneriyi kabul eder, duzenler veya reddeder",
+      "description": "Kullanici oneriyi kabul eder, duzenler veya reddeder\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Kullanici oneriyi kabul eder, duzenler veya reddeder",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 61
+    },
+    {
+      "title": "Kullanici Rolleri ve Yetkiler",
+      "description": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Kullanici Rolleri ve Yetkiler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 62
+    },
+    {
+      "title": "Kullanici yeni bir task olusturur ve detaylarini girer",
+      "description": "Kullanici yeni bir task olusturur ve detaylarini girer\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Kullanici yeni bir task olusturur ve detaylarini girer",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 63
+    },
+    {
+      "title": "Mobil - React Native + Expo",
+      "description": "Mobil - React Native + Expo\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Mobil - React Native + Expo",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 20,
+      "estimatedPoints": 5,
+      "sortOrder": 64
+    },
+    {
+      "title": "Moderator sirayla her task icin oylama baslatir",
+      "description": "Moderator sirayla her task icin oylama baslatir\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Moderator sirayla her task icin oylama baslatir",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 65
+    },
+    {
+      "title": "Paydas / musteri",
+      "description": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Kullanici Rolleri ve Yetkiler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 66
+    },
+    {
+      "title": "Pazar ve Rakip Analizi",
+      "description": "Pazar ve Rakip Analizi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Pazar ve Rakip Analizi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 67
+    },
+    {
+      "title": "PDF, Excel, CSV formatlarinda rapor export",
+      "description": "Raporlama ve Analitik\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Raporlama ve Analitik",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 14,
+      "estimatedPoints": 3.5,
+      "sortOrder": 68
+    },
+    {
+      "title": "Proje durumu dashboard (tamamlanma %, efor dagitimi, risk durumu)",
+      "description": "Proje Yonetimi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Proje Yonetimi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 69
+    },
+    {
+      "title": "Proje ekleri ve rapor arsivi",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 70
+    },
+    {
+      "title": "Proje olusturma, task tanimlama, tahmin oturumu baslatma, raporlama",
+      "description": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Kullanici Rolleri ve Yetkiler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 71
+    },
+    {
+      "title": "Proje Yoneticisi yeni tahmin oturumu olusturur ve tahmin edilecek taskleri secer",
+      "description": "Proje Yoneticisi yeni tahmin oturumu olusturur ve tahmin edilecek taskleri secer\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Proje Yoneticisi yeni tahmin oturumu olusturur ve tahmin edilecek taskleri secer",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 14,
+      "estimatedPoints": 3.5,
+      "sortOrder": 72
+    },
+    {
+      "title": "Proje Yonetimi",
+      "description": "Proje Yonetimi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Proje Yonetimi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 73
+    },
+    {
+      "title": "Raporlama",
+      "description": "Pazar ve Rakip Analizi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Pazar ve Rakip Analizi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 74
+    },
+    {
+      "title": "Raporlama ve Analitik",
+      "description": "Raporlama ve Analitik\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Raporlama ve Analitik",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 75
+    },
+    {
+      "title": "Rekabet Avantajlari",
+      "description": "Rekabet Avantajlari\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Rekabet Avantajlari",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 76
+    },
+    {
+      "title": "Salt okunur erisim, raporlari goruntuleme",
+      "description": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Kullanici Rolleri ve Yetkiler",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "story",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 6,
+      "estimatedPoints": 1.5,
+      "sortOrder": 77
+    },
+    {
+      "title": "SSO / SAML",
+      "description": "SSO / SAML\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "SSO / SAML",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 78
+    },
+    {
+      "title": "Subat 2026",
+      "description": "Subat 2026\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Subat 2026",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 79
+    },
+    {
+      "title": "Takim uyelerine davet linki / QR kod gonderilir",
+      "description": "Takim uyelerine davet linki / QR kod gonderilir\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Takim uyelerine davet linki / QR kod gonderilir",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 80
+    },
+    {
+      "title": "Task Yonetimi",
+      "description": "Task Yonetimi\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Task Yonetimi",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 81
+    },
+    {
+      "title": "TEKNIK STACK DOKUMANI",
+      "description": "TEKNIK STACK DOKUMANI\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "TEKNIK STACK DOKUMANI",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 82
+    },
+    {
+      "title": "Teknik Stack Ozeti",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 83
+    },
+    {
+      "title": "Temel Is Akislari",
+      "description": "Temel Is Akislari\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Temel Is Akislari",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 84
+    },
+    {
+      "title": "Temel Veri Modeli",
+      "description": "Temel Veri Modeli\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Temel Veri Modeli",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 85
+    },
+    {
+      "title": "Tum uyeler kartlarini secer (anonim), moderator kartlari acar",
+      "description": "Tum uyeler kartlarini secer (anonim), moderator kartlari acar\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Tum uyeler kartlarini secer (anonim), moderator kartlari acar",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 86
+    },
+    {
+      "title": "Unit Tests: Vitest ile tum paketler",
+      "description": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "CI/CD Pipeline",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 9,
+      "estimatedPoints": 2.5,
+      "sortOrder": 87
+    },
+    {
+      "title": "Urun analitigi, A/B test, feature flags",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 9,
+      "estimatedPoints": 2.5,
+      "sortOrder": 88
+    },
+    {
+      "title": "Uzlasma saglanan efor degeri task'a kaydedilir",
+      "description": "Uzlasma saglanan efor degeri task'a kaydedilir\n\nSource: Estimate Pro Document - Claude.docx",
+      "section": "Uzlasma saglanan efor degeri task'a kaydedilir",
+      "source": "Estimate Pro Document - Claude.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 89
+    },
+    {
+      "title": "Veritabani - PostgreSQL + Drizzle",
+      "description": "Veritabani - PostgreSQL + Drizzle\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Veritabani - PostgreSQL + Drizzle",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "epic",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 12,
+      "estimatedPoints": 3,
+      "sortOrder": 90
+    },
+    {
+      "title": "Vitest + Playwright + Detox",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 9,
+      "estimatedPoints": 2.5,
+      "sortOrder": 91
+    },
+    {
+      "title": "Yuksek performansli async I/O",
+      "description": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx",
+      "section": "Teknik Stack Ozeti",
+      "source": "Estimate Pro Teknik Stack.docx",
+      "type": "feature",
+      "status": "backlog",
+      "priority": "medium",
+      "estimatedHours": 13,
+      "estimatedPoints": 3.5,
+      "sortOrder": 92
+    }
+  ],
+  "githubIssues": [
+    {
+      "title": "[Bootstrap] ACID uyumlu, JSONB destegi, row-level security",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: critical\nEstimated Hours: 10\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:critical"
+      ]
+    },
+    {
+      "title": "[Bootstrap] CSP (Content Security Policy) headerlari",
+      "body": "Guvenlik Onlemleri\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: critical\nEstimated Hours: 10\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:critical"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Guvenlik Onlemleri",
+      "body": "Guvenlik Onlemleri\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: critical\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:critical"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Row-Level Security (RLS): Multi-tenant izolasyon",
+      "body": "Veritabani - PostgreSQL + Drizzle\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: critical\nEstimated Hours: 10\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:critical"
+      ]
+    },
+    {
+      "title": "[Bootstrap] SSO (SAML 2.0, OAuth 2.0) entegrasyonu",
+      "body": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx\n\nType: feature\nPriority: critical\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:critical"
+      ]
+    },
+    {
+      "title": "[Bootstrap] API Katmani",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] API yanit suresi",
+      "body": "Fonksiyonel Olmayan Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] apps/api",
+      "body": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Deploy ve DevOps Stratejisi",
+      "body": "Deploy ve DevOps Stratejisi\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: high\nEstimated Hours: 17\nEstimated Points: 4.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Deploy: Vercel (web), Railway (API), EAS (mobil)",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 17\nEstimated Points: 4.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Drizzle schema, migration, seed dosyalari",
+      "body": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Edge functions, automatic preview deploys",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: high\nEstimated Hours: 11\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] End-to-end type-safe API, otomatik tip uretimi",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Entegrasyon ve API",
+      "body": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: high\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Expo Notifications: Push notification altyapisi (FCM + APNs)",
+      "body": "Mobil - React Native + Expo\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] GitHub / GitLab issue senkronizasyonu",
+      "body": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: high\nEstimated Hours: 11\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] GitHub Actions",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: high\nEstimated Hours: 11\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] GitHub Actions ile asagidaki pipeline otomatik olarak calisir",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: high\nEstimated Hours: 11\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Hiyerarsik task yapisi: Epic > Feature > User Story > Task > Sub-task",
+      "body": "Task Yonetimi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: feature\nPriority: high\nEstimated Hours: 10\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Hosting (API)",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Integration Tests: API testleri (test DB)",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Mobil bildirim altyapisi",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Monorepo Yapilandirmasi",
+      "body": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: high\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] OpenAI API + LangChain",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Ortam Yapisi",
+      "body": "Ortam Yapisi\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: high\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Otomatik build, test, deploy pipeline",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: task\nPriority: high\nEstimated Hours: 14\nEstimated Points: 3.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:task",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Post-deploy: Smoke tests + Sentry release tracking",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: task\nPriority: high\nEstimated Hours: 14\nEstimated Points: 3.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:task",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] PostgreSQL, ACID uyumlulugu ve JSONB destegi ile hem yapisal hem esnek veri modellemesine olanak tanir. Drizzle ORM ile migration, seed ve type-safe query yonetimi saglanir",
+      "body": "Veritabani - PostgreSQL + Drizzle\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 10\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Sapmalar tartisildiktan sonra gerekirse ikinci tur oylama yapilir",
+      "body": "Sapmalar tartisildiktan sonra gerekirse ikinci tur oylama yapilir\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: high\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Tumu + Ozel API",
+      "body": "Is Modeli ve Monetizasyon\n\nSource: Estimate Pro Document - Claude.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Turborepo ile yonetilen monorepo yapisi asagidaki gibidir",
+      "body": "Monorepo Yapilandirmasi\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Type-safe, hafif, migration destegi",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Unit, integration, E2E test",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Webhook destegi ve REST API",
+      "body": "Entegrasyon ve API\n\nSource: Estimate Pro Document - Claude.docx\n\nType: feature\nPriority: high\nEstimated Hours: 13\nEstimated Points: 3.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Zod: Schema validation (form ve API input dogrulama)",
+      "body": "Frontend (Web) - Next.js 15\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: high\nEstimated Hours: 11\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:high"
+      ]
+    },
+    {
+      "title": "[Bootstrap] AI / ML Katmani",
+      "body": "AI / ML Katmani\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] AI motoru task basligini, aciklamasini ve etiketlerini analiz eder",
+      "body": "AI motoru task basligini, aciklamasini ve etiketlerini analiz eder\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] AI sistemi, bu tahmini gelecekteki oneriler icin ogrenir",
+      "body": "AI sistemi, bu tahmini gelecekteki oneriler icin ogrenir\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] AI Tahmin Onerisi Is Akisi",
+      "body": "AI Tahmin Onerisi Is Akisi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 16\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] ANALIZ DOKUMANI",
+      "body": "ANALIZ DOKUMANI\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Backend - Node.js + tRPC + Fastify",
+      "body": "Backend - Node.js + tRPC + Fastify\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Background Jobs: BullMQ (rapor olusturma, AI analiz, bildirim gonderi)",
+      "body": "Backend - Node.js + tRPC + Fastify\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: medium\nEstimated Hours: 10\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Benzer tasklerin gerceklesen eforlarina dayali efor onerisi sunulur",
+      "body": "Benzer tasklerin gerceklesen eforlarina dayali efor onerisi sunulur\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Bu dokuman, uygulamanin kapsamini, fonksiyonel ve fonksiyonel olmayan gereksinimlerini, kullanici rollerini, benzer urun analizini ve temel is akislarini tanimlar",
+      "body": "Giris ve Amac\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 8\nEstimated Points: 2\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Canli Tahmin Oturumlari",
+      "body": "Canli Tahmin Oturumlari\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] CI/CD Pipeline",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Detayli raporlama ve tahmin isabeti analizi",
+      "body": "Rekabet Avantajlari\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] E2E Tests: Playwright (web) + Detox (mobil)",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: task\nPriority: medium\nEstimated Hours: 9\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:task",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Efor Tahmin Oturumu Is Akisi",
+      "body": "Efor Tahmin Oturumu Is Akisi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Efor Tahmin Sistemi",
+      "body": "Efor Tahmin Sistemi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] ESTIMATEPRO",
+      "body": "ESTIMATEPRO\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Fonksiyonel Gereksinimler",
+      "body": "Fonksiyonel Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Fonksiyonel Olmayan Gereksinimler",
+      "body": "Fonksiyonel Olmayan Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Frontend (Web) - Next.js 15",
+      "body": "Frontend (Web) - Next.js 15\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Gecmis projelerden benzer taskler belirlenir (cosine similarity)",
+      "body": "Gecmis projelerden benzer taskler belirlenir (cosine similarity)\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 15\nEstimated Points: 4\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Genel Mimari Yaklasim",
+      "body": "Genel Mimari Yaklasim\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Gereksinim",
+      "body": "Fonksiyonel Olmayan Gereksinimler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Giris ve Amac",
+      "body": "Giris ve Amac\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Guven araligi (%80, %90, %95) ile birlikte gosterilir",
+      "body": "Guven araligi (%80, %90, %95) ile birlikte gosterilir\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Is Modeli ve Monetizasyon",
+      "body": "Is Modeli ve Monetizasyon\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Katman Detaylari",
+      "body": "Katman Detaylari\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Kullanici oneriyi kabul eder, duzenler veya reddeder",
+      "body": "Kullanici oneriyi kabul eder, duzenler veya reddeder\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Kullanici Rolleri ve Yetkiler",
+      "body": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Kullanici yeni bir task olusturur ve detaylarini girer",
+      "body": "Kullanici yeni bir task olusturur ve detaylarini girer\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Mobil - React Native + Expo",
+      "body": "Mobil - React Native + Expo\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 20\nEstimated Points: 5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Moderator sirayla her task icin oylama baslatir",
+      "body": "Moderator sirayla her task icin oylama baslatir\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Paydas / musteri",
+      "body": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Pazar ve Rakip Analizi",
+      "body": "Pazar ve Rakip Analizi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] PDF, Excel, CSV formatlarinda rapor export",
+      "body": "Raporlama ve Analitik\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 14\nEstimated Points: 3.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Proje durumu dashboard (tamamlanma %, efor dagitimi, risk durumu)",
+      "body": "Proje Yonetimi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Proje ekleri ve rapor arsivi",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Proje olusturma, task tanimlama, tahmin oturumu baslatma, raporlama",
+      "body": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Proje Yoneticisi yeni tahmin oturumu olusturur ve tahmin edilecek taskleri secer",
+      "body": "Proje Yoneticisi yeni tahmin oturumu olusturur ve tahmin edilecek taskleri secer\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 14\nEstimated Points: 3.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Proje Yonetimi",
+      "body": "Proje Yonetimi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Raporlama",
+      "body": "Pazar ve Rakip Analizi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Raporlama ve Analitik",
+      "body": "Raporlama ve Analitik\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Rekabet Avantajlari",
+      "body": "Rekabet Avantajlari\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Salt okunur erisim, raporlari goruntuleme",
+      "body": "Kullanici Rolleri ve Yetkiler\n\nSource: Estimate Pro Document - Claude.docx\n\nType: story\nPriority: medium\nEstimated Hours: 6\nEstimated Points: 1.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:story",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] SSO / SAML",
+      "body": "SSO / SAML\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Subat 2026",
+      "body": "Subat 2026\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Takim uyelerine davet linki / QR kod gonderilir",
+      "body": "Takim uyelerine davet linki / QR kod gonderilir\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Task Yonetimi",
+      "body": "Task Yonetimi\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] TEKNIK STACK DOKUMANI",
+      "body": "TEKNIK STACK DOKUMANI\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Teknik Stack Ozeti",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Temel Is Akislari",
+      "body": "Temel Is Akislari\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Temel Veri Modeli",
+      "body": "Temel Veri Modeli\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Tum uyeler kartlarini secer (anonim), moderator kartlari acar",
+      "body": "Tum uyeler kartlarini secer (anonim), moderator kartlari acar\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Unit Tests: Vitest ile tum paketler",
+      "body": "CI/CD Pipeline\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: task\nPriority: medium\nEstimated Hours: 9\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:task",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Urun analitigi, A/B test, feature flags",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: task\nPriority: medium\nEstimated Hours: 9\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:task",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Uzlasma saglanan efor degeri task'a kaydedilir",
+      "body": "Uzlasma saglanan efor degeri task'a kaydedilir\n\nSource: Estimate Pro Document - Claude.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Veritabani - PostgreSQL + Drizzle",
+      "body": "Veritabani - PostgreSQL + Drizzle\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: epic\nPriority: medium\nEstimated Hours: 12\nEstimated Points: 3\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:epic",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Vitest + Playwright + Detox",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: task\nPriority: medium\nEstimated Hours: 9\nEstimated Points: 2.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:task",
+        "priority:medium"
+      ]
+    },
+    {
+      "title": "[Bootstrap] Yuksek performansli async I/O",
+      "body": "Teknik Stack Ozeti\n\nSource: Estimate Pro Teknik Stack.docx\n\nType: feature\nPriority: medium\nEstimated Hours: 13\nEstimated Points: 3.5\nOrigin: docs-bootstrap",
+      "labels": [
+        "docs-bootstrap",
+        "type:feature",
+        "priority:medium"
+      ]
+    }
+  ],
+  "cos": {
+    "generatedAt": "2026-02-19T20:23:21.076Z",
+    "documentsAnalyzed": 3,
+    "tasksGenerated": 93,
+    "effort": {
+      "totalHours": 1058,
+      "contingencyPercent": 20,
+      "contingencyHours": 211.6,
+      "totalWithContingency": 1269.6
+    },
+    "cost": {
+      "hourlyRate": 1200,
+      "developmentCost": 1523520,
+      "currency": "TRY"
+    },
+    "operationalCostAlternativesMonthlyTRY": {
+      "starter": "12000-22000",
+      "growth": "25000-48000",
+      "scale": "50000-95000"
+    }
+  },
+  "github": {
+    "mode": "skipped",
+    "reason": "GITHUB_REPO or GITHUB_TOKEN missing",
+    "created": 0,
+    "attempted": 0,
+    "failed": []
+  },
+  "kanban": {
+    "mode": "skipped",
+    "reason": "KANBAN_PROJECT_ID or --project-id missing",
+    "inserted": 0,
+    "attempted": 0,
+    "deduped": 0
+  }
+}

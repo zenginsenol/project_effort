@@ -6,19 +6,14 @@ import multipart from '@fastify/multipart';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify from 'fastify';
 
-import { eq, and } from 'drizzle-orm';
-
-import { db } from '@estimate-pro/db';
-import { apiKeys, users } from '@estimate-pro/db/schema';
-
 import { createContext } from './trpc/context';
 import { appRouter } from './routers/index';
 import { parseDocument } from './services/document/parser';
 import { extractTasksFromText } from './services/document/task-extractor';
-import { setupWebSocket } from './websocket/index';
-import { exchangeCodeForTokens, decodeJwtPayload } from './services/oauth/openai-oauth';
+import { upsertOpenAIOAuthCredential } from './services/oauth/oauth-credential-store';
+import { exchangeCodeForTokens } from './services/oauth/openai-oauth';
 import { getPendingFlow, removePendingFlow } from './services/oauth/oauth-store';
-import { encrypt } from './services/crypto';
+import { setupWebSocket } from './websocket/index';
 
 const PORT = Number(process.env.API_PORT) || 4000;
 const HOST = process.env.API_HOST || '0.0.0.0';
@@ -77,11 +72,26 @@ async function start(): Promise<void> {
     }
   });
 
-  // ============================================================
-  // OpenAI OAuth Callback - handles redirect from auth.openai.com
-  // ============================================================
+  // OpenAI OAuth callback route for API-server callback mode.
   fastify.get('/auth/openai/callback', async (request, reply) => {
-    const { code, state } = request.query as { code?: string; state?: string };
+    const {
+      code,
+      state,
+      error,
+      error_description,
+    } = request.query as {
+      code?: string;
+      state?: string;
+      error?: string;
+      error_description?: string;
+    };
+
+    if (error) {
+      if (state) {
+        removePendingFlow(state);
+      }
+      return reply.status(400).send(errorPage(`OAuth failed: ${error_description ?? error}`, WEB_APP_URL));
+    }
 
     if (!code || !state) {
       return reply.status(400).send(errorPage('Missing code or state parameter', WEB_APP_URL));
@@ -93,7 +103,6 @@ async function start(): Promise<void> {
     }
 
     try {
-      // Exchange code for tokens
       const tokens = await exchangeCodeForTokens({
         code,
         codeVerifier: pendingFlow.codeVerifier,
@@ -102,69 +111,15 @@ async function start(): Promise<void> {
 
       removePendingFlow(state);
 
-      // Decode id_token to get email
-      let email: string | null = null;
-      try {
-        if (tokens.id_token) {
-          const payload = decodeJwtPayload(tokens.id_token);
-          email = typeof payload.email === 'string' ? payload.email : null;
-        }
-      } catch { /* ignore */ }
-
-      // Find user in DB
-      const user = await db.query.users.findFirst({
-        columns: { id: true },
-        where: eq(users.clerkId, pendingFlow.userId),
+      const { email } = await upsertOpenAIOAuthCredential({
+        clerkUserId: pendingFlow.userId,
+        tokens,
+        defaultModel: 'gpt-5.2',
       });
 
-      if (!user) {
-        return reply.status(400).send(errorPage('User not found', WEB_APP_URL));
-      }
-
-      // Upsert OpenAI OAuth entry
-      const existing = await db.query.apiKeys.findFirst({
-        where: and(
-          eq(apiKeys.userId, user.id),
-          eq(apiKeys.provider, 'openai'),
-        ),
-      });
-
-      const encryptedRefreshToken = tokens.refresh_token
-        ? encrypt(tokens.refresh_token)
-        : existing?.encryptedRefreshToken ?? null;
-
-      if (!encryptedRefreshToken) {
-        return reply.status(500).send(errorPage('OAuth failed: missing refresh token', WEB_APP_URL));
-      }
-
-      const tokenData = {
-        authMethod: 'oauth' as const,
-        encryptedAccessToken: encrypt(tokens.access_token),
-        encryptedRefreshToken,
-        tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
-        oauthEmail: email,
-        encryptedKey: null,
-        keyHint: email ? `OAuth: ${email}` : 'OAuth Connected',
-        label: email ? `ChatGPT (${email})` : 'ChatGPT Subscription',
-        model: 'gpt-4o',
-        isActive: true,
-      };
-
-      if (existing) {
-        await db.update(apiKeys).set(tokenData).where(eq(apiKeys.id, existing.id));
-      } else {
-        await db.insert(apiKeys).values({
-          userId: user.id,
-          provider: 'openai',
-          ...tokenData,
-        });
-      }
-
-      // Redirect to settings page with success
       return reply
         .header('Content-Type', 'text/html; charset=utf-8')
         .send(successPage(email, WEB_APP_URL));
-
     } catch (err) {
       removePendingFlow(state);
       const errMsg = err instanceof Error ? err.message : 'Unknown error';

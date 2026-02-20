@@ -136,6 +136,15 @@ async function getUserAIConfig(
   const [key] = keys;
   if (!key) return null;
 
+  // Defensive guard: never allow provider override mismatches even if the query layer
+  // returns an unexpected row.
+  if (targetProvider && key.provider !== targetProvider) {
+    console.warn(
+      `[document-router] Provider mismatch detected for user ${clerkId}: requested=${targetProvider}, returned=${key.provider}`,
+    );
+    return null;
+  }
+
   try {
     // OAuth flow - use access token (with auto-refresh)
     if (key.authMethod === 'oauth' && key.encryptedAccessToken) {

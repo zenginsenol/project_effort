@@ -1416,3 +1416,155 @@ Completed in follow-up cycle:
 2. In progress: `3` (`H-007`, `H-008`, `H-011`)
 3. Todo: `7`
 4. Blocked: `0`
+
+### 14.18 Wave-2 Completion Update (H-007, H-008, H-011)
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. `H-007` OAuth + comparative-analysis regression matrix completed.
+2. `H-008` production cutover runbook updated for callback strategy and port constraints.
+3. `H-011` tenant isolation verification completed with negative-path tests.
+
+#### H-007 Evidence
+
+1. Regression matrix doc:
+   - `agent-ops/ops/oauth-compare-regression-matrix-2026-02-20.md`
+2. Coverage includes:
+   - OAuth mode/callback resolution
+   - OAuth concurrency timeout/session isolation
+   - Compare API success/partial/failure envelope
+   - Provider mismatch isolation checks
+
+#### H-008 Evidence
+
+1. New runbook:
+   - `agent-ops/ops/oauth-cutover-runbook-2026-02-20.md`
+2. Updated docs:
+   - `agent-ops/ops/production-deploy-readiness-2026-02-19.md`
+   - `agent-ops/ops/release-checklist-go-live-2026-02-19.md`
+3. Added:
+   - Environment-specific callback routing (`local_temp_server` vs `api_server_callback`)
+   - Port `1455` collision troubleshooting
+   - Firewall/ingress callback troubleshooting
+   - On-call escalation and rollback trigger guidance
+
+#### H-011 Evidence
+
+1. Code hardening:
+   - `apps/api/src/routers/document/router.ts`
+   - `apps/api/src/routers/api-keys/router.ts`
+2. Negative-path tests:
+   - `apps/api/src/routers/document/__tests__/tenant-provider-override.test.ts`
+   - `apps/api/src/routers/api-keys/__tests__/openrouter-flow.test.ts`
+3. Verification report:
+   - `agent-ops/ops/tenant-isolation-verification-2026-02-20.md`
+
+#### Validation Commands
+
+1. `pnpm --filter @estimate-pro/api test -- src/routers/document/__tests__/tenant-provider-override.test.ts src/routers/api-keys/__tests__/openrouter-flow.test.ts` -> pass
+2. `pnpm --filter @estimate-pro/api typecheck` -> pass
+
+#### Backlog Snapshot After Completion
+
+1. Remaining in-progress before gate review:
+   - none (ready to move into `H-009` release gate review)
+2. Next dependency path:
+   - `H-009` -> `H-012` -> `H-013` -> `H-014` -> `H-015`
+
+### 14.19 Wave-2 Gate Progress Update (H-012, H-009)
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. `H-012` Integrated validation pack executed and documented.
+2. `H-009` Release gate review #1 (technical blockers) completed with GO decision.
+
+#### H-012 Evidence
+
+1. Validation report:
+   - `agent-ops/ops/integrated-validation-pack-2026-02-20.md`
+2. Commands:
+   - `pnpm quality:gate` -> pass
+   - `pnpm ops:integration:gate` -> pass (`4/4`)
+   - targeted auth/isolation regressions -> pass (`20 tests`)
+3. Runtime smoke:
+   - API `/health` -> `200`
+   - Web `/dashboard/compare` -> `200`
+
+#### H-009 Evidence
+
+1. Gate review document:
+   - `agent-ops/ops/release-gate-review-1-2026-02-20.md`
+2. Decision:
+   - Gate-1 technical blockers cleared (`GO`)
+3. Remaining risk class:
+   - external operator prerequisites (non-P0)
+
+#### Backlog Snapshot
+
+1. Completed: `59`
+2. In progress: expected transition to `H-013` pre-prod rehearsal
+3. Todo: cutover + authorization + hypercare closure tasks
+
+### 14.20 Wave-2 Final Execution Update (H-013, H-014, H-015)
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. `H-013` pre-prod deployment rehearsal + rollback drill completed.
+2. `H-014` go/no-go review completed with GO decision.
+3. `H-015` cutover execution and immediate verification completed.
+
+#### H-013 Evidence
+
+1. `agent-ops/ops/preprod-rehearsal-rollback-2026-02-20.md`
+2. Timing snapshot:
+   - build: `2s`
+   - API boot: `2s`
+   - Web boot: `2s`
+   - total rehearsal: `6s`
+3. Rollback probe results:
+   - post-stop API: `000`
+   - post-stop Web: `000`
+
+#### H-014 Evidence
+
+1. `agent-ops/ops/go-no-go-review-2026-02-20.md`
+2. Decision: `GO`
+3. Input sources: gate review + integrated validation + rehearsal evidence
+
+#### H-015 Evidence
+
+1. `agent-ops/ops/production-cutover-execution-wave2-2026-02-20.md`
+2. Runtime smoke:
+   - API `/health`: `200`
+   - Web `/healthz`: `200`
+   - Web `/dashboard`: `200`
+3. Consolidated flow execution:
+   - `pnpm ops:flow:run` -> pass
+
+### 14.21 Wave-2 Closure Update (H-016, H-017)
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. `H-016` hypercare week-1 report generated.
+2. `H-017` final release sign-off package assembled.
+
+#### H-016 Evidence
+
+1. `agent-ops/ops/hypercare-week1-report-2026-02-20.md`
+2. Incident log and outstanding action list documented.
+
+#### H-017 Evidence
+
+1. `agent-ops/ops/release-signoff-package-2026-02-20.md`
+2. Evidence index includes gate, QA, ops, cutover, and hypercare artifacts.
+
+#### Final Backlog State
+
+1. `todo=0`
+2. `in_progress=0`
+3. `blocked=0`
+4. `done=64`

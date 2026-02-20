@@ -1,17 +1,17 @@
 # Effort Flow Roadmap (Live Readiness)
 
-Generated: 2026-02-20T05:04:23.982Z
+Generated: 2026-02-20T07:37:27.776Z
 Branch: `main`
-Commit: `b1b4dce`
+Commit: `22afe77`
 
 ## Gate Summary
 
 | Gate | Status | Evidence |
 |---|---|---|
 | Docs -> COS extraction | pass | tasks=93, effort=1269.6h |
-| Effort/Cost workflow | pass | pass=8, warn=2, skip=1, fail=0 |
+| Effort/Cost workflow | pass | pass=8, warn=1, skip=1, fail=0 |
 | Module contracts | pass | 4/4 passed |
-| GitHub + Kanban transfer readiness | pass | github=pushed, kanban=pushed |
+| GitHub + Kanban transfer readiness | warn | github=skipped, kanban=skipped |
 | AI provider health | warn | warn: Rate limit exceeded: Your openai API key has hit its rate limit. Please try again later. |
 
 ## COS Effort Baseline
@@ -41,11 +41,13 @@ Commit: `b1b4dce`
 
 ## Agent System Status
 
-- Backlog summary: todo=14, in_progress=1, blocked=0, done=49
-- Active task (Agent-A): `H-001` Reconcile OpenAI OAuth callback architecture for local and deployed environments
+- Backlog summary: todo=3, in_progress=1, blocked=0, done=60
+- Active task (Agent-A): -
 
 ## Current Blockers
 
+- GitHub aktarimi hazir degil: GITHUB_REPO or GITHUB_TOKEN missing
+- Kanban aktarimi hazir degil: KANBAN_PROJECT_ID or --project-id missing
 - AI analizde uyari var: Rate limit exceeded: Your openai API key has hit its rate limit. Please try again later.
 
 ## Step-by-Step Execution (Go-Live Flow)

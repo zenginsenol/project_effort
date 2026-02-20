@@ -513,6 +513,15 @@ export const apiKeysRouter = router({
         return { found: false as const, apiKey: null, model: null, authMethod: null, oauthBetaHeader: null };
       }
 
+      // Defensive guard: never return a key for a provider other than requested,
+      // even if an unexpected DB row is returned.
+      if (key.provider !== input.provider) {
+        console.warn(
+          `[api-keys] Provider mismatch for user=${ctx.userId}: requested=${input.provider}, returned=${key.provider}`,
+        );
+        return { found: false as const, apiKey: null, model: null, authMethod: null, oauthBetaHeader: null };
+      }
+
       await db
         .update(apiKeys)
         .set({ lastUsedAt: new Date() })

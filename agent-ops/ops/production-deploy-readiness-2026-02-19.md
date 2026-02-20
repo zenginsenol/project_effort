@@ -64,3 +64,11 @@ Production infrastructure readiness for:
 ## Result
 
 Production environment is deployment-ready from configuration and runbook perspective.
+
+## OAuth Callback Ops Notes (Wave-2)
+
+1. Production must run with `OPENAI_OAUTH_MODE=api_server_callback`.
+2. Set explicit callback base: `OAUTH_CALLBACK_BASE_URL=https://api.<your-domain>`.
+3. Keep local-only callback server mode (`local_temp_server`) disabled in production.
+4. Detailed cutover + incident handling:
+   - `agent-ops/ops/oauth-cutover-runbook-2026-02-20.md`

@@ -10,6 +10,7 @@ Owner: Manager / Ops
 - [x] API router tests + E2E smoke/critical flows passing
 - [x] Staging parity validated
 - [x] Production env template prepared
+- [x] OAuth callback cutover runbook prepared (`oauth-cutover-runbook-2026-02-20.md`)
 - [x] Monitoring/alerting runbook prepared
 - [x] Backup/DR runbook prepared
 
@@ -27,6 +28,7 @@ Owner: Manager / Ops
    - Session page load
 6. Enable monitoring alerts and confirm green dashboards.
 7. Announce release complete.
+8. Keep OAuth on-call watch during first 30 minutes (callback success/error ratio + state expiry rate).
 
 ## Rollback Plan
 

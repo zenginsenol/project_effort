@@ -1,16 +1,16 @@
 # Agent Next Tasks
 
-Updated: 2026-02-20T06:53:06.015Z
+Updated: 2026-02-20T07:38:48.652Z
 
-Summary: todo=7, in_progress=3, blocked=0, done=54
+Summary: todo=0, in_progress=0, blocked=0, done=64
 
 | Owner | Active Task | Next Task |
 |---|---|---|
 | Agent-A | - | - |
-| Agent-B | `H-011` Perform tenant isolation verification for provider override paths | - |
+| Agent-B | - | - |
 | Agent-C | - | - |
-| QA | `H-007` Build OAuth and comparative-analysis regression test matrix | - |
-| Ops | `H-008` Update production cutover runbook for OAuth callback strategy and port constraints | - |
+| QA | - | - |
+| Ops | - | - |
 | Manager | - | - |
 
 ## Blocked Tasks
@@ -26,5 +26,5 @@ Summary: todo=7, in_progress=3, blocked=0, done=54
 - Phase E: 6/6
 - Phase F: 6/6
 - Phase G: 8/8
-- Phase H: 8/18
+- Phase H: 18/18
 

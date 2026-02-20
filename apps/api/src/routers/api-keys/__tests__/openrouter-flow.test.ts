@@ -121,4 +121,28 @@ describe('apiKeysRouter openrouter flows', () => {
       oauthBetaHeader: null,
     });
   });
+
+  it('returns found=false when DB returns a provider different from requested', async () => {
+    mockDb.query.apiKeys.findFirst.mockResolvedValueOnce({
+      id: '55555555-5555-4555-8555-555555555555',
+      provider: 'openai',
+      authMethod: 'api_key',
+      encryptedKey: encrypt('sk-openai-abcdefghijklmnopqrstuvwxyz9012'),
+      encryptedAccessToken: null,
+      encryptedRefreshToken: null,
+      tokenExpiresAt: null,
+      model: 'gpt-5.2',
+    });
+
+    const caller = createCaller();
+    const result = await caller.getKeyForProvider({ provider: 'openrouter' });
+
+    expect(result).toEqual({
+      found: false,
+      apiKey: null,
+      model: null,
+      authMethod: null,
+      oauthBetaHeader: null,
+    });
+  });
 });

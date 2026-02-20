@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-02-20T06:53:05.931Z",
+  "updatedAt": "2026-02-20T07:38:27.061Z",
   "project": "EstimatePro Go-Live Recovery",
   "statusModel": [
     "todo",
@@ -798,7 +798,7 @@
       "phase": "Phase H",
       "owner": "QA",
       "priority": "P1",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "H-002",
         "H-005",
@@ -811,7 +811,8 @@
         "Implement automated tests and manual checks for edge cases",
         "Publish traceable test evidence and pass/fail summary"
       ],
-      "startedAt": "2026-02-20T06:53:05.926Z"
+      "startedAt": "2026-02-20T06:53:05.926Z",
+      "completedAt": "2026-02-20T07:32:52.200Z"
     },
     {
       "id": "H-008",
@@ -819,7 +820,7 @@
       "phase": "Phase H",
       "owner": "Ops",
       "priority": "P1",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "H-001"
       ],
@@ -830,7 +831,8 @@
         "Define on-call escalation path for auth failures during cutover",
         "Cross-link runbook with release checklist"
       ],
-      "startedAt": "2026-02-20T06:45:32.913Z"
+      "startedAt": "2026-02-20T06:45:32.913Z",
+      "completedAt": "2026-02-20T07:32:52.291Z"
     },
     {
       "id": "H-009",
@@ -838,7 +840,7 @@
       "phase": "Phase H",
       "owner": "Manager",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-002",
         "H-004",
@@ -851,7 +853,9 @@
         "Verify migration, OAuth, and contract readiness criteria",
         "Capture unresolved risks with deadlines and accountable owners",
         "Issue gate decision and update backlog statuses"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:32:52.473Z",
+      "completedAt": "2026-02-20T07:35:49.162Z"
     },
     {
       "id": "H-010",
@@ -879,7 +883,7 @@
       "phase": "Phase H",
       "owner": "Agent-B",
       "priority": "P1",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "H-006"
       ],
@@ -890,7 +894,8 @@
         "Verify encrypted token/key handling remains tenant-scoped",
         "Document findings and remediation notes"
       ],
-      "startedAt": "2026-02-20T06:51:05.290Z"
+      "startedAt": "2026-02-20T06:51:05.290Z",
+      "completedAt": "2026-02-20T07:32:52.380Z"
     },
     {
       "id": "H-012",
@@ -898,7 +903,7 @@
       "phase": "Phase H",
       "owner": "QA",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-007",
         "H-010",
@@ -910,7 +915,9 @@
         "Run auth security checks and tenant isolation tests",
         "Verify compare page UX with real provider combinations",
         "Publish QA evidence with defects and disposition status"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:32:52.469Z",
+      "completedAt": "2026-02-20T07:35:49.069Z"
     },
     {
       "id": "H-013",
@@ -918,7 +925,7 @@
       "phase": "Phase H",
       "owner": "Ops",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-009",
         "H-012"
@@ -929,7 +936,9 @@
         "Run post-deploy smoke including OAuth and compare endpoints",
         "Execute rollback drill and verify service/data consistency",
         "Record timings and update cutover timeline assumptions"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:35:49.257Z",
+      "completedAt": "2026-02-20T07:36:41.972Z"
     },
     {
       "id": "H-014",
@@ -937,7 +946,7 @@
       "phase": "Phase H",
       "owner": "Manager",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-013"
       ],
@@ -947,7 +956,9 @@
         "Validate rollback readiness and on-call coverage",
         "Issue production authorization or defer with action plan",
         "Publish final cutover communication"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:36:42.056Z",
+      "completedAt": "2026-02-20T07:37:13.431Z"
     },
     {
       "id": "H-015",
@@ -955,7 +966,7 @@
       "phase": "Phase H",
       "owner": "Ops",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-014"
       ],
@@ -965,7 +976,9 @@
         "Run cutover smoke checklist including auth, integrations, and compare flow",
         "Validate alerts, logs, and tracing baseline",
         "Confirm no-go rollback trigger criteria remain unmet"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:37:13.518Z",
+      "completedAt": "2026-02-20T07:37:56.390Z"
     },
     {
       "id": "H-016",
@@ -973,7 +986,7 @@
       "phase": "Phase H",
       "owner": "Manager",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-015"
       ],
@@ -983,7 +996,9 @@
         "Coordinate rapid fixes and patch windows",
         "Review support trends and high-frequency failure points",
         "Publish week-1 status brief with action owners"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:37:56.475Z",
+      "completedAt": "2026-02-20T07:38:10.797Z"
     },
     {
       "id": "H-017",
@@ -991,7 +1006,7 @@
       "phase": "Phase H",
       "owner": "Manager",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-016"
       ],
@@ -1001,7 +1016,9 @@
         "Finalize operational handover to steady-state support",
         "Publish release retrospective and improvement actions",
         "Mark Wave-2 program as complete in tracker and backlog"
-      ]
+      ],
+      "startedAt": "2026-02-20T07:38:10.879Z",
+      "completedAt": "2026-02-20T07:38:27.057Z"
     }
   ]
 }

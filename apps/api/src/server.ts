@@ -9,7 +9,6 @@ import Fastify from 'fastify';
 import { createContext } from './trpc/context';
 import { appRouter } from './routers/index';
 import { parseDocument } from './services/document/parser';
-import { extractTasksFromText } from './services/document/task-extractor';
 import { upsertOpenAIOAuthCredential } from './services/oauth/oauth-credential-store';
 import { exchangeCodeForTokens } from './services/oauth/openai-oauth';
 import { getPendingFlow, removePendingFlow } from './services/oauth/oauth-store';
@@ -60,10 +59,41 @@ async function start(): Promise<void> {
       }
 
       const { text, fileName, mimeType } = await parseDocument(file);
-      const hourlyRate = Number((request.query as Record<string, string>).hourlyRate) || 150;
-      const projectContext = (request.query as Record<string, string>).projectContext || '';
+      const query = request.query as Record<string, string | undefined>;
+      const hourlyRate = Number(query.hourlyRate) || 150;
+      const projectContext = query.projectContext?.trim() || undefined;
+      const provider = query.provider?.trim();
+      const model = query.model?.trim();
+      const reasoningEffort = query.reasoningEffort?.trim();
 
-      const result = await extractTasksFromText(text, projectContext, hourlyRate);
+      const allowedProviders = new Set(['openai', 'anthropic', 'openrouter']);
+      const allowedEfforts = new Set(['low', 'medium', 'high', 'xhigh']);
+
+      if (provider && !allowedProviders.has(provider)) {
+        return reply.status(400).send({ error: `Unsupported provider: ${provider}` });
+      }
+
+      if (reasoningEffort && !allowedEfforts.has(reasoningEffort)) {
+        return reply.status(400).send({ error: `Unsupported reasoningEffort: ${reasoningEffort}` });
+      }
+
+      const ctx = await createContext({ req: request, res: reply } as never);
+      if (!ctx.userId) {
+        return reply.status(401).send({
+          error: 'Authentication required for document analysis. Sign in and retry.',
+        });
+      }
+
+      const caller = appRouter.createCaller(ctx);
+      const result = await caller.document.analyzeText({
+        text,
+        projectContext,
+        hourlyRate,
+        provider: provider as 'openai' | 'anthropic' | 'openrouter' | undefined,
+        model: model && model.length > 0 ? model : undefined,
+        reasoningEffort: reasoningEffort as 'low' | 'medium' | 'high' | 'xhigh' | undefined,
+      });
+
       return { ...result, sourceFile: fileName, sourceMimeType: mimeType };
     } catch (err) {
       return reply.status(500).send({

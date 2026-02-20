@@ -1568,3 +1568,54 @@ Completed in this cycle:
 2. `in_progress=0`
 3. `blocked=0`
 4. `done=64`
+
+### 14.22 TradeAI PRD E2E Validation Update (No Mock)
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. Mock extraction fallback removed from document task extraction.
+2. TradeAI PRD full-flow run executed with real document input.
+3. File-upload ingest endpoint switched to user-configured provider path (`document.analyzeText`).
+4. Integration gate updated and re-validated for analyzer contract.
+
+#### Evidence
+
+1. Code:
+   - `apps/api/src/services/document/task-extractor.ts`
+   - `apps/api/src/services/document/__tests__/task-extractor.no-mock.test.ts`
+   - `apps/api/src/server.ts`
+   - `scripts/module-integration-check.mjs`
+2. Reports:
+   - `agent-ops/ops/tradeai-e2e-validation-2026-02-20.md`
+   - `agent-ops/ops/kanban-self-manage-latest.md`
+   - `agent-ops/bootstrap/docs-bootstrap-report-latest.md`
+   - `agent-ops/ops/module-integration-check-latest.md`
+
+#### TradeAI Run Summary
+
+1. Command:
+   - `BOOTSTRAP_DOCS="/Users/senol/Downloads/TradeAI_Pro_PRD.docx" pnpm ops:kanban:self-manage -- --project-name "TradeAI Pro" --project-key TRADEAI`
+2. Output:
+   - Project created: `1817d63e-ffcb-4b77-82c9-1f9c171f9a48`
+   - Tasks inserted: `55`
+   - Effort with contingency: `675.6h`
+   - Cost: `810720 TRY`
+   - Baseline + variant analysis + compare + export: `pass`
+   - AI optional analysis: provider quota warning (real provider error, no mock)
+
+#### Runtime Validation
+
+1. `GET /health` -> `200`
+2. `GET /` -> `200`
+3. `GET /dashboard` -> `200`
+4. `GET /dashboard/effort` -> `200`
+5. `POST /api/analyze-document` with TradeAI PRD -> provider quota error (`500`) confirming real provider execution path.
+6. `POST /api/analyze-document?provider=invalid` -> `400`
+
+#### Validation Commands
+
+1. `pnpm --filter @estimate-pro/api test` -> pass (`9 files / 34 tests`)
+2. `pnpm --filter @estimate-pro/api typecheck` -> pass
+3. `pnpm quality:gate` -> pass
+4. `pnpm ops:integration:gate` -> pass (`4/4`)

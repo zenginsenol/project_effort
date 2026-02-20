@@ -428,8 +428,7 @@ export async function extractTasksFromText(
   const hasEnvKey = isEnvApiKeyValid();
 
   if (!hasUserKey && !hasEnvKey) {
-    console.log('[task-extractor] No valid API key available, using smart mock extraction');
-    return generateMockExtraction(documentText, projectContext, hourlyRate);
+    throw new Error('No valid AI API key configured. Please add an active provider key in Settings or set OPENAI_API_KEY.');
   }
 
   const userPrompt = `${projectContext ? `Project Context: ${projectContext}\n\n` : ''}Requirements Document:\n\n${documentText.slice(0, 30000)}`;
@@ -561,59 +560,6 @@ export async function extractWithMultipleProviders(
   }
 
   return { results, errors };
-}
-
-// ─── Mock extraction ─────────────────────────────────────────
-
-function generateMockExtraction(
-  documentText: string,
-  projectContext?: string,
-  hourlyRate: number = 150,
-): ExtractionResult {
-  const tasks: ExtractedTask[] = [
-    { title: 'Authentication & Multi-Tenancy System', description: 'Complete auth system with Clerk integration, multi-tenant org management, RBAC', type: 'epic', priority: 'critical', estimatedHours: 120, estimatedPoints: 34 },
-    { title: 'Clerk Auth Integration', description: 'Integrate Clerk for user registration, social login (Google, GitHub), 2FA, session management', type: 'feature', priority: 'critical', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'User Registration & Login Flow', description: 'Email/password registration, social login buttons, email verification, password reset', type: 'story', priority: 'critical', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Multi-Factor Authentication (2FA)', description: 'Enable TOTP-based 2FA via Clerk dashboard config and frontend UI', type: 'task', priority: 'high', estimatedHours: 8, estimatedPoints: 5 },
-    { title: 'Organization Management', description: 'Create/edit/delete organizations, invite members via email, role assignment', type: 'feature', priority: 'critical', estimatedHours: 40, estimatedPoints: 21 },
-    { title: 'Role-Based Access Control (RBAC)', description: 'Implement Owner, Admin, Member, Viewer roles with permission middleware', type: 'story', priority: 'critical', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Project Management Module', description: 'Full project CRUD with dashboard, timeline, and analytics', type: 'epic', priority: 'critical', estimatedHours: 160, estimatedPoints: 34 },
-    { title: 'Project CRUD Operations', description: 'Create, read, update, delete projects with name, description, status, methodology', type: 'feature', priority: 'critical', estimatedHours: 24, estimatedPoints: 8 },
-    { title: 'Project Dashboard', description: 'Overview cards (total tasks, hours, completion %, budget), charts, velocity tracking', type: 'feature', priority: 'high', estimatedHours: 48, estimatedPoints: 21 },
-    { title: 'Task Management Module', description: 'Hierarchical task system with estimation fields, dependencies, and bulk operations', type: 'epic', priority: 'critical', estimatedHours: 200, estimatedPoints: 34 },
-    { title: 'Task CRUD Operations', description: 'Create/edit/delete tasks with title, description, type, priority, status, assignee', type: 'feature', priority: 'critical', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Task Estimation Fields', description: 'Hours, story points (Fibonacci), T-shirt sizing, confidence level per estimate', type: 'feature', priority: 'critical', estimatedHours: 20, estimatedPoints: 8 },
-    { title: 'Estimation Algorithms Engine', description: '5 estimation algorithms: Planning Poker, T-Shirt, PERT, Wideband Delphi, Outlier Detection', type: 'epic', priority: 'critical', estimatedHours: 180, estimatedPoints: 34 },
-    { title: 'AI-Powered Features', description: 'Document analysis, task extraction, similarity search, prompt injection defense', type: 'epic', priority: 'high', estimatedHours: 160, estimatedPoints: 34 },
-    { title: 'Document Upload & Parsing', description: 'Support PDF, DOCX, MD, TXT upload (10MB max), extract plain text', type: 'feature', priority: 'high', estimatedHours: 20, estimatedPoints: 8 },
-    { title: 'AI Task Extraction', description: 'Send parsed text to AI provider, extract structured tasks with estimates', type: 'feature', priority: 'high', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Real-Time Collaboration System', description: 'Socket.io WebSocket for live estimation sessions, presence, and chat', type: 'epic', priority: 'high', estimatedHours: 120, estimatedPoints: 34 },
-    { title: 'Sprint Management Module', description: 'Sprint CRUD, task assignment, velocity tracking, burndown charts', type: 'epic', priority: 'high', estimatedHours: 100, estimatedPoints: 21 },
-    { title: 'Analytics & Reporting Dashboard', description: 'Organization-wide metrics, estimation accuracy, team performance, exports', type: 'epic', priority: 'medium', estimatedHours: 120, estimatedPoints: 34 },
-    { title: 'External Integrations', description: 'Jira, GitHub, and Slack integrations for workflow automation', type: 'epic', priority: 'low', estimatedHours: 200, estimatedPoints: 34 },
-    { title: 'Infrastructure & DevOps', description: 'Docker, CI/CD, monitoring, database management, deployment', type: 'epic', priority: 'high', estimatedHours: 100, estimatedPoints: 21 },
-  ];
-
-  const totalHours = tasks.reduce((sum, t) => sum + t.estimatedHours, 0);
-
-  return {
-    projectSummary: projectContext
-      ? `${projectContext} - Comprehensive SaaS platform requiring full-stack development.`
-      : 'AI-Powered Project Estimation SaaS Platform',
-    totalEstimatedHours: totalHours,
-    totalEstimatedCost: totalHours * hourlyRate,
-    tasks,
-    assumptions: [
-      'Mid-level developer (3-5 years experience) as baseline for hour estimates',
-      'Team of 3-4 full-stack developers working in parallel',
-      'Existing Turborepo monorepo structure already set up',
-      'PostgreSQL and Redis infrastructure available via Docker',
-      '20% contingency recommended for unforeseen complexity',
-    ],
-    provider: 'mock',
-    model: 'mock',
-    durationMs: 0,
-  };
 }
 
 function validateType(type: string): ExtractedTask['type'] {

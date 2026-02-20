@@ -1,28 +1,25 @@
 # Docs Bootstrap Report
 
-Updated: 2026-02-20T07:37:22.313Z
+Updated: 2026-02-20T07:44:27.024Z
 
 ## Inputs
 
-- Documents analyzed: 3
-- Estimate Pro Document - Claude.docx (267 lines, 6728 chars)
-- Estimate Pro Document - Project Effort Estimation.docx (267 lines, 6728 chars)
-- Estimate Pro Teknik Stack.docx (181 lines, 6521 chars)
+- Documents analyzed: 1
+- ../../../Downloads/TradeAI_Pro_PRD.docx (417 lines, 11937 chars)
 
 ## COS Summary
 
-- Tasks generated: 93
-- Effort total: 1058h
-- Contingency: 20% (211.6h)
-- Effort total with contingency: 1269.6h
-- Development cost: 1523520 TRY
+- Tasks generated: 55
+- Effort total: 563h
+- Contingency: 20% (112.6h)
+- Effort total with contingency: 675.6h
+- Development cost: 810720 TRY
 
 ## Transfer Status
 
 - GitHub: skipped (created 0/0)
   reason: GITHUB_REPO or GITHUB_TOKEN missing
-- Kanban: skipped (inserted 0/0, deduped 0)
-  reason: KANBAN_PROJECT_ID or --project-id missing
+- Kanban: pushed (inserted 55/55, deduped 0)
 
 ## Usage
 

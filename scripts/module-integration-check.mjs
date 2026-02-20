@@ -60,7 +60,7 @@ const contractChecks = [
     producerFile: 'apps/api/src/server.ts',
     producerTokens: [
       "fastify.post('/api/analyze-document'",
-      'extractTasksFromText(',
+      'caller.document.analyzeText(',
     ],
     consumerFile: 'apps/web/src/app/dashboard/analyzer/page.tsx',
     consumerTokens: [

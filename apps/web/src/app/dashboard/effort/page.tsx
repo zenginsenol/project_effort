@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import {
   AlertTriangle,
+  ArrowRight,
   Download,
   Github,
   GitCompare,
@@ -17,6 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -73,6 +76,9 @@ type ApiKeyListItem = {
 };
 
 export default function EffortPage(): React.ReactElement {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectIdFromQuery = searchParams.get('projectId') ?? '';
   const utils = trpc.useUtils();
 
   const [hourlyRate, setHourlyRate] = useState(150);
@@ -268,6 +274,28 @@ export default function EffortPage(): React.ReactElement {
       autoMoveFirstWeekToTodo ? '1' : '0',
     ].join(':');
   }, [autoMoveFirstWeekToTodo, contingency, includeCompleted, selectedProjectId, workHoursPerDay]);
+
+  useEffect(() => {
+    if (projectIdFromQuery && projectIdFromQuery !== selectedProjectId) {
+      setSelectedProjectId(projectIdFromQuery);
+    }
+  }, [projectIdFromQuery, selectedProjectId]);
+
+  useEffect(() => {
+    const queryProjectId = searchParams.get('projectId') ?? '';
+    if (queryProjectId === selectedProjectId) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedProjectId) {
+      params.set('projectId', selectedProjectId);
+    } else {
+      params.delete('projectId');
+    }
+    const query = params.toString();
+    router.replace(query ? `/dashboard/effort?${query}` : '/dashboard/effort', { scroll: false });
+  }, [router, searchParams, selectedProjectId]);
 
   useEffect(() => {
     setKanbanSyncNotice('');
@@ -579,19 +607,57 @@ export default function EffortPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-primary" />
-          Effort & Cost Calculator
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Calculate man-hours, project cost, and delivery timeline for your projects.
-        </p>
-      </div>
+      <section className="rounded-xl border bg-gradient-to-r from-primary/10 via-primary/5 to-background p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Calculator className="h-6 w-6 text-primary" />
+              Effort & Cost Workflow
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Kanban tasklarini efora cevir, alternatif senaryolar olustur, compare et ve GitHub&apos;a aktar.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/projects"
+              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Back to projects
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={selectedProjectId ? `/dashboard/compare?projectId=${selectedProjectId}` : '/dashboard/compare'}
+              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Open compare
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 1</p>
+            <p className="text-sm font-medium">Project + parameters</p>
+          </div>
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 2</p>
+            <p className="text-sm font-medium">Roadmap + kanban sync</p>
+          </div>
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 3</p>
+            <p className="text-sm font-medium">Snapshot + AI analysis</p>
+          </div>
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 4</p>
+            <p className="text-sm font-medium">Compare + export + GitHub</p>
+          </div>
+        </div>
+      </section>
 
       {/* Parameters Panel */}
       <div className="rounded-lg border bg-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Calculation Parameters</h2>
+        <h2 className="text-lg font-semibold mb-4">Step 1: Project & Calculation Parameters</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-1">Project</label>
@@ -662,6 +728,11 @@ export default function EffortPage(): React.ReactElement {
             </button>
           </div>
         </div>
+        {selectedProjectId && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Active project comes from Kanban transition or manual selection.
+          </p>
+        )}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
@@ -774,7 +845,7 @@ export default function EffortPage(): React.ReactElement {
         <div className="rounded-lg border bg-card p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Execution Roadmap</h2>
+              <h2 className="text-lg font-semibold">Step 2: Execution Roadmap</h2>
               <p className="text-sm text-muted-foreground">
                 Project: {roadmapData.project.name} ({roadmapData.project.key})
               </p>
@@ -863,6 +934,13 @@ export default function EffortPage(): React.ReactElement {
 
       {data && (
         <>
+          <div className="rounded-lg border bg-card p-4">
+            <h2 className="text-lg font-semibold">Step 3: Baseline Cost Summary</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Hesaplanan efor, sure ve yil-1 operasyon maliyetini baz senaryo olarak sabitle.
+            </p>
+          </div>
+
           {/* Summary Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg border bg-card p-6">
@@ -1214,7 +1292,7 @@ export default function EffortPage(): React.ReactElement {
               <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <Save className="h-5 w-5 text-primary" />
-                  Cost Analysis Workspace
+                  Step 4: Cost Analysis Workspace
                 </h2>
                 <p className="text-sm text-muted-foreground">
                   Save, edit, and reuse cost analysis snapshots for this project.
@@ -1288,7 +1366,7 @@ export default function EffortPage(): React.ReactElement {
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              AI Cost Analysis (OpenAI / Claude / Other)
+              Step 5: AI Cost Analysis (OpenAI / Claude / Other)
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Generate a new analysis from document text using active provider/model settings.
@@ -1446,7 +1524,7 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold">Saved Analyses</h2>
+            <h2 className="text-lg font-semibold">Step 6: Saved Analyses</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Select one record to edit/export. Select multiple records to compare.
             </p>
@@ -1512,11 +1590,18 @@ export default function EffortPage(): React.ReactElement {
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <GitCompare className="h-5 w-5 text-primary" />
-              Compare Analyses
+              Step 7: Compare Analyses
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Choose at least 2 analyses to compute deltas against baseline.
             </p>
+            <Link
+              href={selectedProjectId ? `/dashboard/compare?projectId=${selectedProjectId}` : '/dashboard/compare'}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              Need provider-level compare? Open Compare AI page
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
             {compareSelection.length < 2 && (
               <p className="mt-3 text-sm text-muted-foreground">Select 2+ analyses in the table above.</p>
             )}
@@ -1571,7 +1656,7 @@ export default function EffortPage(): React.ReactElement {
           <div className="rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Github className="h-5 w-5 text-primary" />
-              Export & GitHub Integration
+              Step 8: Export & GitHub Integration
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Export selected analysis or sync it as GitHub issue in linked repository.

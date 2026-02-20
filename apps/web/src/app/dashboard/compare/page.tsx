@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -287,6 +289,10 @@ function ResultCard({
 }
 
 export default function ComparePage(): React.ReactElement {
+  const searchParams = useSearchParams();
+  const initialProjectId = searchParams.get('projectId') ?? '';
+
+  const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId);
   const [inputText, setInputText] = useState('');
   const [projectContext, setProjectContext] = useState('');
   const [hourlyRate, setHourlyRate] = useState(150);
@@ -297,16 +303,34 @@ export default function ComparePage(): React.ReactElement {
   const [hasResults, setHasResults] = useState(false);
 
   const apiKeysQuery = trpc.apiKeys.list.useQuery();
+  const allProjectsQuery = trpc.project.list.useQuery({ organizationId: '' }, { retry: false });
   const configuredProviders = new Set(
     (apiKeysQuery.data ?? []).filter(k => k.isActive).map(k => k.provider)
   );
   const compareMutation = trpc.document.comparativeAnalyze.useMutation();
+  const selectedProject = useMemo(
+    () => (allProjectsQuery.data ?? []).find((project) => project.id === selectedProjectId) ?? null,
+    [allProjectsQuery.data, selectedProjectId],
+  );
 
   const [selections, setSelections] = useState<ProviderSelection[]>([
     { id: '1', provider: 'openai', model: 'gpt-5.2', reasoningEffort: 'medium', enabled: true },
     { id: '2', provider: 'anthropic', model: 'claude-sonnet-4-6', reasoningEffort: 'medium', enabled: true },
     { id: '3', provider: 'openrouter', model: 'openai/gpt-5.2', reasoningEffort: 'medium', enabled: false },
   ]);
+
+  useEffect(() => {
+    if (initialProjectId) {
+      setSelectedProjectId(initialProjectId);
+    }
+  }, [initialProjectId]);
+
+  useEffect(() => {
+    if (!selectedProject || projectContext.trim()) {
+      return;
+    }
+    setProjectContext(`${selectedProject.name} (${selectedProject.key})`);
+  }, [projectContext, selectedProject]);
 
   const updateSelection = (id: string, updated: ProviderSelection) => {
     setSelections(prev => prev.map(s => s.id === id ? updated : s));
@@ -355,19 +379,51 @@ export default function ComparePage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          🔀 Compare AI Providers
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Run the same requirements through multiple AI providers and compare task breakdowns side by side.
-        </p>
-      </div>
+      <section className="rounded-xl border bg-gradient-to-r from-primary/10 via-primary/5 to-background p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Compare AI Providers</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Ayni kapsam metnini birden fazla provider/model ile calistir, efor ve maliyet farkini yan yana gor.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={selectedProjectId ? `/dashboard/effort?projectId=${selectedProjectId}` : '/dashboard/effort'}
+              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Go to effort workspace
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Provider settings
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 1</p>
+            <p className="text-sm font-medium">Provider + model secimi</p>
+          </div>
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 2</p>
+            <p className="text-sm font-medium">Scope metnini ve proje baglamini gir</p>
+          </div>
+          <div className="rounded-md border bg-card/70 p-3">
+            <p className="text-xs text-muted-foreground">Step 3</p>
+            <p className="text-sm font-medium">Sonuclari sec ve cost kararina aktar</p>
+          </div>
+        </div>
+      </section>
 
       {!hasResults && (
         <>
           <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-1">Select Providers</h2>
+            <h2 className="text-lg font-semibold mb-1">Step 1: Select Providers</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Enable providers and choose models.
               {configuredProviders.size === 0 && (
@@ -387,8 +443,23 @@ export default function ComparePage(): React.ReactElement {
           </div>
 
           <div className="rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold mb-4">Requirements Document</h2>
+            <h2 className="text-lg font-semibold mb-4">Step 2: Requirements Document</h2>
             <div className="flex items-center gap-4 mb-4">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Project (optional)</label>
+                <select
+                  value={selectedProjectId}
+                  onChange={(event) => setSelectedProjectId(event.target.value)}
+                  className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
+                >
+                  <option value="">No project selected</option>
+                  {(allProjectsQuery.data ?? []).map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.key} - {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium">Rate:</label>
                 <input
@@ -415,6 +486,11 @@ export default function ComparePage(): React.ReactElement {
               placeholder="Paste your requirements document, PRD, or project description here..."
               className="w-full h-52 rounded-md border bg-background px-4 py-3 text-sm font-mono resize-y"
             />
+            {selectedProject && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Selected project: {selectedProject.key} / {selectedProject.name}
+              </p>
+            )}
             <div className="mt-4 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {enabledSelections.length} provider{enabledSelections.length !== 1 ? 's' : ''} selected
@@ -427,7 +503,7 @@ export default function ComparePage(): React.ReactElement {
                 {isAnalyzing ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Running...</>
                 ) : (
-                  <>🔀 Compare {enabledSelections.length} Provider{enabledSelections.length !== 1 ? 's' : ''}</>
+                  <>Run Comparison ({enabledSelections.length})</>
                 )}
               </button>
             </div>
@@ -462,6 +538,29 @@ export default function ComparePage(): React.ReactElement {
 
       {hasResults && (
         <div className="space-y-6">
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm font-medium">Step 3: Evaluate and move forward</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sonuctan secilen senaryoyu Effort Workspace&apos;te snapshot olarak kaydet ve GitHub/kanban akisina aktar.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Link
+                href={selectedProjectId ? `/dashboard/effort?projectId=${selectedProjectId}` : '/dashboard/effort'}
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              >
+                Open Effort Workspace
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link
+                href="/dashboard/projects"
+                className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              >
+                Back to Kanban
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+
           {results.length > 1 && (
             <div className="rounded-lg border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 p-6">
               <h2 className="text-lg font-bold">Comparison Summary</h2>

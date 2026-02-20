@@ -1,10 +1,11 @@
 'use client';
 
 import {
-  Brain, Upload, FileText, Plus, Trash2, Check, ChevronDown, ChevronUp,
-  AlertCircle, Clock, DollarSign, Loader2, Sparkles, Table, ClipboardPaste
+  Brain, Upload, FileText, Plus, Trash2, Check,
+  AlertCircle, DollarSign, Loader2, Sparkles, Table, ClipboardPaste
 } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,8 @@ interface TaskItem {
 type TabType = 'ai-text' | 'file-upload' | 'manual';
 
 export default function AnalyzerPage(): React.ReactElement {
+  const searchParams = useSearchParams();
+  const projectIdFromQuery = searchParams.get('projectId') ?? '';
   const [activeTab, setActiveTab] = useState<TabType>('ai-text');
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [projectSummary, setProjectSummary] = useState('');
@@ -66,11 +69,17 @@ export default function AnalyzerPage(): React.ReactElement {
   ]);
 
   // Project selection for saving
-  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState(projectIdFromQuery);
   const allProjectsQuery = trpc.project.list.useQuery({ organizationId: '' }, { retry: false });
 
   const analyzeTextMutation = trpc.document.analyzeText.useMutation();
   const bulkCreateMutation = trpc.document.bulkCreateTasks.useMutation();
+
+  useEffect(() => {
+    if (projectIdFromQuery && projectIdFromQuery !== selectedProjectId) {
+      setSelectedProjectId(projectIdFromQuery);
+    }
+  }, [projectIdFromQuery, selectedProjectId]);
 
   function createEmptyTask(): TaskItem {
     return {

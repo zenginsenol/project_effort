@@ -1,6 +1,20 @@
 'use client';
 
-import { ArrowLeft, Github, LayoutGrid, Link2, ListTodo, Plus, RefreshCw, Save, Trash2, WandSparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  Brain,
+  Calculator,
+  Github,
+  GitCompare,
+  LayoutGrid,
+  Link2,
+  ListTodo,
+  Plus,
+  RefreshCw,
+  Save,
+  Trash2,
+  WandSparkles,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -437,6 +451,30 @@ export default function ProjectDetailPage(): React.ReactElement {
           <h1 className="text-2xl font-bold">{projectQuery.data?.name ?? 'Project Details'}</h1>
           <p className="text-sm text-muted-foreground">Project ID: {projectId}</p>
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <Link href={`/dashboard/analyzer?projectId=${projectId}`} className="rounded-lg border bg-card p-3 hover:bg-muted/30">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold">
+            <Brain className="h-4 w-4 text-primary" />
+            Add Tasks from Docs
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Yeni dokumanlardan backloga task ekle.</p>
+        </Link>
+        <Link href={`/dashboard/effort?projectId=${projectId}`} className="rounded-lg border bg-card p-3 hover:bg-muted/30">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold">
+            <Calculator className="h-4 w-4 text-primary" />
+            Effort & Cost
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Bu projenin efor maliyet analizine gec.</p>
+        </Link>
+        <Link href={`/dashboard/compare?projectId=${projectId}`} className="rounded-lg border bg-card p-3 hover:bg-muted/30">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold">
+            <GitCompare className="h-4 w-4 text-primary" />
+            Compare Models
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Ayni kapsam icin provider/model sonucunu kiyasla.</p>
+        </Link>
       </div>
 
       <div className="mt-6 rounded-lg border bg-card p-4">

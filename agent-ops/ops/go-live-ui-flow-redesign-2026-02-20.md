@@ -109,9 +109,19 @@ File:
 
 Delivered:
 1. Added `projectId` query-param preselection support.
+2. Added ingest save mode:
+   - Save to existing project.
+   - Auto-create new project and save tasks.
+3. Added project auto-draft fields (name/key/description) from analysis context.
+4. Added one-click continuation links after save:
+   - Open Kanban board
+   - Continue to Effort
+5. Added fallback option in existing mode:
+   - If no project selected, auto-create project from ingest summary.
 
 Outcome:
 - Projects -> Analyzer handoff now lands with project context already selected.
+- Ingest can complete end-to-end even when user has no pre-existing project.
 
 ### 6) Compare Workflow Redesign
 

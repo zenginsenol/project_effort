@@ -4,6 +4,7 @@ import {
   Brain, Upload, FileText, Plus, Trash2, Check,
   AlertCircle, DollarSign, Loader2, Sparkles, Table, ClipboardPaste
 } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -42,6 +43,33 @@ interface TaskItem {
 
 type TabType = 'ai-text' | 'file-upload' | 'manual';
 
+function createProjectKeySeed(input: string): string {
+  const normalized = input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z\s]/g, ' ')
+    .trim();
+
+  const initials = normalized
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 6);
+
+  if (initials.length >= 2) {
+    return initials;
+  }
+
+  const compact = normalized.replace(/\s+/g, '').slice(0, 6);
+  if (compact.length >= 2) {
+    return compact;
+  }
+
+  return 'PRJ';
+}
+
 export default function AnalyzerPage(): React.ReactElement {
   const searchParams = useSearchParams();
   const projectIdFromQuery = searchParams.get('projectId') ?? '';
@@ -54,6 +82,7 @@ export default function AnalyzerPage(): React.ReactElement {
   const [showReview, setShowReview] = useState(false);
   const [hourlyRate, setHourlyRate] = useState(150);
   const [savedSuccess, setSavedSuccess] = useState('');
+  const [justCreatedProjectId, setJustCreatedProjectId] = useState('');
 
   // AI Text Analysis
   const [inputText, setInputText] = useState('');
@@ -69,17 +98,55 @@ export default function AnalyzerPage(): React.ReactElement {
   ]);
 
   // Project selection for saving
+  const [saveMode, setSaveMode] = useState<'existing' | 'new'>(projectIdFromQuery ? 'existing' : 'new');
   const [selectedProjectId, setSelectedProjectId] = useState(projectIdFromQuery);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectKey, setNewProjectKey] = useState('');
+  const [newProjectDescription, setNewProjectDescription] = useState('');
+  const [autoCreateProjectOnSave, setAutoCreateProjectOnSave] = useState(!projectIdFromQuery);
   const allProjectsQuery = trpc.project.list.useQuery({ organizationId: '' }, { retry: false });
+  const orgsQuery = trpc.organization.list.useQuery(undefined, { retry: false });
+  const orgId = allProjectsQuery.data?.[0]?.organizationId ?? orgsQuery.data?.[0]?.id ?? '';
 
   const analyzeTextMutation = trpc.document.analyzeText.useMutation();
   const bulkCreateMutation = trpc.document.bulkCreateTasks.useMutation();
+  const createProjectMutation = trpc.project.create.useMutation();
 
   useEffect(() => {
     if (projectIdFromQuery && projectIdFromQuery !== selectedProjectId) {
       setSelectedProjectId(projectIdFromQuery);
+      setSaveMode('existing');
+      setAutoCreateProjectOnSave(false);
     }
   }, [projectIdFromQuery, selectedProjectId]);
+
+  useEffect(() => {
+    const projects = allProjectsQuery.data ?? [];
+    if (projects.length === 0 && saveMode === 'existing') {
+      setSaveMode('new');
+      setAutoCreateProjectOnSave(true);
+    }
+  }, [allProjectsQuery.data, saveMode]);
+
+  useEffect(() => {
+    if (newProjectName.trim()) {
+      return;
+    }
+
+    const sourceName = projectContext.trim()
+      || projectSummary.trim()
+      || inputText.split('\n').find((line) => line.trim().length > 0)?.trim()
+      || fileName.replace(/\.[^/.]+$/, '').trim();
+
+    if (!sourceName) {
+      return;
+    }
+
+    const normalizedName = sourceName.slice(0, 120);
+    setNewProjectName(normalizedName);
+    setNewProjectDescription(projectSummary.trim().slice(0, 500));
+    setNewProjectKey(createProjectKeySeed(normalizedName).slice(0, 10));
+  }, [fileName, inputText, newProjectName, projectContext, projectSummary]);
 
   function createEmptyTask(): TaskItem {
     return {
@@ -99,6 +166,8 @@ export default function AnalyzerPage(): React.ReactElement {
     if (!inputText.trim()) return;
     setIsAnalyzing(true);
     setError('');
+    setSavedSuccess('');
+    setJustCreatedProjectId('');
     setShowReview(false);
 
     try {
@@ -138,6 +207,8 @@ export default function AnalyzerPage(): React.ReactElement {
     setFileName(file.name);
     setIsAnalyzing(true);
     setError('');
+    setSavedSuccess('');
+    setJustCreatedProjectId('');
     setShowReview(false);
 
     try {
@@ -191,6 +262,8 @@ export default function AnalyzerPage(): React.ReactElement {
     const validTasks = manualTasks.filter(t => t.title.trim());
     if (validTasks.length === 0) return;
 
+    setSavedSuccess('');
+    setJustCreatedProjectId('');
     setTasks(validTasks.map(t => ({ ...t, selected: true })));
     setProjectSummary('Manually entered tasks');
     setAssumptions([]);
@@ -212,13 +285,58 @@ export default function AnalyzerPage(): React.ReactElement {
 
   // === SAVE TO PROJECT ===
   async function handleSaveToProject() {
-    if (!selectedProjectId) return;
     const selectedTasks = tasks.filter(t => t.selected);
-    if (selectedTasks.length === 0) return;
+    if (selectedTasks.length === 0) {
+      return;
+    }
+
+    setError('');
+    setSavedSuccess('');
+    setJustCreatedProjectId('');
 
     try {
+      let targetProjectId = selectedProjectId;
+      const shouldAutoCreate = saveMode === 'new' || (autoCreateProjectOnSave && !targetProjectId);
+
+      if (!targetProjectId && shouldAutoCreate) {
+        if (!orgId) {
+          throw new Error('Organization context is missing. Re-login and try again.');
+        }
+
+        const finalName = newProjectName.trim() || 'New Ingest Project';
+        const finalKey = (newProjectKey.trim() || createProjectKeySeed(finalName))
+          .toUpperCase()
+          .replace(/[^A-Z]/g, '')
+          .slice(0, 10);
+
+        if (finalName.length < 2) {
+          throw new Error('Project name must be at least 2 characters.');
+        }
+        if (finalKey.length < 2) {
+          throw new Error('Project key must contain at least 2 letters.');
+        }
+
+        const createdProject = await createProjectMutation.mutateAsync({
+          organizationId: orgId,
+          name: finalName,
+          key: finalKey,
+          description: newProjectDescription.trim() || projectSummary.trim() || undefined,
+          defaultEstimationMethod: 'planning_poker',
+        });
+
+        targetProjectId = createdProject.id;
+        setSelectedProjectId(createdProject.id);
+        setSaveMode('existing');
+        setAutoCreateProjectOnSave(false);
+        setJustCreatedProjectId(createdProject.id);
+      }
+
+      if (!targetProjectId) {
+        throw new Error('Please select an existing project or enable auto-create.');
+      }
+
       const result = await bulkCreateMutation.mutateAsync({
-        projectId: selectedProjectId,
+        projectId: targetProjectId,
         tasks: selectedTasks.map(t => ({
           title: t.title,
           description: t.description || undefined,
@@ -230,7 +348,8 @@ export default function AnalyzerPage(): React.ReactElement {
         })),
       });
 
-      setSavedSuccess(`${result.created} tasks saved to project!`);
+      setSavedSuccess(`${result.created} tasks saved to project successfully.`);
+      void allProjectsQuery.refetch();
       setTimeout(() => setSavedSuccess(''), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save tasks');
@@ -258,6 +377,17 @@ export default function AnalyzerPage(): React.ReactElement {
   const totalHours = selectedTasks.reduce((s, t) => s + t.estimatedHours, 0);
   const totalPoints = selectedTasks.reduce((s, t) => s + t.estimatedPoints, 0);
   const totalCost = totalHours * hourlyRate;
+  const normalizedDraftKey = (newProjectKey.trim() || createProjectKeySeed(newProjectName))
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .slice(0, 10);
+  const canCreateNewProject = Boolean(orgId) && newProjectName.trim().length >= 2 && normalizedDraftKey.length >= 2;
+  const canSaveToProject = selectedTasks.length > 0 && (
+    saveMode === 'existing'
+      ? Boolean(selectedProjectId) || (autoCreateProjectOnSave && canCreateNewProject)
+      : canCreateNewProject
+  );
+  const isSaving = bulkCreateMutation.isPending || createProjectMutation.isPending;
 
   const formatCurrency = (amount: number) => `${amount.toLocaleString('tr-TR')} TL`;
 
@@ -564,7 +694,12 @@ export default function AnalyzerPage(): React.ReactElement {
                 <span className="text-muted-foreground">|</span>
                 <button onClick={deselectAll} className="text-xs text-muted-foreground hover:underline">Deselect All</button>
                 <button
-                  onClick={() => { setShowReview(false); setTasks([]); }}
+                  onClick={() => {
+                    setShowReview(false);
+                    setTasks([]);
+                    setSavedSuccess('');
+                    setJustCreatedProjectId('');
+                  }}
                   className="ml-4 text-xs text-red-500 hover:underline"
                 >
                   Start Over
@@ -665,36 +800,130 @@ export default function AnalyzerPage(): React.ReactElement {
           {/* Save to Project */}
           <div className="rounded-lg border-2 border-primary bg-gradient-to-r from-primary/5 to-primary/10 p-6">
             <h2 className="text-xl font-bold mb-4">Save to Project</h2>
-            <div className="flex items-end gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-1">Select Project</label>
-                <select
-                  value={selectedProjectId}
-                  onChange={e => setSelectedProjectId(e.target.value)}
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">Choose a project...</option>
-                  {(allProjectsQuery.data ?? []).map((p: { id: string; name: string }) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Ingest sonunda mevcut projeye kaydedebilir veya bu adımda otomatik yeni proje olusturabilirsin.
+            </p>
+
+            <div className="mb-4 grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={() => setSaveMode('existing')}
+                className={cn(
+                  'rounded-md border px-3 py-2 text-left text-sm',
+                  saveMode === 'existing' ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted',
+                )}
+              >
+                Save to existing project
+              </button>
+              <button
+                onClick={() => {
+                  setSaveMode('new');
+                  setAutoCreateProjectOnSave(true);
+                }}
+                className={cn(
+                  'rounded-md border px-3 py-2 text-left text-sm',
+                  saveMode === 'new' ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted',
+                )}
+              >
+                Auto-create new project and save
+              </button>
+            </div>
+
+            {saveMode === 'existing' ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Select Existing Project</label>
+                  <select
+                    value={selectedProjectId}
+                    onChange={e => setSelectedProjectId(e.target.value)}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">Choose a project...</option>
+                    {(allProjectsQuery.data ?? []).map((p: { id: string; name: string; key: string }) => (
+                      <option key={p.id} value={p.id}>{p.key} - {p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={autoCreateProjectOnSave}
+                    onChange={(event) => setAutoCreateProjectOnSave(event.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  If no project selected, auto-create one using ingest summary
+                </label>
               </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-sm font-medium">New Project Name</label>
+                  <input
+                    value={newProjectName}
+                    onChange={(event) => setNewProjectName(event.target.value)}
+                    placeholder="e.g. B2B Portal V2"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Project Key</label>
+                  <input
+                    value={newProjectKey}
+                    onChange={(event) => setNewProjectKey(event.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10))}
+                    placeholder={createProjectKeySeed(newProjectName)}
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm uppercase"
+                  />
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="mb-1 block text-sm font-medium">Description (optional)</label>
+                  <input
+                    value={newProjectDescription}
+                    onChange={(event) => setNewProjectDescription(event.target.value)}
+                    placeholder="Auto-filled from AI summary, editable"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {!orgId && (
+              <p className="mt-3 text-xs text-amber-700">
+                Organization context bulunamadi. Yeni proje olusturmak icin once oturum/organizasyonu dogrula.
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
               <div className="text-right">
                 <p className="text-sm text-muted-foreground mb-1">
                   {selectedTasks.length} tasks | {totalHours}h | {formatCurrency(totalCost)}
                 </p>
                 <button
                   onClick={handleSaveToProject}
-                  disabled={!selectedProjectId || selectedTasks.length === 0 || bulkCreateMutation.isPending}
+                  disabled={!canSaveToProject || isSaving}
                   className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {bulkCreateMutation.isPending ? (
+                  {isSaving ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
                   ) : (
-                    <><Check className="h-4 w-4" /> Save {selectedTasks.length} Tasks to Project</>
+                    <><Check className="h-4 w-4" /> Save {selectedTasks.length} Tasks</>
                   )}
                 </button>
               </div>
+              {(justCreatedProjectId || selectedProjectId) && (
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/dashboard/projects/${justCreatedProjectId || selectedProjectId}?view=board`}
+                    className="rounded-md border bg-card px-3 py-2 text-xs font-medium hover:bg-muted"
+                  >
+                    Open Kanban Board
+                  </Link>
+                  <Link
+                    href={`/dashboard/effort?projectId=${justCreatedProjectId || selectedProjectId}`}
+                    className="rounded-md border bg-card px-3 py-2 text-xs font-medium hover:bg-muted"
+                  >
+                    Continue to Effort
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -82,3 +82,7 @@ Build output confirms successful static/dynamic page generation for dashboard ro
 - `pnpm --filter @estimate-pro/web lint` -> pass
 - `pnpm --filter @estimate-pro/web typecheck` -> pass
 - `pnpm --filter @estimate-pro/web build` -> pass
+- `pnpm start --port 3200 --hostname 127.0.0.1` smoke:
+  - `GET /dashboard` -> `HTTP/1.1 200 OK`
+  - `GET /dashboard/projects` -> `HTTP/1.1 200 OK`
+  - `GET /dashboard/effort` -> `HTTP/1.1 200 OK`

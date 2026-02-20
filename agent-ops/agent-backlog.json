@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-02-19T12:30:58.504Z",
+  "updatedAt": "2026-02-20T06:53:05.931Z",
   "project": "EstimatePro Go-Live Recovery",
   "statusModel": [
     "todo",
@@ -677,7 +677,7 @@
       "phase": "Phase H",
       "owner": "Agent-A",
       "priority": "P0",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "H-000"
       ],
@@ -688,7 +688,8 @@
         "Keep backward compatibility for existing active OAuth users",
         "Add regression tests for callback URL construction and token exchange path"
       ],
-      "startedAt": "2026-02-19T12:28:24.691Z"
+      "startedAt": "2026-02-19T12:28:24.691Z",
+      "completedAt": "2026-02-20T06:45:32.816Z"
     },
     {
       "id": "H-002",
@@ -696,7 +697,7 @@
       "phase": "Phase H",
       "owner": "Agent-A",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-001"
       ],
@@ -706,7 +707,9 @@
         "Add timeout and cleanup safety for abandoned auth sessions",
         "Harden state validation and ownership checks",
         "Add concurrent-flow unit tests and failure-mode assertions"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:45:32.908Z",
+      "completedAt": "2026-02-20T06:48:20.524Z"
     },
     {
       "id": "H-003",
@@ -754,7 +757,7 @@
       "phase": "Phase H",
       "owner": "Agent-C",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-000",
         "H-006"
@@ -765,7 +768,9 @@
         "Wire page to comparativeAnalyze API endpoint and loading/error states",
         "Render side-by-side estimation metrics and assumptions summary",
         "Add UX guards for missing provider keys and unsupported combinations"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:51:05.290Z",
+      "completedAt": "2026-02-20T06:53:05.837Z"
     },
     {
       "id": "H-006",
@@ -773,7 +778,7 @@
       "phase": "Phase H",
       "owner": "Agent-A",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-000"
       ],
@@ -783,7 +788,9 @@
         "Enforce provider override validation and tenant-safe config resolution",
         "Add contract tests for mixed-success provider outcomes",
         "Publish payload examples for frontend consumption"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:48:20.613Z",
+      "completedAt": "2026-02-20T06:51:05.196Z"
     },
     {
       "id": "H-007",
@@ -791,7 +798,7 @@
       "phase": "Phase H",
       "owner": "QA",
       "priority": "P1",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "H-002",
         "H-005",
@@ -803,7 +810,8 @@
         "Define comparativeAnalyze matrix for provider availability and partial errors",
         "Implement automated tests and manual checks for edge cases",
         "Publish traceable test evidence and pass/fail summary"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:53:05.926Z"
     },
     {
       "id": "H-008",
@@ -811,7 +819,7 @@
       "phase": "Phase H",
       "owner": "Ops",
       "priority": "P1",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "H-001"
       ],
@@ -821,7 +829,8 @@
         "Add port collision and firewall troubleshooting steps",
         "Define on-call escalation path for auth failures during cutover",
         "Cross-link runbook with release checklist"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:45:32.913Z"
     },
     {
       "id": "H-009",
@@ -850,7 +859,7 @@
       "phase": "Phase H",
       "owner": "Agent-A",
       "priority": "P1",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "H-006"
       ],
@@ -860,7 +869,9 @@
         "Validate provider-specific model limits and metadata updates",
         "Add router-level tests for openrouter add/update/get flows",
         "Verify no regression for existing openai/anthropic credentials"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:51:05.286Z",
+      "completedAt": "2026-02-20T06:53:05.749Z"
     },
     {
       "id": "H-011",
@@ -868,7 +879,7 @@
       "phase": "Phase H",
       "owner": "Agent-B",
       "priority": "P1",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "H-006"
       ],
@@ -878,7 +889,8 @@
         "Add negative tests for cross-tenant provider config access",
         "Verify encrypted token/key handling remains tenant-scoped",
         "Document findings and remediation notes"
-      ]
+      ],
+      "startedAt": "2026-02-20T06:51:05.290Z"
     },
     {
       "id": "H-012",

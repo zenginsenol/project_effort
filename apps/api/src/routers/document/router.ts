@@ -6,15 +6,102 @@ import { apiKeys, users } from '@estimate-pro/db/schema';
 
 import { authedProcedure, orgProcedure, router } from '../../trpc/trpc';
 import { extractTasksFromText, extractWithMultipleProviders } from '../../services/document/task-extractor';
-import type { AIProviderConfig, AIProvider, ReasoningEffort } from '../../services/document/task-extractor';
+import type {
+  AIProviderConfig,
+  AIProvider,
+  ReasoningEffort,
+  ExtractionResult,
+} from '../../services/document/task-extractor';
 import { encrypt, decrypt } from '../../services/crypto';
 import { refreshAccessToken, isTokenExpired } from '../../services/oauth/openai-oauth';
-import { refreshClaudeAccessToken } from '../../services/oauth/claude-oauth';
+import { refreshClaudeAccessToken, CLAUDE_OAUTH_BETA_HEADER } from '../../services/oauth/claude-oauth';
 
 import { analyzeTextInput, comparativeAnalyzeInput, bulkCreateTasksInput } from './schema';
 import { documentService } from './service';
 
-const ANTHROPIC_OAUTH_BETA_HEADER = 'oauth-2025-04-20';
+const ANTHROPIC_OAUTH_BETA_HEADER = CLAUDE_OAUTH_BETA_HEADER;
+
+export type ComparativeAnalyzeStatus = 'success' | 'partial_success' | 'failed';
+export type ComparativeAnalyzeErrorCode = 'missing_config' | 'provider_error' | 'internal_error';
+
+export interface ComparativeAnalyzeError {
+  provider: string;
+  model: string;
+  error: string;
+  code: ComparativeAnalyzeErrorCode;
+}
+
+export interface ComparativeAnalyzeSummary {
+  requestedProviders: number;
+  resolvedProviders: number;
+  successfulProviders: number;
+  failedProviders: number;
+  missingConfigProviders: number;
+  message: string;
+}
+
+export interface ComparativeAnalyzeResponse {
+  status: ComparativeAnalyzeStatus;
+  results: ExtractionResult[];
+  errors: ComparativeAnalyzeError[];
+  summary: ComparativeAnalyzeSummary;
+}
+
+function buildSummaryMessage(
+  status: ComparativeAnalyzeStatus,
+  summary: Omit<ComparativeAnalyzeSummary, 'message'>,
+): string {
+  if (status === 'success') {
+    return `Comparative analysis completed successfully for ${summary.successfulProviders}/${summary.requestedProviders} providers.`;
+  }
+  if (status === 'partial_success') {
+    return `Comparative analysis completed with partial success: ${summary.successfulProviders} succeeded, ${summary.failedProviders} failed, ${summary.missingConfigProviders} missing configuration.`;
+  }
+  return `Comparative analysis failed: no provider succeeded. ${summary.failedProviders} failed, ${summary.missingConfigProviders} missing configuration.`;
+}
+
+export function buildComparativeAnalyzeResponse(params: {
+  requestedProviders: number;
+  resolvedProviders: number;
+  results: ExtractionResult[];
+  errors: ComparativeAnalyzeError[];
+}): ComparativeAnalyzeResponse {
+  const errors = [...params.errors].sort((a, b) => {
+    const providerCmp = a.provider.localeCompare(b.provider, 'en');
+    if (providerCmp !== 0) return providerCmp;
+    const modelCmp = a.model.localeCompare(b.model, 'en');
+    if (modelCmp !== 0) return modelCmp;
+    return a.code.localeCompare(b.code, 'en');
+  });
+
+  const successfulProviders = params.results.length;
+  const missingConfigProviders = errors.filter((error) => error.code === 'missing_config').length;
+  const failedProviders = errors.length - missingConfigProviders;
+
+  const status: ComparativeAnalyzeStatus = successfulProviders === 0
+    ? 'failed'
+    : errors.length === 0
+      ? 'success'
+      : 'partial_success';
+
+  const summaryBase = {
+    requestedProviders: params.requestedProviders,
+    resolvedProviders: params.resolvedProviders,
+    successfulProviders,
+    failedProviders,
+    missingConfigProviders,
+  };
+
+  return {
+    status,
+    results: params.results,
+    errors,
+    summary: {
+      ...summaryBase,
+      message: buildSummaryMessage(status, summaryBase),
+    },
+  };
+}
 
 /**
  * Look up the user's active AI config - supports both API key and OAuth token.
@@ -151,7 +238,7 @@ export const documentRouter = router({
       try {
         // Resolve configs for each requested provider
         const configs: AIProviderConfig[] = [];
-        const configErrors: { provider: string; error: string }[] = [];
+        const configErrors: ComparativeAnalyzeError[] = [];
 
         for (const p of input.providers) {
           const config = await getUserAIConfig(
@@ -165,33 +252,45 @@ export const documentRouter = router({
           } else {
             configErrors.push({
               provider: p.provider,
+              model: p.model ?? 'default',
               error: `No active API key found for ${p.provider}. Please add a key in Settings.`,
+              code: 'missing_config',
             });
           }
         }
 
-        if (configs.length === 0) {
-          throw new Error('No valid API keys found for any of the selected providers. Please configure at least one provider in Settings.');
-        }
+        const extraction = configs.length > 0
+          ? await extractWithMultipleProviders(
+            input.text,
+            input.projectContext,
+            input.hourlyRate,
+            configs,
+          )
+          : { results: [], errors: [] };
 
-        const { results, errors } = await extractWithMultipleProviders(
-          input.text,
-          input.projectContext,
-          input.hourlyRate,
-          configs,
-        );
+        const providerErrors: ComparativeAnalyzeError[] = extraction.errors.map((error) => ({
+          ...error,
+          code: 'provider_error',
+        }));
 
-        return {
-          results,
-          errors: [
-            ...configErrors.map(e => ({ provider: e.provider, model: 'n/a', error: e.error })),
-            ...errors,
-          ],
-        };
+        return buildComparativeAnalyzeResponse({
+          requestedProviders: input.providers.length,
+          resolvedProviders: configs.length,
+          results: extraction.results,
+          errors: [...configErrors, ...providerErrors],
+        });
       } catch (err) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: err instanceof Error ? err.message : 'Failed to run comparative analysis',
+        const message = err instanceof Error ? err.message : 'Failed to run comparative analysis';
+        return buildComparativeAnalyzeResponse({
+          requestedProviders: input.providers.length,
+          resolvedProviders: 0,
+          results: [],
+          errors: [{
+            provider: 'system',
+            model: 'n/a',
+            error: message,
+            code: 'internal_error',
+          }],
         });
       }
     }),

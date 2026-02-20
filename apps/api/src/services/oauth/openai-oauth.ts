@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from 'node:crypto';
 import http from 'node:http';
 
+import { CallbackSessionStore } from './callback-session-store';
 import { getPendingFlow, removePendingFlow } from './oauth-store';
 
 /**
@@ -39,8 +40,10 @@ export function resolveOAuthMode(): OpenAIOAuthMode {
     return configured;
   }
 
-  // Backward-compatible default: keep API callback flow unless explicitly set.
-  return 'api_server_callback';
+  // Default to local_temp_server: the Codex CLI client ID (app_EMoamEEZ73f0CkXaXp7hrann)
+  // only accepts http://localhost:1455/auth/callback as redirect URI.
+  // API callback mode requires a custom registered OAuth client with your own redirect URI.
+  return 'local_temp_server';
 }
 
 export function getCallbackUrl(mode: OpenAIOAuthMode = resolveOAuthMode()): string {
@@ -166,6 +169,8 @@ export type OAuthResult =
 export type OAuthCompleteHandler = (result: OAuthResult) => void | Promise<void>;
 
 let activeCallbackServer: http.Server | null = null;
+let callbackServerStartupPromise: Promise<void> | null = null;
+const callbackSessions = new CallbackSessionStore<OAuthCompleteHandler>();
 
 /**
  * Start a temporary HTTP server on localhost:1455 to receive the OAuth callback.
@@ -173,17 +178,33 @@ let activeCallbackServer: http.Server | null = null;
  * Throws if the port is already in use.
  */
 export function startCallbackServer(opts: {
+  state: string;
   onComplete: OAuthCompleteHandler;
   timeoutMs?: number;
 }): Promise<void> {
-  const { onComplete, timeoutMs = 120_000 } = opts;
+  const { state, onComplete, timeoutMs = 120_000 } = opts;
 
-  return new Promise((resolveStartup, rejectStartup) => {
-    // Kill any previous server
-    if (activeCallbackServer) {
-      try { activeCallbackServer.close(); } catch { /* ignore */ }
-      activeCallbackServer = null;
-    }
+  // Register a state-scoped callback session first.
+  callbackSessions.register(
+    state,
+    onComplete,
+    timeoutMs,
+    ({ state: timeoutState, handler }) => {
+      removePendingFlow(timeoutState);
+      void handler({ ok: false, error: 'OAuth timed out. Please try again.' });
+    },
+  );
+
+  // Reuse existing callback server instead of replacing it.
+  if (activeCallbackServer) {
+    return Promise.resolve();
+  }
+
+  if (callbackServerStartupPromise) {
+    return callbackServerStartupPromise;
+  }
+
+  callbackServerStartupPromise = new Promise((resolveStartup, rejectStartup) => {
 
     const handleRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
       const url = new URL(req.url || '/', `http://localhost:${CODEX_CALLBACK_PORT}`);
@@ -200,27 +221,58 @@ export function startCallbackServer(opts: {
 
       if (error) {
         const errorDesc = url.searchParams.get('error_description') || error;
+        if (state) {
+          removePendingFlow(state);
+          const stateHandler = callbackSessions.take(state);
+          if (stateHandler) {
+            void stateHandler({ ok: false, error: errorDesc });
+          }
+        }
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(callbackHtml(false, `Authentication error: ${errorDesc}`));
-        cleanup();
-        void onComplete({ ok: false, error: errorDesc });
         return;
       }
 
       if (!code || !state) {
+        if (state) {
+          removePendingFlow(state);
+          const stateHandler = callbackSessions.take(state);
+          if (stateHandler) {
+            void stateHandler({ ok: false, error: 'Missing code or state' });
+          }
+        }
         res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(callbackHtml(false, 'Missing code or state'));
-        cleanup();
-        void onComplete({ ok: false, error: 'Missing code or state' });
         return;
       }
 
       const pendingFlow = getPendingFlow(state);
       if (!pendingFlow) {
+        const staleHandler = callbackSessions.take(state);
+        if (staleHandler) {
+          void staleHandler({ ok: false, error: 'Invalid or expired state' });
+        }
         res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(callbackHtml(false, 'Invalid or expired state. Please try again.'));
-        cleanup();
-        void onComplete({ ok: false, error: 'Invalid or expired state' });
+        return;
+      }
+
+      if (pendingFlow.redirectUri !== CODEX_REDIRECT_URI) {
+        removePendingFlow(state);
+        const mismatchHandler = callbackSessions.take(state);
+        if (mismatchHandler) {
+          void mismatchHandler({ ok: false, error: 'OAuth redirect mismatch' });
+        }
+        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(callbackHtml(false, 'OAuth redirect mismatch. Please start login again.'));
+        return;
+      }
+
+      const stateHandler = callbackSessions.take(state);
+      if (!stateHandler) {
+        removePendingFlow(state);
+        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(callbackHtml(false, 'OAuth session expired. Please try again.'));
         return;
       }
 
@@ -235,21 +287,19 @@ export function startCallbackServer(opts: {
 
         // Call onComplete BEFORE sending response so DB write completes
         try {
-          await onComplete({ ok: true, tokens, userId: pendingFlow.userId });
+          await stateHandler({ ok: true, tokens, userId: pendingFlow.userId });
         } catch (dbErr) {
           console.error('[oauth] onComplete handler failed:', dbErr);
         }
 
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(callbackHtml(true, 'OpenAI connected! You can close this window.'));
-        cleanup();
       } catch (err) {
         removePendingFlow(state);
         const errMsg = err instanceof Error ? err.message : 'Token exchange failed';
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(callbackHtml(false, errMsg));
-        cleanup();
-        void onComplete({ ok: false, error: errMsg });
+        void stateHandler({ ok: false, error: errMsg });
       }
     };
 
@@ -257,33 +307,23 @@ export function startCallbackServer(opts: {
       void handleRequest(req, res);
     });
 
-    const timeout = setTimeout(() => {
-      cleanup();
-      void onComplete({ ok: false, error: 'OAuth timed out. Please try again.' });
-    }, timeoutMs);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      try {
-        server.close();
-      } catch { /* ignore */ }
-      activeCallbackServer = null;
-    }
-
     server.on('error', (err) => {
       const errMsg = err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'EADDRINUSE'
         ? 'Port 1455 is in use (maybe Codex CLI is running). Please close it and try again.'
         : err.message;
-      cleanup();
+      callbackServerStartupPromise = null;
       rejectStartup(new Error(errMsg));
     });
 
     server.listen(CODEX_CALLBACK_PORT, 'localhost', () => {
       console.log(`[oauth] Temporary callback server listening on localhost:${CODEX_CALLBACK_PORT}`);
       activeCallbackServer = server;
+      callbackServerStartupPromise = null;
       resolveStartup();
     });
   });
+
+  return callbackServerStartupPromise;
 }
 
 function callbackHtml(success: boolean, message: string): string {

@@ -1,16 +1,16 @@
 # Agent Next Tasks
 
-Updated: 2026-02-20T00:01:33.514Z
+Updated: 2026-02-20T06:53:06.015Z
 
-Summary: todo=14, in_progress=1, blocked=0, done=49
+Summary: todo=7, in_progress=3, blocked=0, done=54
 
 | Owner | Active Task | Next Task |
 |---|---|---|
-| Agent-A | `H-001` Reconcile OpenAI OAuth callback architecture for local and deployed environments | `H-006` Finalize comparative analysis API contract and deterministic response shape |
-| Agent-B | - | - |
+| Agent-A | - | - |
+| Agent-B | `H-011` Perform tenant isolation verification for provider override paths | - |
 | Agent-C | - | - |
-| QA | - | - |
-| Ops | - | - |
+| QA | `H-007` Build OAuth and comparative-analysis regression test matrix | - |
+| Ops | `H-008` Update production cutover runbook for OAuth callback strategy and port constraints | - |
 | Manager | - | - |
 
 ## Blocked Tasks
@@ -26,5 +26,5 @@ Summary: todo=14, in_progress=1, blocked=0, done=49
 - Phase E: 6/6
 - Phase F: 6/6
 - Phase G: 8/8
-- Phase H: 3/18
+- Phase H: 8/18
 

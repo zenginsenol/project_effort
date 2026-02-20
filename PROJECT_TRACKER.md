@@ -1308,3 +1308,111 @@ Latest execution (2026-02-20):
 Stability fix included:
 1. `apps/api/scripts/bootstrap-from-docs.mjs` now exits cleanly on success (`process.exit(0)`).
 2. Prevents command-hang in orchestration scripts that call docs bootstrap.
+
+### 14.16 Wave-2 Progress Update (H-001, H-002, H-006)
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. `H-001` OpenAI OAuth callback dual-mode hardening completed.
+2. `H-002` OAuth concurrency race remediation completed.
+3. `H-006` comparative analysis API contract stabilized with deterministic envelope + tests.
+
+#### H-001 Evidence
+
+1. File: `apps/api/src/services/oauth/__tests__/openai-oauth.test.ts`
+2. Added callback resolution regression tests for:
+   - local callback default behavior
+   - `api_server_callback` with `OAUTH_CALLBACK_BASE_URL`
+   - fallback to `API_PUBLIC_URL`
+   - fallback to `NEXT_PUBLIC_API_URL`
+   - fallback to default `http://127.0.0.1:4000/auth/openai/callback`
+3. Command evidence:
+   - `pnpm --filter @estimate-pro/api test -- src/services/oauth/__tests__/openai-oauth.test.ts`
+   - Result: pass (`9/9` tests)
+
+#### H-002 Evidence
+
+1. New state-scoped callback session manager:
+   - `apps/api/src/services/oauth/callback-session-store.ts`
+2. OAuth callback server behavior updated:
+   - `apps/api/src/services/oauth/openai-oauth.ts`
+   - Local callback server reused (no flow-overwriting singleton reset)
+   - Per-state timeout/cleanup with isolated completion handlers
+   - Redirect mismatch guard added for local callback path
+3. Router integration updated:
+   - `apps/api/src/routers/api-keys/router.ts` (state passed into callback server registration)
+4. Unit tests:
+   - `apps/api/src/services/oauth/__tests__/callback-session-store.test.ts`
+   - scenarios: concurrent state isolation, overwrite behavior, timeout cleanup, clearAll timeout cancellation
+   - Result: pass (`4/4` tests)
+
+#### H-006 Evidence
+
+1. Contract implementation:
+   - `apps/api/src/routers/document/router.ts`
+   - deterministic response: `status + results + errors + summary`
+   - coded errors: `missing_config | provider_error | internal_error`
+   - deterministic sorted errors for stable frontend rendering
+2. Contract tests:
+   - `apps/api/src/routers/document/__tests__/comparative-contract.test.ts`
+   - scenarios: success, partial_success, failed
+   - Result: pass (`3/3` tests)
+3. Frontend adaptation:
+   - `apps/web/src/app/dashboard/compare/page.tsx`
+   - consumes `status` and `summary.message` directly
+   - renders deterministic status banner for success/partial/failure
+4. API contract examples doc:
+   - `agent-ops/ops/comparative-analysis-contract-2026-02-20.md`
+
+#### Quality Validation
+
+1. `pnpm --filter @estimate-pro/api typecheck` -> pass
+2. `pnpm --filter @estimate-pro/web typecheck` -> pass
+3. Targeted API test set (OAuth + contract) -> pass
+
+#### Backlog Status Snapshot
+
+1. `H-001`: done
+2. `H-002`: done
+3. `H-006`: done
+
+### 14.17 Wave-2 Additional Completion Update (H-005, H-010)
+
+Date: 2026-02-20
+
+Completed in follow-up cycle:
+1. `H-005` Compare AI dashboard production flow completed.
+2. `H-010` API key provider hardening and OpenRouter edge-case validation completed.
+
+#### H-005 Evidence
+
+1. UI flow hardening:
+   - `apps/web/src/app/dashboard/compare/page.tsx`
+   - deterministic status banners (`success`, `partial_success`, `failed`)
+   - summary rendering via backend contract (`summary.message`)
+   - guarded rerun/reset flow with explicit state reset
+2. Backend compatibility:
+   - `apps/api/src/routers/document/router.ts`
+   - compare response now always deterministic envelope for the UI
+
+#### H-010 Evidence
+
+1. Provider-specific model validation in API key router:
+   - `apps/api/src/routers/api-keys/router.ts`
+   - OpenRouter model format rule (`provider/model`)
+   - OpenAI direct model id rule
+   - Anthropic `claude-` prefix rule
+2. Router test coverage:
+   - `apps/api/src/routers/api-keys/__tests__/openrouter-flow.test.ts`
+   - add flow, invalid update guard, get/decrypt flow
+   - Result: pass (`3/3` tests)
+3. Regression validation:
+   - `pnpm --filter @estimate-pro/api test` -> pass (`7 files / 30 tests`)
+
+#### Current Phase-H Snapshot
+
+1. Done: `54`
+2. In progress: `3` (`H-007`, `H-008`, `H-011`)
+3. Todo: `7`
+4. Blocked: `0`

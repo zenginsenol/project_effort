@@ -8,6 +8,47 @@ import {
   resolveOAuthMode,
 } from '../openai-oauth';
 
+const OAUTH_ENV_KEYS = [
+  'OPENAI_OAUTH_MODE',
+  'OAUTH_CALLBACK_BASE_URL',
+  'API_PUBLIC_URL',
+  'NEXT_PUBLIC_API_URL',
+] as const;
+
+type OAuthEnvKey = typeof OAUTH_ENV_KEYS[number];
+
+function withOAuthEnv(
+  values: Partial<Record<OAuthEnvKey, string>>,
+  run: () => void,
+): void {
+  const previous = new Map<OAuthEnvKey, string | undefined>();
+  for (const key of OAUTH_ENV_KEYS) {
+    previous.set(key, process.env[key]);
+  }
+
+  for (const key of OAUTH_ENV_KEYS) {
+    const next = values[key];
+    if (next === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = next;
+    }
+  }
+
+  try {
+    run();
+  } finally {
+    for (const key of OAUTH_ENV_KEYS) {
+      const prev = previous.get(key);
+      if (prev === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = prev;
+      }
+    }
+  }
+}
+
 describe('openai-oauth helpers', () => {
   it('builds authorization URL with required codex flags', () => {
     const redirectUri = 'http://localhost:1455/auth/callback';
@@ -34,37 +75,60 @@ describe('openai-oauth helpers', () => {
   });
 
   it('defaults to local temp callback mode when env is not set', () => {
-    const previousMode = process.env.OPENAI_OAUTH_MODE;
-    const previousBase = process.env.OAUTH_CALLBACK_BASE_URL;
-    const previousApiPublic = process.env.API_PUBLIC_URL;
-    const previousNextApi = process.env.NEXT_PUBLIC_API_URL;
-
-    process.env.OPENAI_OAUTH_MODE = '';
-    process.env.OAUTH_CALLBACK_BASE_URL = '';
-    process.env.API_PUBLIC_URL = '';
-    process.env.NEXT_PUBLIC_API_URL = '';
-
-    expect(resolveOAuthMode()).toBe('local_temp_server');
-    expect(getCallbackUrl()).toBe('http://localhost:1455/auth/callback');
-
-    process.env.OPENAI_OAUTH_MODE = previousMode;
-    process.env.OAUTH_CALLBACK_BASE_URL = previousBase;
-    process.env.API_PUBLIC_URL = previousApiPublic;
-    process.env.NEXT_PUBLIC_API_URL = previousNextApi;
+    withOAuthEnv({
+      OPENAI_OAUTH_MODE: '',
+      OAUTH_CALLBACK_BASE_URL: '',
+      API_PUBLIC_URL: '',
+      NEXT_PUBLIC_API_URL: '',
+    }, () => {
+      expect(resolveOAuthMode()).toBe('local_temp_server');
+      expect(getCallbackUrl()).toBe('http://localhost:1455/auth/callback');
+    });
   });
 
   it('resolves API callback mode from env and builds API callback URL', () => {
-    const previousMode = process.env.OPENAI_OAUTH_MODE;
-    const previousBase = process.env.OAUTH_CALLBACK_BASE_URL;
+    withOAuthEnv({
+      OPENAI_OAUTH_MODE: 'api_server_callback',
+      OAUTH_CALLBACK_BASE_URL: 'https://api.example.com',
+      API_PUBLIC_URL: '',
+      NEXT_PUBLIC_API_URL: '',
+    }, () => {
+      expect(resolveOAuthMode()).toBe('api_server_callback');
+      expect(getCallbackUrl()).toBe('https://api.example.com/auth/openai/callback');
+    });
+  });
 
-    process.env.OPENAI_OAUTH_MODE = 'api_server_callback';
-    process.env.OAUTH_CALLBACK_BASE_URL = 'https://api.example.com';
+  it('uses API_PUBLIC_URL when explicit callback base is not set', () => {
+    withOAuthEnv({
+      OPENAI_OAUTH_MODE: 'api_server_callback',
+      OAUTH_CALLBACK_BASE_URL: '',
+      API_PUBLIC_URL: 'https://api.internal.example.com/',
+      NEXT_PUBLIC_API_URL: '',
+    }, () => {
+      expect(getCallbackUrl()).toBe('https://api.internal.example.com/auth/openai/callback');
+    });
+  });
 
-    expect(resolveOAuthMode()).toBe('api_server_callback');
-    expect(getCallbackUrl()).toBe('https://api.example.com/auth/openai/callback');
+  it('uses NEXT_PUBLIC_API_URL when API_PUBLIC_URL is not set', () => {
+    withOAuthEnv({
+      OPENAI_OAUTH_MODE: 'api_server_callback',
+      OAUTH_CALLBACK_BASE_URL: '',
+      API_PUBLIC_URL: '',
+      NEXT_PUBLIC_API_URL: 'https://public-api.example.com',
+    }, () => {
+      expect(getCallbackUrl()).toBe('https://public-api.example.com/auth/openai/callback');
+    });
+  });
 
-    process.env.OPENAI_OAUTH_MODE = previousMode;
-    process.env.OAUTH_CALLBACK_BASE_URL = previousBase;
+  it('falls back to local API default origin for api callback mode', () => {
+    withOAuthEnv({
+      OPENAI_OAUTH_MODE: 'api_server_callback',
+      OAUTH_CALLBACK_BASE_URL: '',
+      API_PUBLIC_URL: '',
+      NEXT_PUBLIC_API_URL: '',
+    }, () => {
+      expect(getCallbackUrl()).toBe('http://127.0.0.1:4000/auth/openai/callback');
+    });
   });
 
   it('decodes jwt payload and rejects malformed jwt', () => {

@@ -37,6 +37,15 @@ interface CompareResult {
   durationMs?: number;
 }
 
+type CompareStatus = 'success' | 'partial_success' | 'failed';
+
+interface CompareProviderError {
+  provider: string;
+  model: string;
+  error: string;
+  code: 'missing_config' | 'provider_error' | 'internal_error';
+}
+
 const PROVIDER_MODELS: Record<Provider, Array<{ id: string; name: string; reasoning: boolean }>> = {
   openai: [
     { id: 'gpt-5.2', name: 'GPT-5.2', reasoning: true },
@@ -299,7 +308,9 @@ export default function ComparePage(): React.ReactElement {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState<CompareResult[]>([]);
-  const [providerErrors, setProviderErrors] = useState<Array<{ provider: string; model: string; error: string }>>([]);
+  const [providerErrors, setProviderErrors] = useState<CompareProviderError[]>([]);
+  const [analysisStatus, setAnalysisStatus] = useState<CompareStatus | null>(null);
+  const [summaryMessage, setSummaryMessage] = useState('');
   const [hasResults, setHasResults] = useState(false);
 
   const apiKeysQuery = trpc.apiKeys.list.useQuery();
@@ -344,6 +355,8 @@ export default function ComparePage(): React.ReactElement {
     setError('');
     setResults([]);
     setProviderErrors([]);
+    setAnalysisStatus(null);
+    setSummaryMessage('');
     setHasResults(false);
 
     try {
@@ -359,9 +372,16 @@ export default function ComparePage(): React.ReactElement {
       });
       setResults(result.results);
       setProviderErrors(result.errors);
-      setHasResults(true);
+      setAnalysisStatus(result.status);
+      setSummaryMessage(result.summary.message);
+      if (result.status === 'failed') {
+        setError(result.summary.message);
+      }
+      setHasResults(result.results.length > 0 || result.errors.length > 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Comparative analysis failed');
+      setAnalysisStatus('failed');
+      setSummaryMessage('');
     } finally {
       setIsAnalyzing(false);
     }
@@ -538,6 +558,19 @@ export default function ComparePage(): React.ReactElement {
 
       {hasResults && (
         <div className="space-y-6">
+          {summaryMessage && (
+            <div className={cn(
+              'rounded-lg border p-4 text-sm',
+              analysisStatus === 'failed'
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : analysisStatus === 'partial_success'
+                  ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+            )}>
+              {summaryMessage}
+            </div>
+          )}
+
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm font-medium">Step 3: Evaluate and move forward</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -617,7 +650,14 @@ export default function ComparePage(): React.ReactElement {
 
           <div className="text-center">
             <button
-              onClick={() => { setHasResults(false); setResults([]); setProviderErrors([]); }}
+              onClick={() => {
+                setHasResults(false);
+                setResults([]);
+                setProviderErrors([]);
+                setAnalysisStatus(null);
+                setSummaryMessage('');
+                setError('');
+              }}
               className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
             >
               🔀 Run New Comparison

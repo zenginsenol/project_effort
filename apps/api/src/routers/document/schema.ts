@@ -5,6 +5,24 @@ export const analyzeTextInput = z.object({
   projectId: z.string().uuid().optional(),
   projectContext: z.string().max(2000).optional(),
   hourlyRate: z.number().min(0).default(150),
+  /** Override provider for this request (uses user's key for that provider) */
+  provider: z.enum(['openai', 'anthropic', 'openrouter']).optional(),
+  /** Override model for this request */
+  model: z.string().max(100).optional(),
+  /** Override reasoning effort for this request */
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).nullable().optional(),
+});
+
+export const comparativeAnalyzeInput = z.object({
+  text: z.string().min(10).max(50000),
+  projectContext: z.string().max(2000).optional(),
+  hourlyRate: z.number().min(0).default(150),
+  /** List of providers to compare - uses user's configured keys */
+  providers: z.array(z.object({
+    provider: z.enum(['openai', 'anthropic', 'openrouter']),
+    model: z.string().max(100).optional(),
+    reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).nullable().optional(),
+  })).min(1).max(4),
 });
 
 export const bulkCreateTasksInput = z.object({

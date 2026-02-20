@@ -1,10 +1,12 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import type { ChatCompletionReasoningEffort } from 'openai/resources/chat/completions/completions';
 
 /**
  * AI Task Extractor
- * Supports OpenAI GPT-4o and Anthropic Claude for task extraction.
- * Users can provide their own API keys for either provider.
+ * Supports OpenAI, Anthropic Claude (with extended thinking), and OpenRouter.
+ * Users can provide their own API keys for any provider.
+ * Supports comparative analysis across multiple providers.
  */
 
 interface ExtractedTask {
@@ -23,13 +25,54 @@ export interface ExtractionResult {
   tasks: ExtractedTask[];
   assumptions: string[];
   provider?: string;
+  model?: string;
+  thinkingUsed?: boolean;
+  durationMs?: number;
 }
 
+export type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
+export type AIProvider = 'openai' | 'anthropic' | 'openrouter';
+
 export interface AIProviderConfig {
-  provider: 'openai' | 'anthropic';
+  provider: AIProvider;
   apiKey: string;
   model?: string;
+  reasoningEffort?: ReasoningEffort | null;
 }
+
+// ─── Model Capability Maps ──────────────────────────────────
+
+/**
+ * OpenAI models that support the reasoning_effort parameter (o-series + GPT-5 series).
+ */
+const OPENAI_REASONING_MODELS = new Set([
+  'o3', 'o3-pro', 'o3-mini', 'o4-mini',
+  'o1', 'o1-mini', 'o1-pro',
+  'gpt-5.2', 'gpt-5.2-pro', 'gpt-5.1', 'gpt-5', 'gpt-5-mini',
+]);
+
+/**
+ * Anthropic models that support extended thinking / adaptive thinking.
+ */
+const CLAUDE_THINKING_MODELS = new Set([
+  'claude-opus-4-6', 'claude-sonnet-4-6',
+  'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929',
+  'claude-opus-4-1-20250805', 'claude-sonnet-4-20250514',
+  'claude-3-7-sonnet-20250219',
+]);
+
+/**
+ * OpenRouter models that natively support reasoning.
+ * OpenRouter's unified `reasoning` param handles the mapping automatically.
+ */
+const OPENROUTER_REASONING_MODELS = new Set([
+  'openai/gpt-5.2', 'openai/gpt-5.2-pro', 'openai/gpt-5', 'openai/gpt-5-mini',
+  'openai/o3', 'openai/o3-pro', 'openai/o4-mini',
+  'anthropic/claude-opus-4-6', 'anthropic/claude-sonnet-4-6',
+  'anthropic/claude-opus-4-5', 'anthropic/claude-sonnet-4-5',
+  'google/gemini-2.5-pro-preview',
+  'deepseek/deepseek-r1',
+]);
 
 const SYSTEM_PROMPT = `You are an expert software project manager and technical architect.
 Analyze the following project requirements document and extract a detailed task breakdown.
@@ -66,43 +109,163 @@ function isEnvApiKeyValid(): boolean {
 }
 
 /**
+ * Check if a model supports reasoning for a specific provider
+ */
+function isReasoningModel(model: string, provider: AIProvider): boolean {
+  if (provider === 'openai') {
+    for (const rm of OPENAI_REASONING_MODELS) {
+      if (model === rm || model.startsWith(`${rm}-`)) return true;
+    }
+    return false;
+  }
+  if (provider === 'anthropic') {
+    for (const rm of CLAUDE_THINKING_MODELS) {
+      if (model === rm || model.startsWith(`${rm}-`)) return true;
+    }
+    return false;
+  }
+  if (provider === 'openrouter') {
+    return OPENROUTER_REASONING_MODELS.has(model);
+  }
+  return false;
+}
+
+/**
+ * Parse JSON from AI response (handles markdown code blocks)
+ */
+function parseJsonResponse(content: string): unknown {
+  let jsonText = content.trim();
+  const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch?.[1]) {
+    jsonText = jsonMatch[1].trim();
+  }
+  return JSON.parse(jsonText);
+}
+
+/**
+ * Map our reasoning effort to OpenAI's chat-completions supported values.
+ */
+function mapOpenAIReasoningEffort(effort: ReasoningEffort): ChatCompletionReasoningEffort {
+  switch (effort) {
+    case 'low':
+      return 'low';
+    case 'medium':
+      return 'medium';
+    case 'high':
+    case 'xhigh':
+      return 'high';
+    default:
+      return 'medium';
+  }
+}
+
+/**
+ * Map reasoning effort to Claude thinking budget tokens
+ */
+function getClaudeThinkingBudget(effort: ReasoningEffort): number {
+  switch (effort) {
+    case 'low': return 4000;
+    case 'medium': return 10000;
+    case 'high': return 20000;
+    case 'xhigh': return 40000;
+    default: return 10000;
+  }
+}
+
+// ─── Provider-specific extraction functions ──────────────────
+
+/**
  * Extract tasks using OpenAI API
+ * Supports reasoning_effort for o-series and GPT-5 models
  */
 async function extractWithOpenAI(
   apiKey: string,
   model: string,
   userPrompt: string,
+  reasoningEffort?: ReasoningEffort | null,
 ): Promise<ExtractionResult & { raw: true }> {
   const client = new OpenAI({ apiKey });
+  const isReasoning = isReasoningModel(model, 'openai');
+  const response = isReasoning
+    ? await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'developer', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+      max_completion_tokens: 25000,
+      ...(reasoningEffort
+        ? { reasoning_effort: mapOpenAIReasoningEffort(reasoningEffort) }
+        : {}),
+    })
+    : await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 16000,
+      response_format: { type: 'json_object' },
+    });
 
-  const response = await client.chat.completions.create({
-    model,
-    temperature: 0.2,
-    max_tokens: 16000,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt },
-    ],
-  });
-
+  console.log(`[task-extractor] OpenAI request: model=${model}, reasoning=${isReasoning}${reasoningEffort ? `, effort=${reasoningEffort}` : ''}`);
   const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error('OpenAI did not return a response');
-  }
+  if (!content) throw new Error('OpenAI did not return a response');
 
-  return { ...JSON.parse(content), raw: true };
+  return { ...parseJsonResponse(content) as ExtractionResult, raw: true };
 }
 
 /**
  * Extract tasks using Anthropic Claude API
+ * Supports extended thinking for Claude 3.7+ and adaptive thinking for 4.5+
  */
 async function extractWithAnthropic(
   apiKey: string,
   model: string,
   userPrompt: string,
-): Promise<ExtractionResult & { raw: true }> {
+  reasoningEffort?: ReasoningEffort | null,
+): Promise<ExtractionResult & { raw: true; thinkingUsed?: boolean }> {
   const client = new Anthropic({ apiKey });
+  const supportsThinking = isReasoningModel(model, 'anthropic');
+  const useThinking = supportsThinking && reasoningEffort && reasoningEffort !== 'low';
+
+  // Check if model supports adaptive thinking (4.5+)
+  const isAdaptive = model.includes('4-6') || model.includes('4-5');
+
+  let thinkingUsed = false;
+
+  if (useThinking) {
+    thinkingUsed = true;
+    const budgetTokens = getClaudeThinkingBudget(reasoningEffort);
+
+    console.log(`[task-extractor] Anthropic request: model=${model}, thinking=${isAdaptive ? 'adaptive' : 'extended'}, budget=${budgetTokens}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const thinkingConfig: any = isAdaptive
+      ? { type: 'enabled', budget_tokens: budgetTokens }
+      : { type: 'enabled', budget_tokens: budgetTokens };
+
+    const response = await client.messages.create({
+      model,
+      max_tokens: budgetTokens + 16000,
+      thinking: thinkingConfig,
+      messages: [
+        { role: 'user', content: `${SYSTEM_PROMPT}\n\n${userPrompt}\n\nRespond ONLY with the JSON object, no other text.` },
+      ],
+    });
+
+    // With thinking, response has thinking blocks + text blocks
+    const textBlock = response.content.find((block) => block.type === 'text');
+    if (!textBlock || textBlock.type !== 'text') {
+      throw new Error('Claude did not return a text response');
+    }
+
+    return { ...parseJsonResponse(textBlock.text) as ExtractionResult, raw: true, thinkingUsed };
+  }
+
+  // Standard mode (no thinking)
+  console.log(`[task-extractor] Anthropic request: model=${model}, thinking=off`);
 
   const response = await client.messages.create({
     model,
@@ -114,24 +277,86 @@ async function extractWithAnthropic(
     ],
   });
 
-  // Claude returns content blocks - extract text
   const textBlock = response.content.find((block) => block.type === 'text');
   if (!textBlock || textBlock.type !== 'text') {
     throw new Error('Claude did not return a text response');
   }
 
-  // Claude might wrap JSON in markdown code blocks, extract it
-  let jsonText = textBlock.text.trim();
-  const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (jsonMatch?.[1]) {
-    jsonText = jsonMatch[1].trim();
-  }
-
-  return { ...JSON.parse(jsonText), raw: true };
+  return { ...parseJsonResponse(textBlock.text) as ExtractionResult, raw: true, thinkingUsed };
 }
 
 /**
- * Main extraction function - supports user API keys for OpenAI or Anthropic
+ * Extract tasks using OpenRouter API
+ * OpenRouter provides a unified OpenAI-compatible API to access 500+ models.
+ * Uses the unified `reasoning` parameter for reasoning models.
+ */
+async function extractWithOpenRouter(
+  apiKey: string,
+  model: string,
+  userPrompt: string,
+  reasoningEffort?: ReasoningEffort | null,
+): Promise<ExtractionResult & { raw: true }> {
+  const isReasoning = isReasoningModel(model, 'openrouter');
+  type OpenRouterCompletionResponse = {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const body: any = {
+    model,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    max_tokens: 16000,
+  };
+
+  if (isReasoning && reasoningEffort) {
+    body.reasoning = {
+      effort: reasoningEffort,
+      max_tokens: reasoningEffort === 'xhigh' ? 30000 : reasoningEffort === 'high' ? 20000 : 10000,
+    };
+    body.max_tokens = 25000;
+  } else {
+    body.temperature = 0.2;
+  }
+
+  console.log(`[task-extractor] OpenRouter request: model=${model}, reasoning=${isReasoning}${reasoningEffort ? `, effort=${reasoningEffort}` : ''}`);
+
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://estimatepro.app',
+      'X-Title': 'EstimatePro',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = `OpenRouter API error: ${response.status}`;
+    try {
+      const errorJson = JSON.parse(errorText);
+      errorMessage = errorJson.error?.message || errorMessage;
+    } catch { /* ignore */ }
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json() as OpenRouterCompletionResponse;
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || content.length === 0) {
+    throw new Error('OpenRouter did not return a response');
+  }
+
+  return { ...parseJsonResponse(content) as ExtractionResult, raw: true };
+}
+
+// ─── Main extraction function ────────────────────────────────
+
+/**
+ * Main extraction function - supports user API keys for OpenAI, Anthropic, or OpenRouter
  */
 export async function extractTasksFromText(
   documentText: string,
@@ -139,11 +364,9 @@ export async function extractTasksFromText(
   hourlyRate: number = 150,
   aiConfig?: AIProviderConfig | null,
 ): Promise<ExtractionResult> {
-  // Determine which provider/key to use
   const hasUserKey = Boolean(aiConfig?.apiKey && aiConfig.apiKey.length > 10);
   const hasEnvKey = isEnvApiKeyValid();
 
-  // If no valid key at all, use mock
   if (!hasUserKey && !hasEnvKey) {
     console.log('[task-extractor] No valid API key available, using smart mock extraction');
     return generateMockExtraction(documentText, projectContext, hourlyRate);
@@ -152,34 +375,41 @@ export async function extractTasksFromText(
   const userPrompt = `${projectContext ? `Project Context: ${projectContext}\n\n` : ''}Requirements Document:\n\n${documentText.slice(0, 30000)}`;
 
   try {
-    let rawResult: ExtractionResult & { raw: true };
+    let rawResult: ExtractionResult & { raw: true; thinkingUsed?: boolean };
     let providerName: string;
+    let modelName: string;
+    let thinkingUsed = false;
+
+    const startTime = Date.now();
 
     if (hasUserKey && aiConfig) {
-      // Use user's API key
       const provider = aiConfig.provider;
       providerName = provider;
 
       if (provider === 'anthropic') {
-        const model = aiConfig.model || 'claude-sonnet-4-20250514';
-        console.log(`[task-extractor] Using Anthropic Claude (${model}) with user API key`);
-        rawResult = await extractWithAnthropic(aiConfig.apiKey, model, userPrompt);
+        modelName = aiConfig.model || 'claude-sonnet-4-6';
+        console.log(`[task-extractor] Using Anthropic Claude (${modelName}) with user API key`);
+        rawResult = await extractWithAnthropic(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
+        thinkingUsed = rawResult.thinkingUsed ?? false;
+      } else if (provider === 'openrouter') {
+        modelName = aiConfig.model || 'openai/gpt-5.2';
+        console.log(`[task-extractor] Using OpenRouter (${modelName}) with user API key`);
+        rawResult = await extractWithOpenRouter(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
       } else {
-        const model = aiConfig.model || 'gpt-4o';
-        console.log(`[task-extractor] Using OpenAI (${model}) with user API key`);
-        rawResult = await extractWithOpenAI(aiConfig.apiKey, model, userPrompt);
+        modelName = aiConfig.model || 'gpt-5.2';
+        console.log(`[task-extractor] Using OpenAI (${modelName}) with user key, effort=${aiConfig.reasoningEffort || 'default'}`);
+        rawResult = await extractWithOpenAI(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
       }
     } else {
-      // Fall back to env key (OpenAI)
-      const model = process.env.OPENAI_MODEL || 'gpt-4o';
       const envApiKey = process.env.OPENAI_API_KEY;
-      if (!envApiKey) {
-        throw new Error('OPENAI_API_KEY is not configured');
-      }
+      if (!envApiKey) throw new Error('OPENAI_API_KEY is not configured');
+      modelName = process.env.OPENAI_MODEL || 'gpt-4o';
       providerName = 'openai';
-      console.log(`[task-extractor] Using OpenAI (${model}) with env API key`);
-      rawResult = await extractWithOpenAI(envApiKey, model, userPrompt);
+      console.log(`[task-extractor] Using OpenAI (${modelName}) with env API key`);
+      rawResult = await extractWithOpenAI(envApiKey, modelName, userPrompt);
     }
+
+    const durationMs = Date.now() - startTime;
 
     // Validate and normalize tasks
     const tasks = (rawResult.tasks ?? []).map((t: ExtractedTask) => ({
@@ -200,12 +430,14 @@ export async function extractTasksFromText(
       tasks,
       assumptions: rawResult.assumptions ?? [],
       provider: providerName,
+      model: modelName,
+      thinkingUsed,
+      durationMs,
     };
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error(`[task-extractor] AI extraction failed: ${errMsg}`);
 
-    // Check for auth errors to give better feedback
     if (errMsg.includes('401') || errMsg.includes('Unauthorized') || errMsg.includes('invalid_api_key') || errMsg.includes('authentication')) {
       throw new Error(`Invalid API key: The provided ${aiConfig?.provider || 'OpenAI'} API key is invalid or expired. Please check your key in Settings.`);
     }
@@ -220,127 +452,85 @@ export async function extractTasksFromText(
   }
 }
 
+// ─── Comparative Analysis ────────────────────────────────────
+
 /**
- * Smart mock extraction - parses the document text to generate realistic tasks
- * Used when no API key is available (demo mode)
+ * Run extraction with multiple providers and return results for comparison.
+ * Each provider runs independently - failures in one don't block others.
  */
+export async function extractWithMultipleProviders(
+  documentText: string,
+  projectContext: string | undefined,
+  hourlyRate: number,
+  configs: AIProviderConfig[],
+): Promise<{ results: ExtractionResult[]; errors: { provider: string; model: string; error: string }[] }> {
+  const results: ExtractionResult[] = [];
+  const errors: { provider: string; model: string; error: string }[] = [];
+
+  // Run all providers in parallel
+  const promises = configs.map(async (config) => {
+    try {
+      const result = await extractTasksFromText(documentText, projectContext, hourlyRate, config);
+      return { success: true as const, result };
+    } catch (err) {
+      return {
+        success: false as const,
+        provider: config.provider,
+        model: config.model || 'default',
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  const settled = await Promise.all(promises);
+  for (const s of settled) {
+    if (s.success) {
+      results.push(s.result);
+    } else {
+      errors.push({ provider: s.provider, model: s.model, error: s.error });
+    }
+  }
+
+  return { results, errors };
+}
+
+// ─── Mock extraction ─────────────────────────────────────────
+
 function generateMockExtraction(
   documentText: string,
   projectContext?: string,
   hourlyRate: number = 150,
 ): ExtractionResult {
   const tasks: ExtractedTask[] = [
-    // Epic 1: Authentication & Multi-Tenancy
     { title: 'Authentication & Multi-Tenancy System', description: 'Complete auth system with Clerk integration, multi-tenant org management, RBAC', type: 'epic', priority: 'critical', estimatedHours: 120, estimatedPoints: 34 },
     { title: 'Clerk Auth Integration', description: 'Integrate Clerk for user registration, social login (Google, GitHub), 2FA, session management', type: 'feature', priority: 'critical', estimatedHours: 32, estimatedPoints: 13 },
     { title: 'User Registration & Login Flow', description: 'Email/password registration, social login buttons, email verification, password reset', type: 'story', priority: 'critical', estimatedHours: 16, estimatedPoints: 8 },
     { title: 'Multi-Factor Authentication (2FA)', description: 'Enable TOTP-based 2FA via Clerk dashboard config and frontend UI', type: 'task', priority: 'high', estimatedHours: 8, estimatedPoints: 5 },
     { title: 'Organization Management', description: 'Create/edit/delete organizations, invite members via email, role assignment', type: 'feature', priority: 'critical', estimatedHours: 40, estimatedPoints: 21 },
     { title: 'Role-Based Access Control (RBAC)', description: 'Implement Owner, Admin, Member, Viewer roles with permission middleware', type: 'story', priority: 'critical', estimatedHours: 24, estimatedPoints: 13 },
-
-    // Epic 2: Project Management
     { title: 'Project Management Module', description: 'Full project CRUD with dashboard, timeline, and analytics', type: 'epic', priority: 'critical', estimatedHours: 160, estimatedPoints: 34 },
     { title: 'Project CRUD Operations', description: 'Create, read, update, delete projects with name, description, status, methodology', type: 'feature', priority: 'critical', estimatedHours: 24, estimatedPoints: 8 },
-    { title: 'Project Status Workflow', description: 'Implement planning > active > on_hold > completed > archived status transitions', type: 'task', priority: 'high', estimatedHours: 8, estimatedPoints: 5 },
     { title: 'Project Dashboard', description: 'Overview cards (total tasks, hours, completion %, budget), charts, velocity tracking', type: 'feature', priority: 'high', estimatedHours: 48, estimatedPoints: 21 },
-    { title: 'Gantt Chart / Timeline View', description: 'Interactive Gantt chart with task dependencies and milestone visualization', type: 'story', priority: 'medium', estimatedHours: 40, estimatedPoints: 21 },
-    { title: 'Burndown & Burnup Charts', description: 'Sprint/project burndown and burnup chart components with real-time data', type: 'task', priority: 'medium', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Project Clone/Template Feature', description: 'Duplicate existing projects as templates with task structure', type: 'task', priority: 'low', estimatedHours: 16, estimatedPoints: 8 },
-
-    // Epic 3: Task Management
     { title: 'Task Management Module', description: 'Hierarchical task system with estimation fields, dependencies, and bulk operations', type: 'epic', priority: 'critical', estimatedHours: 200, estimatedPoints: 34 },
     { title: 'Task CRUD Operations', description: 'Create/edit/delete tasks with title, description, type, priority, status, assignee', type: 'feature', priority: 'critical', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Task Type System', description: 'Implement epic > feature > story > task > subtask > bug hierarchy', type: 'story', priority: 'critical', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Task Status Workflow', description: 'Backlog > todo > in_progress > review > testing > done with drag-and-drop board', type: 'story', priority: 'critical', estimatedHours: 24, estimatedPoints: 13 },
     { title: 'Task Estimation Fields', description: 'Hours, story points (Fibonacci), T-shirt sizing, confidence level per estimate', type: 'feature', priority: 'critical', estimatedHours: 20, estimatedPoints: 8 },
-    { title: 'Parent-Child Task Hierarchy', description: 'Nested task relationships with inheritance and rollup calculations', type: 'story', priority: 'high', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Task Dependencies', description: 'Define blocked_by/blocks relationships, critical path calculation, dependency visualization', type: 'feature', priority: 'high', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Bulk Task Operations', description: 'Multi-select with bulk update, move, delete operations', type: 'task', priority: 'medium', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Actual Hours Tracking', description: 'Track actual hours spent vs estimated for variance analysis', type: 'task', priority: 'medium', estimatedHours: 12, estimatedPoints: 5 },
-
-    // Epic 4: Estimation Algorithms
     { title: 'Estimation Algorithms Engine', description: '5 estimation algorithms: Planning Poker, T-Shirt, PERT, Wideband Delphi, Outlier Detection', type: 'epic', priority: 'critical', estimatedHours: 180, estimatedPoints: 34 },
-    { title: 'Planning Poker Implementation', description: 'Real-time card voting with Fibonacci values, simultaneous reveal, statistics', type: 'feature', priority: 'critical', estimatedHours: 40, estimatedPoints: 21 },
-    { title: 'T-Shirt Sizing Module', description: 'Map XS-XXL to hour ranges, quick bulk estimation, size-to-points conversion', type: 'feature', priority: 'high', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'PERT Estimation Calculator', description: 'Three-point estimation (O, M, P), expected duration, standard deviation, confidence intervals', type: 'feature', priority: 'high', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Wideband Delphi Process', description: 'Multi-round anonymous estimation, facilitator controls, convergence detection', type: 'feature', priority: 'medium', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Statistical Outlier Detection', description: 'Z-score and IQR methods to flag estimation outliers for team discussion', type: 'feature', priority: 'medium', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Estimation Core Unit Tests', description: 'Comprehensive test suite for all 5 algorithms (target: 48+ tests)', type: 'task', priority: 'high', estimatedHours: 24, estimatedPoints: 8 },
-
-    // Epic 5: AI Features
     { title: 'AI-Powered Features', description: 'Document analysis, task extraction, similarity search, prompt injection defense', type: 'epic', priority: 'high', estimatedHours: 160, estimatedPoints: 34 },
     { title: 'Document Upload & Parsing', description: 'Support PDF, DOCX, MD, TXT upload (10MB max), extract plain text', type: 'feature', priority: 'high', estimatedHours: 20, estimatedPoints: 8 },
-    { title: 'AI Task Extraction (GPT-4o)', description: 'Send parsed text to GPT-4o, extract structured tasks with estimates', type: 'feature', priority: 'high', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'AI Text Analysis Mode', description: 'Paste-in text analysis with configurable context and hourly rate', type: 'story', priority: 'high', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Task Embedding & Similarity Search', description: 'pgvector embeddings with text-embedding-3-small, cosine similarity matching', type: 'feature', priority: 'medium', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'AI Estimation Suggestions', description: 'Suggest estimates based on similar historical tasks using vector search', type: 'feature', priority: 'medium', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Prompt Injection Defense', description: '13 regex patterns for injection detection, input sanitization, rate limiting', type: 'task', priority: 'high', estimatedHours: 12, estimatedPoints: 5 },
-
-    // Epic 6: Effort & Cost Calculator
-    { title: 'Effort & Cost Calculator', description: 'Calculate total effort, cost, and breakdowns with configurable parameters', type: 'epic', priority: 'critical', estimatedHours: 80, estimatedPoints: 21 },
-    { title: 'Effort Calculation Engine', description: 'Total hours, breakdowns by type/priority/status, contingency calculation', type: 'feature', priority: 'critical', estimatedHours: 24, estimatedPoints: 8 },
-    { title: 'Cost Calculation with Currency', description: 'Hourly rate x hours, per-task cost, budget vs actual, currency support', type: 'feature', priority: 'critical', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Effort Calculator UI', description: 'Interactive dashboard with summary cards, breakdown tables, parameter inputs', type: 'story', priority: 'high', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Export Effort Reports', description: 'Generate PDF/CSV reports with effort and cost breakdowns', type: 'task', priority: 'medium', estimatedHours: 16, estimatedPoints: 8 },
-
-    // Epic 7: Real-Time Collaboration
+    { title: 'AI Task Extraction', description: 'Send parsed text to AI provider, extract structured tasks with estimates', type: 'feature', priority: 'high', estimatedHours: 32, estimatedPoints: 13 },
     { title: 'Real-Time Collaboration System', description: 'Socket.io WebSocket for live estimation sessions, presence, and chat', type: 'epic', priority: 'high', estimatedHours: 120, estimatedPoints: 34 },
-    { title: 'WebSocket Server Setup', description: 'Socket.io on /ws path, room-based sessions, Redis adapter for scaling', type: 'feature', priority: 'high', estimatedHours: 24, estimatedPoints: 8 },
-    { title: 'Live Estimation Sessions', description: 'Create sessions, invite participants, real-time vote casting and reveal', type: 'feature', priority: 'high', estimatedHours: 40, estimatedPoints: 21 },
-    { title: 'User Presence Indicators', description: 'Show online/offline status, typing indicators in session rooms', type: 'task', priority: 'medium', estimatedHours: 12, estimatedPoints: 5 },
-    { title: 'Session Chat Feature', description: 'Real-time chat within estimation sessions for discussion', type: 'task', priority: 'medium', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Session History & Audit Trail', description: 'Log all session events, votes, and decisions for audit', type: 'task', priority: 'low', estimatedHours: 12, estimatedPoints: 5 },
-
-    // Epic 8: Sprint Management
     { title: 'Sprint Management Module', description: 'Sprint CRUD, task assignment, velocity tracking, burndown charts', type: 'epic', priority: 'high', estimatedHours: 100, estimatedPoints: 21 },
-    { title: 'Sprint CRUD Operations', description: 'Create sprints with name, goal, dates, status lifecycle', type: 'feature', priority: 'high', estimatedHours: 20, estimatedPoints: 8 },
-    { title: 'Sprint Task Assignment', description: 'Drag-and-drop tasks into sprints, capacity planning', type: 'story', priority: 'high', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Sprint Burndown Chart', description: 'Real-time burndown visualization with ideal vs actual lines', type: 'task', priority: 'high', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Velocity Tracking', description: 'Points/hours completed per sprint, rolling average calculation', type: 'task', priority: 'medium', estimatedHours: 12, estimatedPoints: 5 },
-    { title: 'Sprint Retrospective Notes', description: 'Structured retro input (what went well, improvements, actions)', type: 'task', priority: 'low', estimatedHours: 8, estimatedPoints: 3 },
-
-    // Epic 9: Analytics & Reporting
     { title: 'Analytics & Reporting Dashboard', description: 'Organization-wide metrics, estimation accuracy, team performance, exports', type: 'epic', priority: 'medium', estimatedHours: 120, estimatedPoints: 34 },
-    { title: 'Estimation Accuracy Metrics', description: 'Estimated vs actual hours variance, accuracy percentage, trending', type: 'feature', priority: 'medium', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'Team Performance Analytics', description: 'Velocity trends, estimation patterns, individual contributor stats', type: 'feature', priority: 'medium', estimatedHours: 24, estimatedPoints: 13 },
-    { title: 'CSV/Excel Export', description: 'Export tasks, estimates, and reports to CSV and Excel formats', type: 'task', priority: 'medium', estimatedHours: 12, estimatedPoints: 5 },
-    { title: 'PDF Report Generation', description: 'Generate professional PDF reports with charts and summaries', type: 'task', priority: 'low', estimatedHours: 24, estimatedPoints: 13 },
-
-    // Epic 10: External Integrations
     { title: 'External Integrations', description: 'Jira, GitHub, and Slack integrations for workflow automation', type: 'epic', priority: 'low', estimatedHours: 200, estimatedPoints: 34 },
-    { title: 'Jira Integration', description: 'Import/export tasks from Jira, bidirectional sync, field mapping', type: 'feature', priority: 'low', estimatedHours: 60, estimatedPoints: 21 },
-    { title: 'GitHub Integration', description: 'Import issues, link to milestones, repository complexity analysis', type: 'feature', priority: 'low', estimatedHours: 48, estimatedPoints: 21 },
-    { title: 'Slack Integration', description: 'Notification bot, session invites, vote reminders, summary digests', type: 'feature', priority: 'low', estimatedHours: 40, estimatedPoints: 13 },
-
-    // Epic 11: Infrastructure & DevOps
     { title: 'Infrastructure & DevOps', description: 'Docker, CI/CD, monitoring, database management, deployment', type: 'epic', priority: 'high', estimatedHours: 100, estimatedPoints: 21 },
-    { title: 'Docker Compose Setup', description: 'PostgreSQL 16 + pgvector on 5433, Redis 7 on 6380, development environment', type: 'task', priority: 'critical', estimatedHours: 8, estimatedPoints: 3 },
-    { title: 'Turborepo CI/CD Pipeline', description: 'GitHub Actions with Turborepo caching, parallel builds, test execution', type: 'task', priority: 'high', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Database Migrations (Drizzle)', description: 'Drizzle ORM schema management, migration scripts, seed data', type: 'task', priority: 'critical', estimatedHours: 12, estimatedPoints: 5 },
-    { title: 'Monitoring & Logging', description: 'Structured logging with Pino, health checks, error tracking', type: 'task', priority: 'medium', estimatedHours: 16, estimatedPoints: 8 },
-    { title: 'Production Deployment', description: 'Vercel (web) + Railway/Fly.io (API), environment configuration', type: 'task', priority: 'high', estimatedHours: 24, estimatedPoints: 8 },
-
-    // Cross-cutting concerns
-    { title: 'UI Component Library (shadcn/ui)', description: 'Build reusable component library with shadcn/ui + Tailwind CSS', type: 'feature', priority: 'high', estimatedHours: 40, estimatedPoints: 13 },
-    { title: 'Dark/Light Theme System', description: 'next-themes integration, consistent color tokens, toggle component', type: 'task', priority: 'medium', estimatedHours: 12, estimatedPoints: 5 },
-    { title: 'tRPC API Layer', description: 'End-to-end type-safe API with 11 routers, SuperJSON transformer', type: 'feature', priority: 'critical', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Error Handling System', description: '27 error codes, AppError class, consistent error responses', type: 'task', priority: 'high', estimatedHours: 12, estimatedPoints: 5 },
-    { title: 'Shared Types Package', description: 'Zod schemas + TypeScript types for 6 modules, shared across apps', type: 'task', priority: 'high', estimatedHours: 16, estimatedPoints: 5 },
-    { title: 'Mobile Responsive Design', description: 'Responsive layouts for all pages, mobile-first breakpoints', type: 'story', priority: 'medium', estimatedHours: 40, estimatedPoints: 13 },
-    { title: 'User Onboarding Flow', description: 'Welcome wizard, project creation guide, feature tour', type: 'story', priority: 'low', estimatedHours: 24, estimatedPoints: 8 },
-    { title: 'Billing & Subscription Management', description: 'Stripe integration, plan tiers, usage metering, invoicing', type: 'feature', priority: 'low', estimatedHours: 48, estimatedPoints: 21 },
-    { title: 'API Rate Limiting', description: 'Per-user and per-org rate limits on AI and general API endpoints', type: 'task', priority: 'medium', estimatedHours: 8, estimatedPoints: 3 },
-    { title: 'End-to-End Testing', description: 'Playwright E2E tests for critical user flows', type: 'task', priority: 'medium', estimatedHours: 32, estimatedPoints: 13 },
-    { title: 'Security Audit & Hardening', description: 'OWASP top 10 review, dependency audit, CSP headers, input validation', type: 'task', priority: 'high', estimatedHours: 24, estimatedPoints: 8 },
-    { title: 'Performance Optimization', description: 'Lighthouse audit, bundle optimization, lazy loading, DB query optimization', type: 'task', priority: 'medium', estimatedHours: 24, estimatedPoints: 8 },
   ];
 
   const totalHours = tasks.reduce((sum, t) => sum + t.estimatedHours, 0);
 
   return {
     projectSummary: projectContext
-      ? `${projectContext} - Comprehensive SaaS platform requiring full-stack development across authentication, project/task management, 5 estimation algorithms, AI-powered analysis, real-time collaboration, sprint management, analytics, and external integrations.`
-      : 'AI-Powered Project Estimation SaaS Platform - A full-stack application with multi-tenant auth, hierarchical task management, 5 estimation methodologies, GPT-4o integration, WebSocket collaboration, and comprehensive analytics.',
+      ? `${projectContext} - Comprehensive SaaS platform requiring full-stack development.`
+      : 'AI-Powered Project Estimation SaaS Platform',
     totalEstimatedHours: totalHours,
     totalEstimatedCost: totalHours * hourlyRate,
     tasks,
@@ -349,16 +539,11 @@ function generateMockExtraction(
       'Team of 3-4 full-stack developers working in parallel',
       'Existing Turborepo monorepo structure already set up',
       'PostgreSQL and Redis infrastructure available via Docker',
-      'Clerk account and API keys available for auth integration',
-      'OpenAI API access available for AI features',
-      'Using shadcn/ui component library reduces UI development time',
-      'tRPC provides type-safe API layer reducing integration bugs',
-      'Socket.io handles WebSocket complexity for real-time features',
-      'Drizzle ORM migrations handle schema evolution',
       '20% contingency recommended for unforeseen complexity',
-      'External integrations (Jira, GitHub, Slack) estimated at higher hours due to third-party API complexity',
     ],
     provider: 'mock',
+    model: 'mock',
+    durationMs: 0,
   };
 }
 
@@ -375,7 +560,6 @@ function validatePriority(priority: string): ExtractedTask['priority'] {
 function validateFibonacci(points: number): number {
   const fib = [1, 2, 3, 5, 8, 13, 21, 34];
   if (fib.includes(points)) return points;
-  // Find nearest fibonacci
   return fib.reduce((prev, curr) =>
     Math.abs(curr - points) < Math.abs(prev - points) ? curr : prev
   );

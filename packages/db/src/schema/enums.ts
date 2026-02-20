@@ -9,4 +9,4 @@ export const taskPriorityEnum = pgEnum('task_priority', ['critical', 'high', 'me
 export const sessionStatusEnum = pgEnum('session_status', ['waiting', 'voting', 'revealed', 'completed']);
 export const sprintStatusEnum = pgEnum('sprint_status', ['planning', 'active', 'completed', 'cancelled']);
 export const integrationTypeEnum = pgEnum('integration_type', ['jira', 'azure_devops', 'github', 'gitlab']);
-export const aiProviderEnum = pgEnum('ai_provider', ['openai', 'anthropic']);
+export const aiProviderEnum = pgEnum('ai_provider', ['openai', 'anthropic', 'openrouter']);

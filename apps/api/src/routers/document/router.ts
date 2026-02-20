@@ -5,18 +5,24 @@ import { db } from '@estimate-pro/db';
 import { apiKeys, users } from '@estimate-pro/db/schema';
 
 import { authedProcedure, orgProcedure, router } from '../../trpc/trpc';
-import { extractTasksFromText } from '../../services/document/task-extractor';
-import type { AIProviderConfig } from '../../services/document/task-extractor';
+import { extractTasksFromText, extractWithMultipleProviders } from '../../services/document/task-extractor';
+import type { AIProviderConfig, AIProvider, ReasoningEffort } from '../../services/document/task-extractor';
 import { encrypt, decrypt } from '../../services/crypto';
 import { refreshAccessToken, isTokenExpired } from '../../services/oauth/openai-oauth';
 
-import { analyzeTextInput, bulkCreateTasksInput } from './schema';
+import { analyzeTextInput, comparativeAnalyzeInput, bulkCreateTasksInput } from './schema';
 import { documentService } from './service';
 
 /**
- * Look up the user's active AI config - supports both API key and OAuth token
+ * Look up the user's active AI config - supports both API key and OAuth token.
+ * Can optionally target a specific provider.
  */
-async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null> {
+async function getUserAIConfig(
+  clerkId: string,
+  targetProvider?: AIProvider,
+  overrideModel?: string,
+  overrideEffort?: ReasoningEffort | null,
+): Promise<AIProviderConfig | null> {
   const user = await db.query.users.findFirst({
     columns: { id: true },
     where: eq(users.clerkId, clerkId),
@@ -24,11 +30,16 @@ async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null
 
   if (!user) return null;
 
-  // Find active keys for this user
+  // Build query conditions
+  const conditions = [eq(apiKeys.userId, user.id), eq(apiKeys.isActive, true)];
+  if (targetProvider) {
+    conditions.push(eq(apiKeys.provider, targetProvider));
+  }
+
   const keys = await db
     .select()
     .from(apiKeys)
-    .where(and(eq(apiKeys.userId, user.id), eq(apiKeys.isActive, true)));
+    .where(and(...conditions));
 
   if (keys.length === 0) return null;
 
@@ -48,7 +59,6 @@ async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null
           const tokens = await refreshAccessToken(refreshToken);
           const nextRefreshToken = tokens.refresh_token ?? refreshToken;
 
-          // Update stored tokens
           await db.update(apiKeys).set({
             encryptedAccessToken: encrypt(tokens.access_token),
             encryptedRefreshToken: encrypt(nextRefreshToken),
@@ -59,25 +69,26 @@ async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null
           console.log('[document-router] OAuth token refreshed successfully');
         } catch (refreshErr) {
           console.error('[document-router] Token refresh failed:', refreshErr);
-          // Mark as inactive so user knows to re-auth
           await db.update(apiKeys).set({ isActive: false }).where(eq(apiKeys.id, key.id));
           return null;
         }
       }
 
       return {
-        provider: key.provider,
+        provider: key.provider as AIProvider,
         apiKey: accessToken,
-        model: key.model ?? undefined,
+        model: overrideModel ?? key.model ?? undefined,
+        reasoningEffort: overrideEffort !== undefined ? overrideEffort : (key.reasoningEffort as ReasoningEffort) ?? undefined,
       };
     }
 
     // API key flow
     if (key.encryptedKey) {
       return {
-        provider: key.provider,
+        provider: key.provider as AIProvider,
         apiKey: decrypt(key.encryptedKey),
-        model: key.model ?? undefined,
+        model: overrideModel ?? key.model ?? undefined,
+        reasoningEffort: overrideEffort !== undefined ? overrideEffort : (key.reasoningEffort as ReasoningEffort) ?? undefined,
       };
     }
 
@@ -90,14 +101,19 @@ async function getUserAIConfig(clerkId: string): Promise<AIProviderConfig | null
 
 export const documentRouter = router({
   /**
-   * Analyze pasted text (PRD, requirements, etc.) and extract tasks via AI
+   * Analyze pasted text (PRD, requirements, etc.) and extract tasks via AI.
+   * Supports provider/model override per-request.
    */
   analyzeText: authedProcedure
     .input(analyzeTextInput)
     .mutation(async ({ ctx, input }) => {
       try {
-        // Look up user's AI config (API key or OAuth token)
-        const aiConfig = await getUserAIConfig(ctx.userId);
+        const aiConfig = await getUserAIConfig(
+          ctx.userId,
+          input.provider,
+          input.model,
+          input.reasoningEffort,
+        );
 
         const result = await extractTasksFromText(
           input.text,
@@ -110,6 +126,61 @@ export const documentRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: err instanceof Error ? err.message : 'Failed to analyze document',
+        });
+      }
+    }),
+
+  /**
+   * Run comparative analysis across multiple providers.
+   * Each provider runs independently - failures in one don't block others.
+   */
+  comparativeAnalyze: authedProcedure
+    .input(comparativeAnalyzeInput)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Resolve configs for each requested provider
+        const configs: AIProviderConfig[] = [];
+        const configErrors: { provider: string; error: string }[] = [];
+
+        for (const p of input.providers) {
+          const config = await getUserAIConfig(
+            ctx.userId,
+            p.provider,
+            p.model ?? undefined,
+            p.reasoningEffort,
+          );
+          if (config) {
+            configs.push(config);
+          } else {
+            configErrors.push({
+              provider: p.provider,
+              error: `No active API key found for ${p.provider}. Please add a key in Settings.`,
+            });
+          }
+        }
+
+        if (configs.length === 0) {
+          throw new Error('No valid API keys found for any of the selected providers. Please configure at least one provider in Settings.');
+        }
+
+        const { results, errors } = await extractWithMultipleProviders(
+          input.text,
+          input.projectContext,
+          input.hourlyRate,
+          configs,
+        );
+
+        return {
+          results,
+          errors: [
+            ...configErrors.map(e => ({ provider: e.provider, model: 'n/a', error: e.error })),
+            ...errors,
+          ],
+        };
+      } catch (err) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: err instanceof Error ? err.message : 'Failed to run comparative analysis',
         });
       }
     }),

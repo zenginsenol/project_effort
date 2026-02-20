@@ -26,6 +26,8 @@ export const apiKeys = pgTable('api_keys', {
   tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }),
   /** OpenAI account email from OAuth */
   oauthEmail: text('oauth_email'),
+  /** Reasoning effort level: low, medium, high, xhigh */
+  reasoningEffort: text('reasoning_effort'),
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

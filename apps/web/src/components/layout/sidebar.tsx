@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Brain, Calculator, CalendarDays, Clock, FolderKanban, Home, Plug, Settings, Users } from 'lucide-react';
+import { BarChart3, Brain, Calculator, CalendarDays, Clock, FolderKanban, GitCompareArrows, Home, Plug, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -10,6 +10,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
   { name: 'Task Analyzer', href: '/dashboard/analyzer', icon: Brain },
+  { name: 'Compare AI', href: '/dashboard/compare', icon: GitCompareArrows },
   { name: 'Effort Cost', href: '/dashboard/effort', icon: Calculator },
   { name: 'Sessions', href: '/dashboard/sessions', icon: Clock },
   { name: 'Sprints', href: '/dashboard/sprints', icon: CalendarDays },

@@ -545,6 +545,8 @@ async function main() {
     fs.writeFileSync(path.join(outputDir, 'docs-bootstrap-report-latest.md'), markdown, 'utf8');
     console.log(`[docs-bootstrap] wrote ${path.relative(repoRoot, outputDir)}`);
   }
+
+  process.exit(0);
 }
 
 main().catch((error) => {

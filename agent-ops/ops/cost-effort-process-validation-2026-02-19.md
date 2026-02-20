@@ -104,6 +104,23 @@ Output:
 
 This command executes docs bootstrap + integration check + effort workflow check + unified roadmap in sequence and writes one combined execution report.
 
+## Internal Kanban + Effort Management
+
+Run:
+
+```bash
+pnpm ops:kanban:self-manage
+```
+
+Output:
+- `agent-ops/ops/kanban-self-manage-latest.md`
+
+This command:
+1. Creates/reuses internal Kanban project.
+2. Pushes docs-derived tasks into that project.
+3. Calculates effort/cost and applies roadmap to board statuses.
+4. Saves baseline cost analysis for compare/export.
+
 ## Manual UI Process Test (Step-by-Step)
 
 1. Open `/dashboard/settings`.

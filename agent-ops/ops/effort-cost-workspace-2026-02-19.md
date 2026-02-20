@@ -97,6 +97,8 @@ Automated workflow validation:
 4. Unified output: `agent-ops/ops/effort-flow-roadmap-latest.md`
 5. Single-command flow runner: `pnpm ops:flow:run`
 6. Runner output: `agent-ops/ops/go-live-flow-runner-latest.md`
+7. Internal kanban + effort management: `pnpm ops:kanban:self-manage`
+8. Internal kanban output: `agent-ops/ops/kanban-self-manage-latest.md`
 
 Step-by-step validation runbook:
 1. `agent-ops/ops/cost-effort-process-validation-2026-02-19.md`

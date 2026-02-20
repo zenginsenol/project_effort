@@ -1266,3 +1266,37 @@ Latest execution (2026-02-20):
    - Module contracts: `pass`
    - GitHub/Kanban readiness: `warn` (missing env/config)
    - AI provider health: `warn` (OpenAI `429` quota/rate-limit)
+
+### 14.15 Self Kanban Workspace (Effort + Project Management)
+
+User request focus:
+1. Manage project with internal Kanban.
+2. Use same flow for efforting/cost + execution.
+3. Rebuild backlog from kickoff docs when needed.
+
+Implemented:
+1. Script:
+   - `apps/api/scripts/kanban-self-manage.ts`
+2. Command:
+   - `pnpm ops:kanban:self-manage`
+3. Output:
+   - `agent-ops/ops/kanban-self-manage-latest.md`
+
+Flow executed by script:
+1. Resolve or create Kanban project (by key) in active organization.
+2. Run docs bootstrap and push generated tasks to internal Kanban project.
+3. Calculate effort/cost baseline.
+4. Generate roadmap and apply it to Kanban board status/sort order.
+5. Save baseline cost analysis snapshot for compare/export workflows.
+6. Emit a single report with step outcomes + board effort summary by status.
+
+Latest execution (2026-02-20):
+1. Total tasks on board: `93`
+2. Effort baseline: `1058h` (`1269.6h` with contingency)
+3. Development cost baseline: `1,523,520 TRY`
+4. Roadmap apply result: `updated=86`, `todo=3`, `backlog=90`
+5. Baseline analysis snapshot saved: `4571ed80-8da3-41d8-9c1f-39aa1496b02b`
+
+Stability fix included:
+1. `apps/api/scripts/bootstrap-from-docs.mjs` now exits cleanly on success (`process.exit(0)`).
+2. Prevents command-hang in orchestration scripts that call docs bootstrap.

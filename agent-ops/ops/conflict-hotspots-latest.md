@@ -1,8 +1,8 @@
 # Conflict Hotspots Report
 
-Updated: 2026-02-19T13:20:15.321Z
+Updated: 2026-02-20T05:53:10.169Z
 Branch: `main`
-Working tree: tracked=11, untracked=1, total=12
+Working tree: tracked=4, untracked=0, total=4
 
 ## Active Hotspots
 
@@ -14,9 +14,8 @@ Safe merge order: 1) services/oauth 2) server callback route 3) api-keys router
 | Status | File |
 |---|---|
 | `M` | `apps/api/src/routers/api-keys/router.ts` |
-| `M` | `apps/api/src/routers/api-keys/schema.ts` |
-| `M` | `apps/api/src/services/oauth/oauth-credential-store.ts` |
-| `??` | `apps/api/src/services/oauth/claude-oauth.ts` |
+| `M` | `apps/api/src/services/oauth/claude-oauth.ts` |
+| `M` | `apps/api/src/services/oauth/openai-oauth.ts` |
 
 ### P1 - Provider schema and DB alignment
 
@@ -26,35 +25,10 @@ Safe merge order: 1) DB migration SQL 2) schema enums/columns 3) API input/outpu
 | Status | File |
 |---|---|
 | `M` | `apps/api/src/routers/api-keys/router.ts` |
-| `M` | `apps/api/src/routers/api-keys/schema.ts` |
-| `M` | `packages/db/src/schema/api-keys.ts` |
-| `M` | `packages/db/src/schema/enums.ts` |
-
-### P1 - Document analysis contract drift
-
-Reason: Changes in extraction service and router schema can diverge and cause runtime parse errors.
-Safe merge order: 1) document schema 2) extractor service 3) document router
-
-| Status | File |
-|---|---|
-| `M` | `apps/api/src/routers/document/router.ts` |
-| `M` | `apps/api/src/routers/document/schema.ts` |
-| `M` | `apps/api/src/services/document/task-extractor.ts` |
-
-### P2 - Web settings/compare UX consistency
-
-Reason: Navigation, compare page, and settings panel can drift from backend capabilities.
-Safe merge order: 1) compare route 2) settings page 3) sidebar/nav links
-
-| Status | File |
-|---|---|
-| `M` | `apps/web/src/app/dashboard/compare/page.tsx` |
-| `M` | `apps/web/src/app/dashboard/settings/page.tsx` |
-| `M` | `apps/web/src/components/layout/sidebar.tsx` |
 
 ## Unmapped Files
 
-- None
+- `M` `agent-ops/ops/kanban-self-manage-latest.md`
 
 ## Operator Notes
 

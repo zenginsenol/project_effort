@@ -1,8 +1,8 @@
 # Kanban Self-Management Report (Full Flow)
 
-Generated: 2026-02-20T03:09:28.659Z
+Generated: 2026-02-20T03:26:20.094Z
 Branch: `main`
-Commit: `0699bca`
+Commit: `fbf8caa`
 Result summary: pass=8, warn=0, skip=2, fail=0
 
 ## Workspace Context
@@ -15,21 +15,21 @@ Result summary: pass=8, warn=0, skip=2, fail=0
 - Contingency: 20%
 - Work hours/day: 8
 - Active providers: openai
-- Baseline analysis id: 17fd608e-d11c-41af-b86b-573c8577073c
-- Variant analysis id: 91474565-4b2a-4a21-9cb2-cac3e7a99269
+- Baseline analysis id: de45a90e-6691-4bb0-bc5e-23a1e271b6a4
+- Variant analysis id: 2755571c-af82-48e5-b276-12ce0ec64747
 
 ## Step Results
 
 | Step | Status | Duration(ms) | Detail |
 |---|---|---|---|
-| 1. Docs Bootstrap -> Kanban import | pass | 389 | - Kanban: pushed (inserted 0/93, deduped 93) |
-| 2. Effort Calculate | pass | 7 | tasks=93, totalHours=1269.6, cost=1523520 |
-| 3. Roadmap Generate | pass | 4 | phases=28, weeks=32 |
-| 4. Apply Roadmap to Kanban | pass | 3 | updated=0, movedTodo=0, movedBacklog=0 |
-| 5. Save Baseline Cost Analysis | pass | 11 | analysisId=17fd608e-d11c-41af-b86b-573c8577073c |
-| 6. Save Variant Cost Analysis | pass | 7 | analysisId=91474565-4b2a-4a21-9cb2-cac3e7a99269 |
-| 7. Compare Baseline vs Variant | pass | 14 | rows=2, baseline=Kanban Workspace Baseline |
-| 8. Export Baseline (json/csv/md) | pass | 8 | json=39787B, csv=8170B, md=8013B |
+| 1. Docs Bootstrap -> Kanban import | pass | 355 | - Kanban: pushed (inserted 0/93, deduped 93) |
+| 2. Effort Calculate | pass | 12 | tasks=93, totalHours=1269.6, cost=1523520 |
+| 3. Roadmap Generate | pass | 3 | phases=28, weeks=32 |
+| 4. Apply Roadmap to Kanban | pass | 4 | updated=0, movedTodo=0, movedBacklog=0 |
+| 5. Save Baseline Cost Analysis | pass | 14 | analysisId=de45a90e-6691-4bb0-bc5e-23a1e271b6a4 |
+| 6. Save Variant Cost Analysis | pass | 5 | analysisId=2755571c-af82-48e5-b276-12ce0ec64747 |
+| 7. Compare Baseline vs Variant | pass | 3 | rows=2, baseline=Kanban Workspace Baseline |
+| 8. Export Baseline (json/csv/md) | pass | 7 | json=39787B, csv=8170B, md=8013B |
 | 9. GitHub Sync (optional) | skip | 0 | Skipped by --skip-github-sync |
 | 10. AI Analysis (optional) | skip | 0 | Skipped by --skip-ai |
 

@@ -37,6 +37,10 @@ Production infrastructure readiness for:
 - `OPENAI_API_KEY`
 - `INTEGRATION_TOKEN_ENCRYPTION_KEY`
 
+6. Public Runtime Config (required)
+- `NEXT_PUBLIC_API_URL` (web client -> API base URL)
+- `OPENAI_OAUTH_MODE=api_server_callback` (deployed web OAuth callback mode)
+
 ## Validation Checklist
 
 - [x] Production env template created (`.env.production.example`)

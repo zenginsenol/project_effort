@@ -63,6 +63,7 @@ Bu projede GitHub entegrasyonu gerçek veri ile çalışır ve proje bazında y�
 - `API_PUBLIC_URL`: API&apos;nin dışarıdan erişilen base URL&apos;i
 - `OAUTH_CALLBACK_BASE_URL`: OAuth callback base (varsa `API_PUBLIC_URL` üstüne yazar)
 - `OPENAI_OAUTH_CLIENT_ID`: OpenAI OAuth public client id override
+- `OPENAI_OAUTH_MODE`: `local_temp_server` (local) veya `api_server_callback` (deployed web)
 
 Örnek dosyalar:
 - `.env.example`

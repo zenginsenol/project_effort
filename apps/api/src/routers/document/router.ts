@@ -9,9 +9,12 @@ import { extractTasksFromText, extractWithMultipleProviders } from '../../servic
 import type { AIProviderConfig, AIProvider, ReasoningEffort } from '../../services/document/task-extractor';
 import { encrypt, decrypt } from '../../services/crypto';
 import { refreshAccessToken, isTokenExpired } from '../../services/oauth/openai-oauth';
+import { refreshClaudeAccessToken } from '../../services/oauth/claude-oauth';
 
 import { analyzeTextInput, comparativeAnalyzeInput, bulkCreateTasksInput } from './schema';
 import { documentService } from './service';
+
+const ANTHROPIC_OAUTH_BETA_HEADER = 'oauth-2025-04-20';
 
 /**
  * Look up the user's active AI config - supports both API key and OAuth token.
@@ -50,14 +53,20 @@ async function getUserAIConfig(
     // OAuth flow - use access token (with auto-refresh)
     if (key.authMethod === 'oauth' && key.encryptedAccessToken) {
       let accessToken = decrypt(key.encryptedAccessToken);
+      const isAnthropicOAuth = key.provider === 'anthropic';
 
       // Auto-refresh if token is expired or about to expire
       if (key.tokenExpiresAt && isTokenExpired(key.tokenExpiresAt) && key.encryptedRefreshToken) {
         console.log('[document-router] OAuth token expired, refreshing...');
         try {
           const refreshToken = decrypt(key.encryptedRefreshToken);
-          const tokens = await refreshAccessToken(refreshToken);
-          const nextRefreshToken = tokens.refresh_token ?? refreshToken;
+          const tokens = isAnthropicOAuth
+            ? await refreshClaudeAccessToken(refreshToken)
+            : await refreshAccessToken(refreshToken);
+
+          const nextRefreshToken = 'refresh_token' in tokens && tokens.refresh_token
+            ? tokens.refresh_token
+            : refreshToken;
 
           await db.update(apiKeys).set({
             encryptedAccessToken: encrypt(tokens.access_token),
@@ -79,6 +88,8 @@ async function getUserAIConfig(
         apiKey: accessToken,
         model: overrideModel ?? key.model ?? undefined,
         reasoningEffort: overrideEffort !== undefined ? overrideEffort : (key.reasoningEffort as ReasoningEffort) ?? undefined,
+        authMethod: 'oauth',
+        oauthBetaHeader: isAnthropicOAuth ? ANTHROPIC_OAUTH_BETA_HEADER : undefined,
       };
     }
 

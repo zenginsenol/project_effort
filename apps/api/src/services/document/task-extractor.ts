@@ -38,6 +38,8 @@ export interface AIProviderConfig {
   apiKey: string;
   model?: string;
   reasoningEffort?: ReasoningEffort | null;
+  authMethod?: 'api_key' | 'oauth';
+  oauthBetaHeader?: string | null;
 }
 
 // ─── Model Capability Maps ──────────────────────────────────
@@ -225,15 +227,73 @@ async function extractWithAnthropic(
   model: string,
   userPrompt: string,
   reasoningEffort?: ReasoningEffort | null,
+  authOptions?: {
+    authMethod?: 'api_key' | 'oauth';
+    oauthBetaHeader?: string | null;
+  },
 ): Promise<ExtractionResult & { raw: true; thinkingUsed?: boolean }> {
-  const client = new Anthropic({ apiKey });
   const supportsThinking = isReasoningModel(model, 'anthropic');
   const useThinking = supportsThinking && reasoningEffort && reasoningEffort !== 'low';
+  const isOAuth = authOptions?.authMethod === 'oauth';
+  const oauthBetaHeader = authOptions?.oauthBetaHeader ?? 'oauth-2025-04-20';
 
   // Check if model supports adaptive thinking (4.5+)
   const isAdaptive = model.includes('4-6') || model.includes('4-5');
 
   let thinkingUsed = false;
+
+  if (isOAuth) {
+    const budgetTokens = useThinking ? getClaudeThinkingBudget(reasoningEffort) : 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requestBody: Record<string, any> = {
+      model,
+      max_tokens: useThinking ? budgetTokens + 16000 : 16000,
+      messages: useThinking
+        ? [
+          { role: 'user', content: `${SYSTEM_PROMPT}\n\n${userPrompt}\n\nRespond ONLY with the JSON object, no other text.` },
+        ]
+        : [
+          { role: 'user', content: `${userPrompt}\n\nRespond ONLY with the JSON object, no other text.` },
+        ],
+    };
+
+    if (useThinking) {
+      thinkingUsed = true;
+      requestBody.thinking = { type: 'enabled', budget_tokens: budgetTokens };
+    } else {
+      requestBody.temperature = 0.2;
+      requestBody.system = SYSTEM_PROMPT;
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': oauthBetaHeader,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Anthropic OAuth API error (${response.status}): ${errorText}`);
+    }
+
+    const payload = await response.json() as {
+      content?: Array<{ type: string; text?: string }>;
+    };
+
+    const textBlock = payload.content?.find((block) => block.type === 'text' && typeof block.text === 'string');
+    if (!textBlock || !textBlock.text) {
+      throw new Error('Claude OAuth did not return a text response');
+    }
+
+    return { ...parseJsonResponse(textBlock.text) as ExtractionResult, raw: true, thinkingUsed };
+  }
+
+  const client = new Anthropic({ apiKey });
 
   if (useThinking) {
     thinkingUsed = true;
@@ -389,7 +449,16 @@ export async function extractTasksFromText(
       if (provider === 'anthropic') {
         modelName = aiConfig.model || 'claude-sonnet-4-6';
         console.log(`[task-extractor] Using Anthropic Claude (${modelName}) with user API key`);
-        rawResult = await extractWithAnthropic(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
+        rawResult = await extractWithAnthropic(
+          aiConfig.apiKey,
+          modelName,
+          userPrompt,
+          aiConfig.reasoningEffort,
+          {
+            authMethod: aiConfig.authMethod,
+            oauthBetaHeader: aiConfig.oauthBetaHeader,
+          },
+        );
         thinkingUsed = rawResult.thinkingUsed ?? false;
       } else if (provider === 'openrouter') {
         modelName = aiConfig.model || 'openai/gpt-5.2';

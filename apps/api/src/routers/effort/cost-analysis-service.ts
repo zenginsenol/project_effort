@@ -7,11 +7,13 @@ import type { AIProvider, AIProviderConfig, ReasoningEffort } from '../../servic
 import { extractTasksFromText } from '../../services/document/task-extractor';
 import { decrypt, encrypt } from '../../services/crypto';
 import { isTokenExpired, refreshAccessToken } from '../../services/oauth/openai-oauth';
+import { refreshClaudeAccessToken } from '../../services/oauth/claude-oauth';
 import { decryptToken } from '../../services/security/token-crypto';
 
 type TaskType = typeof tasks.type.enumValues[number];
 type TaskPriority = typeof tasks.priority.enumValues[number];
 type TaskStatus = typeof tasks.status.enumValues[number];
+const ANTHROPIC_OAUTH_BETA_HEADER = 'oauth-2025-04-20';
 
 type ProjectRow = {
   id: string;
@@ -804,10 +806,17 @@ export class CostAnalysisService {
     try {
       if (key.authMethod === 'oauth' && key.encryptedAccessToken) {
         let accessToken = decrypt(key.encryptedAccessToken);
+        const isAnthropicOAuth = provider === 'anthropic';
+
         if (key.tokenExpiresAt && isTokenExpired(key.tokenExpiresAt) && key.encryptedRefreshToken) {
           const refreshToken = decrypt(key.encryptedRefreshToken);
-          const tokens = await refreshAccessToken(refreshToken);
-          const nextRefreshToken = tokens.refresh_token ?? refreshToken;
+          const tokens = isAnthropicOAuth
+            ? await refreshClaudeAccessToken(refreshToken)
+            : await refreshAccessToken(refreshToken);
+
+          const nextRefreshToken = 'refresh_token' in tokens && tokens.refresh_token
+            ? tokens.refresh_token
+            : refreshToken;
 
           await db
             .update(apiKeys)
@@ -833,6 +842,8 @@ export class CostAnalysisService {
           apiKey: accessToken,
           model: overrideModel ?? key.model ?? undefined,
           reasoningEffort: finalEffort,
+          authMethod: 'oauth',
+          oauthBetaHeader: isAnthropicOAuth ? ANTHROPIC_OAUTH_BETA_HEADER : undefined,
         };
       }
 

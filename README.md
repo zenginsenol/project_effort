@@ -59,6 +59,7 @@ Bu projede GitHub entegrasyonu gerçek veri ile çalışır ve proje bazında y�
 ## Ortam Değişkenleri (Önemli)
 
 - `NEXT_PUBLIC_APP_URL`: Web app base URL
+- `NEXT_PUBLIC_API_URL`: Web client için API base URL (`/trpc`, `/api/analyze-document`, realtime socket)
 - `API_PUBLIC_URL`: API&apos;nin dışarıdan erişilen base URL&apos;i
 - `OAUTH_CALLBACK_BASE_URL`: OAuth callback base (varsa `API_PUBLIC_URL` üstüne yazar)
 - `OPENAI_OAUTH_CLIENT_ID`: OpenAI OAuth public client id override

@@ -4,6 +4,7 @@ import { Check, Eye, EyeOff, RotateCcw, Users } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { getApiBaseUrl } from '@/lib/api-url';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -152,7 +153,7 @@ export default function SessionDetailPage(): React.ReactElement {
         return;
       }
 
-      const socket = io('http://localhost:4000', {
+      const socket = io(getApiBaseUrl(), {
         path: '/ws',
         transports: ['websocket'],
         auth: {

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+import { getApiUrl } from '@/lib/api-url';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -215,7 +216,7 @@ export default function AnalyzerPage(): React.ReactElement {
       const formData = new FormData();
       formData.append('file', file);
 
-      const url = new URL('http://localhost:4000/api/analyze-document');
+      const url = new URL(getApiUrl('/api/analyze-document'));
       url.searchParams.set('hourlyRate', String(hourlyRate));
       if (projectContext) url.searchParams.set('projectContext', projectContext);
 

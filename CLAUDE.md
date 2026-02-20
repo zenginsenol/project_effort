@@ -234,3 +234,4 @@ See `.env.example` for all required environment variables. Key variables:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk frontend
 - `OPENAI_API_KEY` - OpenAI API access
 - `NEXT_PUBLIC_APP_URL` - Application URL
+- `NEXT_PUBLIC_API_URL` - Public API URL for web client requests and sockets

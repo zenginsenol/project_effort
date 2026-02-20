@@ -119,7 +119,18 @@ This command:
 1. Creates/reuses internal Kanban project.
 2. Pushes docs-derived tasks into that project.
 3. Calculates effort/cost and applies roadmap to board statuses.
-4. Saves baseline cost analysis for compare/export.
+4. Saves baseline + variant cost analyses.
+5. Runs compare and export (`json/csv/md`) checks.
+6. Optionally attempts GitHub sync and AI analysis.
+
+Optional flags:
+1. `-- --skip-ai`
+2. `-- --skip-github-sync`
+3. `-- --project-id <PROJECT_UUID>`
+
+Deterministic core-flow run (no external dependency warnings):
+1. `pnpm ops:kanban:self-manage -- --skip-ai --skip-github-sync`
+2. Shortcut: `pnpm ops:kanban:self-manage:core`
 
 ## Manual UI Process Test (Step-by-Step)
 

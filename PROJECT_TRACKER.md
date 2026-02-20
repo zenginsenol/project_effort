@@ -1281,21 +1281,29 @@ Implemented:
    - `pnpm ops:kanban:self-manage`
 3. Output:
    - `agent-ops/ops/kanban-self-manage-latest.md`
+4. Core pass command:
+   - `pnpm ops:kanban:self-manage:core`
 
 Flow executed by script:
 1. Resolve or create Kanban project (by key) in active organization.
 2. Run docs bootstrap and push generated tasks to internal Kanban project.
 3. Calculate effort/cost baseline.
 4. Generate roadmap and apply it to Kanban board status/sort order.
-5. Save baseline cost analysis snapshot for compare/export workflows.
-6. Emit a single report with step outcomes + board effort summary by status.
+5. Save baseline + variant cost analysis snapshots.
+6. Run compare on baseline/variant analyses.
+7. Export baseline analysis (`json/csv/md`).
+8. Run optional GitHub sync attempt for baseline analysis.
+9. Run optional AI analysis per active provider.
+10. Emit a single report with step outcomes + board effort summary by status.
 
 Latest execution (2026-02-20):
 1. Total tasks on board: `93`
 2. Effort baseline: `1058h` (`1269.6h` with contingency)
 3. Development cost baseline: `1,523,520 TRY`
-4. Roadmap apply result: `updated=86`, `todo=3`, `backlog=90`
-5. Baseline analysis snapshot saved: `4571ed80-8da3-41d8-9c1f-39aa1496b02b`
+4. Roadmap apply result: `updated=0`, `todo=0`, `backlog=0` (board already aligned)
+5. Baseline analysis snapshot: `17fd608e-d11c-41af-b86b-573c8577073c`
+6. Variant analysis snapshot: `91474565-4b2a-4a21-9cb2-cac3e7a99269`
+7. Full flow result (core): `pass=8`, `warn=0`, `skip=2`, `fail=0` (`--skip-ai --skip-github-sync`)
 
 Stability fix included:
 1. `apps/api/scripts/bootstrap-from-docs.mjs` now exits cleanly on success (`process.exit(0)`).

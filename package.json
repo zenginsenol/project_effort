@@ -42,6 +42,7 @@
     "ops:flow:run": "node scripts/go-live-flow-runner.mjs --write",
     "ops:flow:run:transfer": "node scripts/go-live-flow-runner.mjs --write --with-transfer",
     "ops:kanban:self-manage": "pnpm --filter @estimate-pro/api exec tsx scripts/kanban-self-manage.ts --write",
+    "ops:kanban:self-manage:core": "pnpm --filter @estimate-pro/api exec tsx scripts/kanban-self-manage.ts --write -- --skip-ai --skip-github-sync",
     "ops:bootstrap:docs": "pnpm --filter @estimate-pro/api exec node scripts/bootstrap-from-docs.mjs --write",
     "ops:bootstrap:docs:push": "pnpm --filter @estimate-pro/api exec node scripts/bootstrap-from-docs.mjs --write --push-github --push-kanban",
     "ops:staging:check": "node scripts/staging-parity-check.mjs",

@@ -99,6 +99,9 @@ Automated workflow validation:
 6. Runner output: `agent-ops/ops/go-live-flow-runner-latest.md`
 7. Internal kanban + effort management: `pnpm ops:kanban:self-manage`
 8. Internal kanban output: `agent-ops/ops/kanban-self-manage-latest.md`
+9. Internal kanban command now includes compare/export + optional github/ai checks.
+10. Deterministic core flow: `pnpm ops:kanban:self-manage -- --skip-ai --skip-github-sync`
+11. Core flow shortcut: `pnpm ops:kanban:self-manage:core`
 
 Step-by-step validation runbook:
 1. `agent-ops/ops/cost-effort-process-validation-2026-02-19.md`

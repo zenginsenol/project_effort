@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-20T04:55:19.051Z",
+  "generatedAt": "2026-02-20T05:03:59.266Z",
   "documents": [
     {
       "relativePath": "Estimate Pro Document - Claude.docx",
@@ -1975,7 +1975,7 @@
     }
   ],
   "cos": {
-    "generatedAt": "2026-02-20T04:55:19.051Z",
+    "generatedAt": "2026-02-20T05:03:59.266Z",
     "documentsAnalyzed": 3,
     "tasksGenerated": 93,
     "effort": {
@@ -1996,17 +1996,17 @@
     }
   },
   "github": {
-    "mode": "skipped",
-    "reason": "GITHUB_REPO or GITHUB_TOKEN missing",
-    "created": 0,
-    "attempted": 0,
+    "mode": "pushed",
+    "reason": null,
+    "created": 50,
+    "attempted": 50,
     "failed": []
   },
   "kanban": {
-    "mode": "skipped",
-    "reason": "KANBAN_PROJECT_ID or --project-id missing",
+    "mode": "pushed",
+    "reason": "all generated tasks already exist",
     "inserted": 0,
-    "attempted": 0,
-    "deduped": 0
+    "attempted": 93,
+    "deduped": 93
   }
 }

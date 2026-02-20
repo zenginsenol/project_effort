@@ -1,6 +1,6 @@
 # Docs Bootstrap Report
 
-Updated: 2026-02-20T04:55:19.051Z
+Updated: 2026-02-20T05:03:59.266Z
 
 ## Inputs
 
@@ -19,10 +19,9 @@ Updated: 2026-02-20T04:55:19.051Z
 
 ## Transfer Status
 
-- GitHub: skipped (created 0/0)
-  reason: GITHUB_REPO or GITHUB_TOKEN missing
-- Kanban: skipped (inserted 0/0, deduped 0)
-  reason: KANBAN_PROJECT_ID or --project-id missing
+- GitHub: pushed (created 50/50)
+- Kanban: pushed (inserted 0/93, deduped 93)
+  reason: all generated tasks already exist
 
 ## Usage
 

@@ -23,6 +23,14 @@ export type DashboardNavItem = {
   order: number;
 };
 
+export type WorkflowPhaseMeta = {
+  phase: WorkflowPhase;
+  title: string;
+  subtitle: string;
+  themeClass: string;
+  badgeClass: string;
+};
+
 export const dashboardNavItems: DashboardNavItem[] = [
   {
     name: 'Control Center',
@@ -110,28 +118,50 @@ export const workflowPhases: Array<{
   phase: WorkflowPhase;
   title: string;
   subtitle: string;
+  themeClass: string;
+  badgeClass: string;
 }> = [
   {
     phase: 'Ingest',
     title: '1. Ingest',
     subtitle: 'Dokuman -> task cikarma',
+    themeClass: 'border-sky-300/60 bg-sky-100/50 dark:border-sky-700/50 dark:bg-sky-950/40',
+    badgeClass: 'bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-950/60 dark:text-sky-200 dark:border-sky-700',
   },
   {
     phase: 'Plan',
     title: '2. Plan',
     subtitle: 'Kanban proje olusturma',
+    themeClass: 'border-emerald-300/60 bg-emerald-100/50 dark:border-emerald-700/50 dark:bg-emerald-950/35',
+    badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700',
   },
   {
     phase: 'Estimate',
     title: '3. Estimate',
     subtitle: 'Efor, maliyet, compare',
+    themeClass: 'border-amber-300/60 bg-amber-100/50 dark:border-amber-700/50 dark:bg-amber-950/35',
+    badgeClass: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-700',
   },
   {
     phase: 'Operate',
     title: '4. Operate',
     subtitle: 'Takip, sprint, analytics, release',
+    themeClass: 'border-indigo-300/60 bg-indigo-100/50 dark:border-indigo-700/50 dark:bg-indigo-950/35',
+    badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-950/60 dark:text-indigo-200 dark:border-indigo-700',
   },
 ];
+
+const defaultPhaseMeta: WorkflowPhaseMeta = {
+  phase: 'Ingest',
+  title: '1. Ingest',
+  subtitle: 'Dokuman -> task cikarma',
+  themeClass: 'border-sky-300/60 bg-sky-100/50 dark:border-sky-700/50 dark:bg-sky-950/40',
+  badgeClass: 'bg-sky-100 text-sky-700 border-sky-300 dark:bg-sky-950/60 dark:text-sky-200 dark:border-sky-700',
+};
+
+export function getPhaseMeta(phase: WorkflowPhase): WorkflowPhaseMeta {
+  return workflowPhases.find((item) => item.phase === phase) ?? defaultPhaseMeta;
+}
 
 export function getActiveNav(pathname: string): DashboardNavItem | null {
   const match = dashboardNavItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));

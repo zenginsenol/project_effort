@@ -70,6 +70,63 @@ const estimatePresets: Array<{ label: string; points: number; hours: number }> =
   { label: 'XL', points: 8, hours: 24 },
 ];
 
+const boardColumns: Array<{
+  key: Exclude<StatusOption, ''>;
+  title: string;
+  toneClass: string;
+  badgeClass: string;
+}> = [
+  {
+    key: 'backlog',
+    title: 'Backlog',
+    toneClass: 'border-zinc-300/70 bg-zinc-100/60 dark:border-zinc-700 dark:bg-zinc-900/55',
+    badgeClass: 'status-pill status-tone-backlog',
+  },
+  {
+    key: 'todo',
+    title: 'To Do',
+    toneClass: 'border-sky-300/70 bg-sky-100/60 dark:border-sky-700 dark:bg-sky-950/45',
+    badgeClass: 'status-pill status-tone-todo',
+  },
+  {
+    key: 'in_progress',
+    title: 'In Progress',
+    toneClass: 'border-amber-300/70 bg-amber-100/60 dark:border-amber-700 dark:bg-amber-950/45',
+    badgeClass: 'status-pill status-tone-in-progress',
+  },
+  {
+    key: 'in_review',
+    title: 'In Review',
+    toneClass: 'border-indigo-300/70 bg-indigo-100/60 dark:border-indigo-700 dark:bg-indigo-950/45',
+    badgeClass: 'status-pill status-tone-in-review',
+  },
+  {
+    key: 'done',
+    title: 'Done',
+    toneClass: 'border-emerald-300/70 bg-emerald-100/60 dark:border-emerald-700 dark:bg-emerald-950/45',
+    badgeClass: 'status-pill status-tone-done',
+  },
+  {
+    key: 'cancelled',
+    title: 'Cancelled',
+    toneClass: 'border-rose-300/70 bg-rose-100/60 dark:border-rose-700 dark:bg-rose-950/45',
+    badgeClass: 'status-pill status-tone-cancelled',
+  },
+];
+
+const priorityStyleMap: Record<PriorityOption, string> = {
+  critical: 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-200',
+  high: 'border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200',
+  medium: 'border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200',
+  low: 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200',
+  none: 'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
+};
+
+function getStatusPillClass(status: TaskStatus): string {
+  const found = boardColumns.find((column) => column.key === status);
+  return found?.badgeClass ?? 'status-pill status-tone-backlog';
+}
+
 export default function ProjectDetailPage(): React.ReactElement {
   const utils = trpc.useUtils();
   const params = useParams<{ projectId: string }>();
@@ -443,41 +500,53 @@ export default function ProjectDetailPage(): React.ReactElement {
 
   return (
     <div>
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/projects" className="rounded-md p-1 hover:bg-muted">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">{projectQuery.data?.name ?? 'Project Details'}</h1>
-          <p className="text-sm text-muted-foreground">Project ID: {projectId}</p>
+      <div className="page-shell soft-surface noise-overlay">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/projects" className="rounded-md border bg-background/75 p-1.5 hover:bg-muted">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">{projectQuery.data?.name ?? 'Project Details'}</h1>
+            <p className="text-sm text-muted-foreground">Project ID: {projectId}</p>
+          </div>
+          <span className="ml-auto status-pill status-tone-in-progress">Kanban Management</span>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <Link href={`/dashboard/analyzer?projectId=${projectId}`} className="rounded-lg border bg-card p-3 hover:bg-muted/30">
+        <Link
+          href={`/dashboard/analyzer?projectId=${projectId}`}
+          className="rounded-xl border border-sky-300/60 bg-sky-100/55 p-3 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/35"
+        >
           <p className="inline-flex items-center gap-2 text-sm font-semibold">
-            <Brain className="h-4 w-4 text-primary" />
+            <Brain className="h-4 w-4 text-sky-700 dark:text-sky-300" />
             Add Tasks from Docs
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Yeni dokumanlardan backloga task ekle.</p>
         </Link>
-        <Link href={`/dashboard/effort?projectId=${projectId}`} className="rounded-lg border bg-card p-3 hover:bg-muted/30">
+        <Link
+          href={`/dashboard/effort?projectId=${projectId}`}
+          className="rounded-xl border border-amber-300/60 bg-amber-100/55 p-3 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/35"
+        >
           <p className="inline-flex items-center gap-2 text-sm font-semibold">
-            <Calculator className="h-4 w-4 text-primary" />
+            <Calculator className="h-4 w-4 text-amber-700 dark:text-amber-300" />
             Effort & Cost
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Bu projenin efor maliyet analizine gec.</p>
         </Link>
-        <Link href={`/dashboard/compare?projectId=${projectId}`} className="rounded-lg border bg-card p-3 hover:bg-muted/30">
+        <Link
+          href={`/dashboard/compare?projectId=${projectId}`}
+          className="rounded-xl border border-indigo-300/60 bg-indigo-100/55 p-3 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/35"
+        >
           <p className="inline-flex items-center gap-2 text-sm font-semibold">
-            <GitCompare className="h-4 w-4 text-primary" />
+            <GitCompare className="h-4 w-4 text-indigo-700 dark:text-indigo-300" />
             Compare Models
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Ayni kapsam icin provider/model sonucunu kiyasla.</p>
         </Link>
       </div>
 
-      <div className="mt-6 rounded-lg border bg-card p-4">
+      <div className="mt-6 dashboard-panel soft-surface rounded-xl p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Github className="h-4 w-4" />
@@ -495,7 +564,7 @@ export default function ProjectDetailPage(): React.ReactElement {
         </div>
 
         {!githubProjectLinkQuery.data?.connected && (
-          <div className="mt-3 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+          <div className="mt-3 rounded-md border border-dashed border-amber-300/70 bg-amber-100/45 p-3 text-sm text-muted-foreground dark:border-amber-700 dark:bg-amber-950/25">
             Connect GitHub first from{' '}
             <Link href="/dashboard/integrations" className="font-medium underline">
               Integrations
@@ -511,12 +580,12 @@ export default function ProjectDetailPage(): React.ReactElement {
               value={githubRepoInput}
               onChange={(event) => setGithubRepoInput(event.target.value)}
               placeholder="owner/repo or https://github.com/owner/repo"
-              className="rounded-md border px-3 py-2 text-sm"
+              className="rounded-md border bg-background/85 px-3 py-2 text-sm"
             />
             <button
               onClick={handleSaveGithubLink}
               disabled={!githubRepoInput.trim() || linkGithubProjectMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-md border bg-background/80 px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
             >
               <Link2 className="h-4 w-4" />
               {linkGithubProjectMutation.isPending ? 'Linking...' : 'Save Link'}
@@ -524,7 +593,7 @@ export default function ProjectDetailPage(): React.ReactElement {
             <button
               onClick={handleSyncGithubNow}
               disabled={!githubRepoInput.trim() || syncGithubProjectMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${syncGithubProjectMutation.isPending ? 'animate-spin' : ''}`} />
               {syncGithubProjectMutation.isPending ? 'Syncing...' : 'Sync Now'}
@@ -544,7 +613,7 @@ export default function ProjectDetailPage(): React.ReactElement {
           </label>
         )}
 
-        <div className="mt-3 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+        <div className="mt-3 rounded-md border border-dashed bg-background/65 p-3 text-xs text-muted-foreground">
           <p className="font-medium text-foreground">GitHub entegrasyonu ne sağlar?</p>
           <ul className="mt-1 list-disc space-y-1 pl-4">
             <li>Repo issue&apos;larını projeye task olarak çeker (duplicate başlıkları atlar).</li>
@@ -565,10 +634,10 @@ export default function ProjectDetailPage(): React.ReactElement {
         )}
       </div>
 
-      <div className="mt-6 rounded-lg border bg-card p-4">
+      <div className="mt-6 dashboard-panel soft-surface rounded-xl p-4">
         <div className="grid gap-3 sm:grid-cols-4">
           <select
-            className="rounded-md border px-3 py-2 text-sm"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm"
             value={status}
             onChange={(event) => setQueryParam('status', event.target.value)}
           >
@@ -580,7 +649,7 @@ export default function ProjectDetailPage(): React.ReactElement {
           </select>
 
           <select
-            className="rounded-md border px-3 py-2 text-sm"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm"
             value={type}
             onChange={(event) => setQueryParam('type', event.target.value)}
           >
@@ -592,7 +661,7 @@ export default function ProjectDetailPage(): React.ReactElement {
           </select>
 
           <select
-            className="rounded-md border px-3 py-2 text-sm"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm"
             value={sort}
             onChange={(event) => setQueryParam('sort', event.target.value)}
           >
@@ -605,14 +674,14 @@ export default function ProjectDetailPage(): React.ReactElement {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setQueryParam('view', 'list')}
-              className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${view === 'list' ? 'bg-secondary' : 'text-muted-foreground hover:bg-muted'}`}
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium ${view === 'list' ? 'border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200' : 'border-border bg-background/80 text-muted-foreground hover:bg-muted'}`}
             >
               <ListTodo className="h-4 w-4" />
               List
             </button>
             <button
               onClick={() => setQueryParam('view', 'board')}
-              className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${view === 'board' ? 'bg-secondary' : 'text-muted-foreground hover:bg-muted'}`}
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium ${view === 'board' ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200' : 'border-border bg-background/80 text-muted-foreground hover:bg-muted'}`}
             >
               <LayoutGrid className="h-4 w-4" />
               Board
@@ -624,11 +693,11 @@ export default function ProjectDetailPage(): React.ReactElement {
         </p>
       </div>
 
-      <div className="mt-6 rounded-lg border bg-card p-4">
+      <div className="mt-6 dashboard-panel soft-surface rounded-xl p-4">
         <h2 className="text-sm font-semibold text-muted-foreground">Create Task</h2>
         <div className="mt-3 grid gap-3 lg:grid-cols-6">
           <input
-            className="rounded-md border px-3 py-2 text-sm lg:col-span-2"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm lg:col-span-2"
             placeholder="Task title"
             value={createTaskDraft.title}
             onChange={(event) => {
@@ -636,7 +705,7 @@ export default function ProjectDetailPage(): React.ReactElement {
             }}
           />
           <input
-            className="rounded-md border px-3 py-2 text-sm lg:col-span-2"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm lg:col-span-2"
             placeholder="Description (optional)"
             value={createTaskDraft.description}
             onChange={(event) => {
@@ -644,7 +713,7 @@ export default function ProjectDetailPage(): React.ReactElement {
             }}
           />
           <select
-            className="rounded-md border px-3 py-2 text-sm"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm"
             value={createTaskDraft.type}
             onChange={(event) => {
               setCreateTaskDraft((previous) => ({ ...previous, type: event.target.value as TaskType }));
@@ -659,7 +728,7 @@ export default function ProjectDetailPage(): React.ReactElement {
               ))}
           </select>
           <select
-            className="rounded-md border px-3 py-2 text-sm"
+            className="rounded-md border bg-background/85 px-3 py-2 text-sm"
             value={createTaskDraft.priority}
             onChange={(event) => {
               setCreateTaskDraft((previous) => ({ ...previous, priority: event.target.value as PriorityOption }));
@@ -694,8 +763,8 @@ export default function ProjectDetailPage(): React.ReactElement {
         <div>
           {tasksQuery.isLoading && <p className="text-sm text-muted-foreground">Loading tasks...</p>}
           {!tasksQuery.isLoading && view === 'list' && (
-            <div className="rounded-lg border bg-card">
-              <div className="grid grid-cols-5 border-b px-4 py-2 text-xs font-semibold text-muted-foreground">
+            <div className="dashboard-panel rounded-xl">
+              <div className="grid grid-cols-5 border-b bg-background/60 px-4 py-2 text-xs font-semibold text-muted-foreground">
                 <span>Title</span>
                 <span>Status</span>
                 <span>Type</span>
@@ -707,12 +776,14 @@ export default function ProjectDetailPage(): React.ReactElement {
                   key={task.id}
                   type="button"
                   onClick={() => setSelectedTaskId(task.id)}
-                  className={`grid w-full grid-cols-5 px-4 py-3 text-left text-sm hover:bg-muted/60 ${selectedTaskId === task.id ? 'bg-muted/70' : ''}`}
+                  className={`grid w-full grid-cols-5 border-b border-border/60 px-4 py-3 text-left text-sm hover:bg-muted/50 ${selectedTaskId === task.id ? 'bg-primary/10' : ''}`}
                 >
                   <span className="font-medium">{task.title}</span>
-                  <span>{task.status}</span>
+                  <span className={getStatusPillClass(task.status as TaskStatus)}>{task.status}</span>
                   <span>{task.type}</span>
-                  <span>{task.priority}</span>
+                  <span className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-xs font-semibold ${priorityStyleMap[task.priority as PriorityOption]}`}>
+                    {task.priority}
+                  </span>
                   <span>
                     {task.estimatedPoints ?? '-'} pt / {task.estimatedHours ?? '-'} h
                   </span>
@@ -725,57 +796,60 @@ export default function ProjectDetailPage(): React.ReactElement {
           )}
 
           {!tasksQuery.isLoading && view === 'board' && (
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {statusOptions
-                .filter((value): value is Exclude<StatusOption, ''> => value !== '')
-                .map((column) => (
-                  <div key={column} className="w-72 flex-shrink-0">
-                    <div className="rounded-lg border bg-card">
-                      <div className="flex items-center justify-between border-b p-3">
-                        <h3 className="text-sm font-semibold">{column}</h3>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
-                          {groupedByStatus.get(column)?.length ?? 0}
-                        </span>
-                      </div>
-                      <div
-                        className="space-y-2 p-2"
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          const taskId = event.dataTransfer.getData('text/task-id');
-                          if (taskId) {
-                            handleDrop(taskId, column);
-                          }
-                        }}
-                      >
-                        {(groupedByStatus.get(column) ?? []).map((task) => (
-                          <div
-                            key={task.id}
-                            draggable
-                            onDragStart={(event) => {
-                              event.dataTransfer.setData('text/task-id', task.id);
-                            }}
-                            onClick={() => setSelectedTaskId(task.id)}
-                            className={`cursor-move rounded-md border p-2 ${selectedTaskId === task.id ? 'border-primary bg-primary/5' : ''}`}
-                          >
-                            <p className="text-sm font-medium">{task.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {task.type} • {task.priority}
-                            </p>
+            <div className="scrollbar-thin flex gap-4 overflow-x-auto pb-4">
+              {boardColumns.map((column, index) => (
+                <div key={column.key} className="w-72 flex-shrink-0">
+                  <div className={`animate-fade-up rounded-xl border shadow-sm ${column.toneClass}`} style={{ animationDelay: `${index * 45}ms` }}>
+                    <div className="flex items-center justify-between border-b border-border/70 p-3">
+                      <h3 className="text-sm font-semibold">{column.title}</h3>
+                      <span className={column.badgeClass}>
+                        {groupedByStatus.get(column.key)?.length ?? 0}
+                      </span>
+                    </div>
+                    <div
+                      className="space-y-2 p-2"
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const taskId = event.dataTransfer.getData('text/task-id');
+                        if (taskId) {
+                          handleDrop(taskId, column.key);
+                        }
+                      }}
+                    >
+                      {(groupedByStatus.get(column.key) ?? []).map((task) => (
+                        <div
+                          key={task.id}
+                          draggable
+                          onDragStart={(event) => {
+                            event.dataTransfer.setData('text/task-id', task.id);
+                          }}
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className={`cursor-move rounded-lg border bg-background/85 p-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow ${selectedTaskId === task.id ? 'border-primary/50 ring-1 ring-primary/35' : 'border-border/70'}`}
+                        >
+                          <p className="text-sm font-medium">{task.title}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            <span className="inline-flex rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                              {task.type}
+                            </span>
+                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${priorityStyleMap[task.priority as PriorityOption]}`}>
+                              {task.priority}
+                            </span>
                           </div>
-                        ))}
-                        {(groupedByStatus.get(column)?.length ?? 0) === 0 && (
-                          <p className="p-2 text-xs text-muted-foreground">No tasks</p>
-                        )}
-                      </div>
+                        </div>
+                      ))}
+                      {(groupedByStatus.get(column.key)?.length ?? 0) === 0 && (
+                        <p className="rounded-md border border-dashed border-border/80 bg-background/70 p-2 text-xs text-muted-foreground">No tasks</p>
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        <aside className="rounded-lg border bg-card p-4 xl:sticky xl:top-4 xl:h-fit">
+        <aside className="dashboard-panel soft-surface rounded-xl p-4 xl:sticky xl:top-4 xl:h-fit">
           <h2 className="text-sm font-semibold text-muted-foreground">Task Detail</h2>
           {!selectedTaskId && (
             <p className="mt-2 text-sm text-muted-foreground">
@@ -790,7 +864,7 @@ export default function ProjectDetailPage(): React.ReactElement {
               <div>
                 <label className="mb-1 block text-xs font-semibold text-muted-foreground">Title</label>
                 <input
-                  className="w-full rounded-md border px-3 py-2 text-sm"
+                  className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                   value={taskDetailDraft.title}
                   onChange={(event) => {
                     setTaskDetailDraft((previous) => (
@@ -803,7 +877,7 @@ export default function ProjectDetailPage(): React.ReactElement {
               <div>
                 <label className="mb-1 block text-xs font-semibold text-muted-foreground">Description</label>
                 <textarea
-                  className="h-24 w-full rounded-md border px-3 py-2 text-sm"
+                  className="h-24 w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                   value={taskDetailDraft.description}
                   onChange={(event) => {
                     setTaskDetailDraft((previous) => (
@@ -817,7 +891,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-muted-foreground">Status</label>
                   <select
-                    className="w-full rounded-md border px-2 py-2 text-sm"
+                    className="w-full rounded-md border bg-background/85 px-2 py-2 text-sm"
                     value={taskDetailDraft.status}
                     onChange={(event) => {
                       setTaskDetailDraft((previous) => (
@@ -836,7 +910,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-muted-foreground">Type</label>
                   <select
-                    className="w-full rounded-md border px-2 py-2 text-sm"
+                    className="w-full rounded-md border bg-background/85 px-2 py-2 text-sm"
                     value={taskDetailDraft.type}
                     onChange={(event) => {
                       setTaskDetailDraft((previous) => (
@@ -855,7 +929,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-muted-foreground">Priority</label>
                   <select
-                    className="w-full rounded-md border px-2 py-2 text-sm"
+                    className="w-full rounded-md border bg-background/85 px-2 py-2 text-sm"
                     value={taskDetailDraft.priority}
                     onChange={(event) => {
                       setTaskDetailDraft((previous) => (
@@ -876,7 +950,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                   <input
                     type="number"
                     min={0}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                     value={taskDetailDraft.estimatedPoints}
                     onChange={(event) => {
                       setTaskDetailDraft((previous) => (
@@ -890,7 +964,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                   <input
                     type="number"
                     min={0}
-                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                     value={taskDetailDraft.estimatedHours}
                     onChange={(event) => {
                       setTaskDetailDraft((previous) => (
@@ -909,7 +983,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                       key={preset.label}
                       type="button"
                       onClick={() => applyEstimatePreset(preset.points, preset.hours)}
-                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted"
+                      className="inline-flex items-center gap-1 rounded-md border bg-background/80 px-2 py-1 text-xs font-medium hover:bg-muted"
                     >
                       <WandSparkles className="h-3 w-3" />
                       {preset.label} ({preset.points}pt / {preset.hours}h)
@@ -931,13 +1005,13 @@ export default function ProjectDetailPage(): React.ReactElement {
                 </div>
               </div>
 
-              <div className="rounded-md border p-3">
+              <div className="rounded-md border bg-background/60 p-3">
                 <p className="text-xs font-semibold text-muted-foreground">
                   Subtasks ({selectedTaskQuery.data?.children?.length ?? 0})
                 </p>
                 <div className="mt-2 flex gap-2">
                   <input
-                    className="flex-1 rounded-md border px-3 py-1.5 text-sm"
+                    className="flex-1 rounded-md border bg-background/85 px-3 py-1.5 text-sm"
                     placeholder="New subtask title"
                     value={newSubtaskTitle}
                     onChange={(event) => setNewSubtaskTitle(event.target.value)}
@@ -945,7 +1019,7 @@ export default function ProjectDetailPage(): React.ReactElement {
                   <button
                     onClick={handleCreateSubtask}
                     disabled={!newSubtaskTitle.trim() || createSubtaskMutation.isPending}
-                    className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-md border bg-background/80 px-2 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
                   >
                     <Plus className="h-3 w-3" />
                     Add

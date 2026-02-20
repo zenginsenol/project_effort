@@ -51,7 +51,7 @@ pnpm ops:effort:workflow:check:keep
 
 Use `:keep` only when you want generated test analyses to stay in DB.
 
-## Latest Validation Snapshot (2026-02-19)
+## Latest Validation Snapshot (2026-02-20)
 
 Source:
 - `agent-ops/ops/cost-workflow-check-latest.md`
@@ -66,6 +66,24 @@ Interpretation:
 1. Core cost/effort pipeline is operational end-to-end.
 2. Warning is provider quota/rate-limit related (OpenAI 429), not integration breakage.
 3. Skipped step is GitHub sync because GitHub integration was not connected in the active org.
+
+## Unified Flow Roadmap Snapshot
+
+Run:
+
+```bash
+pnpm ops:flow:roadmap
+```
+
+Output:
+- `agent-ops/ops/effort-flow-roadmap-latest.md`
+
+This consolidates:
+1. Docs -> COS effort/cost baseline.
+2. Cost workflow gate result.
+3. Module integration contract result.
+4. GitHub + Kanban transfer readiness.
+5. Agent backlog execution snapshot.
 
 ## Manual UI Process Test (Step-by-Step)
 

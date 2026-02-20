@@ -1200,3 +1200,35 @@ Step-by-step process doc added:
    - Automated command flow
    - Manual UI test flow
    - Result decision rules for go-live
+
+### 14.13 Unified Flow Roadmap & Gate Report (Docs -> COS -> Effort -> Integration -> Transfer)
+
+To keep go-live flow executable with one consolidated evidence output, a unified roadmap report generator is now added.
+
+Implemented:
+1. Script:
+   - `scripts/effort-flow-roadmap.mjs`
+2. Command:
+   - `pnpm ops:flow:roadmap`
+3. Output:
+   - `agent-ops/ops/effort-flow-roadmap-latest.md`
+
+What this report consolidates:
+1. Docs bootstrap COS totals (task count, effort, contingency, development cost).
+2. Effort/cost workflow check gate (`pass/warn/skip/fail`).
+3. Module integration contract pass/fail summary.
+4. Transfer readiness gate (GitHub + Kanban push prerequisites).
+5. Agent orchestration status snapshot (`todo/in_progress/blocked/done` + active owner task).
+6. Step-by-step go-live execution sequence.
+
+Latest execution (2026-02-20):
+1. Docs -> COS gate: `pass`
+2. Effort/Cost workflow gate: `pass` (`pass=8, warn=1, skip=1, fail=0`)
+3. Module contracts gate: `pass` (`4/4`)
+4. Transfer readiness gate: `warn` (GitHub/Kanban env not configured in active environment)
+5. AI provider health gate: `warn` (OpenAI key quota/rate-limit `429`)
+
+Operational cost alternatives captured in baseline:
+1. Starter: `12,000-22,000 TRY / month`
+2. Growth: `25,000-48,000 TRY / month`
+3. Scale: `50,000-95,000 TRY / month`

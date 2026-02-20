@@ -85,6 +85,25 @@ This consolidates:
 4. GitHub + Kanban transfer readiness.
 5. Agent backlog execution snapshot.
 
+## Single-Command Orchestration
+
+Run:
+
+```bash
+pnpm ops:flow:run
+```
+
+Optional (when transfer env is configured):
+
+```bash
+pnpm ops:flow:run:transfer -- --project-id <PROJECT_UUID>
+```
+
+Output:
+- `agent-ops/ops/go-live-flow-runner-latest.md`
+
+This command executes docs bootstrap + integration check + effort workflow check + unified roadmap in sequence and writes one combined execution report.
+
 ## Manual UI Process Test (Step-by-Step)
 
 1. Open `/dashboard/settings`.

@@ -1,8 +1,8 @@
 # Effort Flow Roadmap (Live Readiness)
 
-Generated: 2026-02-20T00:04:04.521Z
+Generated: 2026-02-20T00:39:38.834Z
 Branch: `main`
-Commit: `baa44a0`
+Commit: `f7f99a0`
 
 ## Gate Summary
 

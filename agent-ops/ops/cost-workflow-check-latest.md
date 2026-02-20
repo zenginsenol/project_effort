@@ -1,6 +1,6 @@
 # Cost Workflow Check
 
-Generated: 2026-02-20T00:01:34.032Z
+Generated: 2026-02-20T00:39:35.749Z
 Project: `cbf9557d-badf-4bce-81d4-d0e3291371f9`
 Org: `8976700f-b00f-496c-8b8c-44e58bc58250`
 User: `user_demo_001`
@@ -13,8 +13,8 @@ Result summary: pass=8, warn=1, skip=1, fail=0
 |---|---|---|---|
 | 1 | Effort Calculate | pass | tasks=80, totalHours=3801.6, totalCost=570240 |
 | 2 | Roadmap Generate | pass | phases=52, totalWeeks=96 |
-| 3 | Save Baseline Analysis | pass | analysisId=2f0108b9-5c0a-4da5-a254-783ac90b0779 |
-| 4 | Save Variant Analysis | pass | analysisId=5252a62c-087f-4cff-acac-34632f01516d |
+| 3 | Save Baseline Analysis | pass | analysisId=1ac1fcca-c104-4219-a499-e5dd0213fdbf |
+| 4 | Save Variant Analysis | pass | analysisId=b6bcbd66-c344-4c2d-aa0f-a04a967f1f85 |
 | 5 | List Analyses | pass | listCount=2 |
 | 6 | Update Analysis | pass | updatedFirstYearTotal=899040 |
 | 7 | Compare Analyses | pass | rows=2, baseline=Workflow Check Baseline Updated |

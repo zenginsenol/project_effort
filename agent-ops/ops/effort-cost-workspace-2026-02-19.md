@@ -95,6 +95,8 @@ Automated workflow validation:
 2. Output report: `agent-ops/ops/cost-workflow-check-latest.md`
 3. Unified roadmap + gate report: `pnpm ops:flow:roadmap`
 4. Unified output: `agent-ops/ops/effort-flow-roadmap-latest.md`
+5. Single-command flow runner: `pnpm ops:flow:run`
+6. Runner output: `agent-ops/ops/go-live-flow-runner-latest.md`
 
 Step-by-step validation runbook:
 1. `agent-ops/ops/cost-effort-process-validation-2026-02-19.md`

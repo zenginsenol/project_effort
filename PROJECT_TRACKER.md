@@ -1232,3 +1232,37 @@ Operational cost alternatives captured in baseline:
 1. Starter: `12,000-22,000 TRY / month`
 2. Growth: `25,000-48,000 TRY / month`
 3. Scale: `50,000-95,000 TRY / month`
+
+### 14.14 Go-Live Flow Runner (Single Command Orchestration)
+
+To execute and verify the full project flow without manual command chaining, a runner was added.
+
+Implemented:
+1. Script:
+   - `scripts/go-live-flow-runner.mjs`
+2. Commands:
+   - `pnpm ops:flow:run`
+   - `pnpm ops:flow:run:transfer`
+3. Output:
+   - `agent-ops/ops/go-live-flow-runner-latest.md`
+
+Runner behavior (step-by-step):
+1. Runs docs bootstrap (`pnpm ops:bootstrap:docs`)
+2. Runs module contract checks (`pnpm ops:integration:check`)
+3. Runs cost/effort workflow validation (`pnpm ops:effort:workflow:check`)
+4. Runs unified roadmap gate report (`pnpm ops:flow:roadmap`)
+5. Optional transfer mode:
+   - Validates `GITHUB_REPO`, `GITHUB_TOKEN`, `KANBAN_PROJECT_ID` or `--project-id`
+   - Executes `pnpm ops:bootstrap:docs:push -- --project-id <id>`
+   - Re-runs roadmap report post transfer
+
+Latest execution (2026-02-20):
+1. Runner status: `pass`
+2. Steps passed: `4/4`
+3. Transfer decision: `skipped` (`--with-transfer` not enabled)
+4. Consolidated gates:
+   - Docs -> COS: `pass`
+   - Effort workflow: `pass`
+   - Module contracts: `pass`
+   - GitHub/Kanban readiness: `warn` (missing env/config)
+   - AI provider health: `warn` (OpenAI `429` quota/rate-limit)

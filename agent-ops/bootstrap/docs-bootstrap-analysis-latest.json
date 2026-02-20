@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-20T00:01:33.257Z",
+  "generatedAt": "2026-02-20T00:39:33.609Z",
   "documents": [
     {
       "relativePath": "Estimate Pro Document - Claude.docx",
@@ -1975,7 +1975,7 @@
     }
   ],
   "cos": {
-    "generatedAt": "2026-02-20T00:01:33.257Z",
+    "generatedAt": "2026-02-20T00:39:33.609Z",
     "documentsAnalyzed": 3,
     "tasksGenerated": 93,
     "effort": {

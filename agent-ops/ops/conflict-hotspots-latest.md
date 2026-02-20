@@ -1,8 +1,8 @@
 # Conflict Hotspots Report
 
-Updated: 2026-02-20T05:53:10.169Z
+Updated: 2026-02-20T06:30:24.895Z
 Branch: `main`
-Working tree: tracked=4, untracked=0, total=4
+Working tree: tracked=5, untracked=0, total=5
 
 ## Active Hotspots
 
@@ -15,6 +15,7 @@ Safe merge order: 1) services/oauth 2) server callback route 3) api-keys router
 |---|---|
 | `M` | `apps/api/src/routers/api-keys/router.ts` |
 | `M` | `apps/api/src/services/oauth/claude-oauth.ts` |
+| `M` | `apps/api/src/services/oauth/oauth-credential-store.ts` |
 | `M` | `apps/api/src/services/oauth/openai-oauth.ts` |
 
 ### P1 - Provider schema and DB alignment

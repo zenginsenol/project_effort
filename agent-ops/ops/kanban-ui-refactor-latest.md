@@ -58,3 +58,27 @@ Build output confirms successful static/dynamic page generation for dashboard ro
 2. Check contrast/accessibility pass (focus states + small text legibility).
 3. Commit only UI refactor files and push without touching parallel auth changes.
 4. Merge according to conflict report flow if new parallel updates arrive.
+
+---
+
+## Wave 2 - Control Center + Effort Redesign (2026-02-20)
+
+1. Control Center visual alignment
+- Refactored `/apps/web/src/app/dashboard/page.tsx` to shared visual system:
+  - upgraded hero area with `page-shell + soft-surface`
+  - phase/flow progress cards color-coded
+  - transfer map cards themed by pipeline stage
+  - execution pulse rows updated with status pills
+
+2. Effort workflow visual alignment
+- Refactored `/apps/web/src/app/dashboard/effort/page.tsx`:
+  - step header and parameter panel moved to shared dashboard surfaces
+  - roadmap summary cards color-coded by planning dimension
+  - breakdown and summary blocks converted to dashboard panels
+  - saved analyses / compare / export sections aligned to same visual hierarchy
+  - status/priority/type badges made dark-mode friendly with bordered pills
+
+3. Verification
+- `pnpm --filter @estimate-pro/web lint` -> pass
+- `pnpm --filter @estimate-pro/web typecheck` -> pass
+- `pnpm --filter @estimate-pro/web build` -> pass

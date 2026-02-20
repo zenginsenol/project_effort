@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
+  CircleDashed,
   FolderKanban,
   ListTodo,
   Loader2,
@@ -22,6 +23,7 @@ type StatCard = {
   value: string;
   icon: ComponentType<{ className?: string }>;
   color: string;
+  cardClass: string;
 };
 
 export default function DashboardPage(): React.ReactElement {
@@ -55,10 +57,34 @@ export default function DashboardPage(): React.ReactElement {
   );
 
   const stats: StatCard[] = [
-    { name: 'Total Projects', value: String(projectList.length), icon: FolderKanban, color: 'text-blue-600' },
-    { name: 'Active Tasks', value: String(activeTasks), icon: ListTodo, color: 'text-green-600' },
-    { name: 'Team Members', value: String(teamQuery.data?.length ?? 0), icon: Users, color: 'text-purple-600' },
-    { name: 'Estimated Tasks', value: String(estimatedTasks), icon: BarChart3, color: 'text-orange-600' },
+    {
+      name: 'Total Projects',
+      value: String(projectList.length),
+      icon: FolderKanban,
+      color: 'text-sky-700 dark:text-sky-300',
+      cardClass: 'border-sky-300/60 bg-sky-100/60 dark:border-sky-800 dark:bg-sky-950/35',
+    },
+    {
+      name: 'Active Tasks',
+      value: String(activeTasks),
+      icon: ListTodo,
+      color: 'text-emerald-700 dark:text-emerald-300',
+      cardClass: 'border-emerald-300/60 bg-emerald-100/60 dark:border-emerald-800 dark:bg-emerald-950/35',
+    },
+    {
+      name: 'Team Members',
+      value: String(teamQuery.data?.length ?? 0),
+      icon: Users,
+      color: 'text-indigo-700 dark:text-indigo-300',
+      cardClass: 'border-indigo-300/60 bg-indigo-100/60 dark:border-indigo-800 dark:bg-indigo-950/35',
+    },
+    {
+      name: 'Estimated Tasks',
+      value: String(estimatedTasks),
+      icon: BarChart3,
+      color: 'text-amber-700 dark:text-amber-300',
+      cardClass: 'border-amber-300/60 bg-amber-100/60 dark:border-amber-800 dark:bg-amber-950/35',
+    },
   ];
 
   const recentTasks = useMemo(() => {
@@ -110,10 +136,11 @@ export default function DashboardPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border bg-gradient-to-r from-primary/10 via-primary/5 to-background p-6">
+      <section className="page-shell soft-surface noise-overlay">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Go-live Control Center</h1>
+            <span className="status-pill status-tone-done">Operate Phase</span>
+            <h1 className="mt-3 text-2xl font-bold md:text-3xl">Go-live Control Center</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Dokumandan task cikarma, kanban planlama, cost analizi ve GitHub operasyonunu tek akista yonet.
             </p>
@@ -127,19 +154,19 @@ export default function DashboardPage(): React.ReactElement {
           </Link>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border bg-card/70 p-3">
+          <div className="dashboard-panel border-emerald-300/60 bg-emerald-100/60 p-3 dark:border-emerald-800 dark:bg-emerald-950/35">
             <p className="text-xs text-muted-foreground">Flow Completion</p>
             <p className="mt-1 text-xl font-semibold">{flowCompletion}%</p>
             <p className="text-xs text-muted-foreground">
               {completedPhases}/{workflowPhases.length} phase completed
             </p>
           </div>
-          <div className="rounded-lg border bg-card/70 p-3">
+          <div className="dashboard-panel border-amber-300/60 bg-amber-100/60 p-3 dark:border-amber-800 dark:bg-amber-950/35">
             <p className="text-xs text-muted-foreground">Saved Analyses</p>
             <p className="mt-1 text-xl font-semibold">{analysesQuery.data?.length ?? 0}</p>
             <p className="text-xs text-muted-foreground">for first active project</p>
           </div>
-          <div className="rounded-lg border bg-card/70 p-3">
+          <div className="dashboard-panel border-sky-300/60 bg-sky-100/60 p-3 dark:border-sky-800 dark:bg-sky-950/35">
             <p className="text-xs text-muted-foreground">Active AI Providers</p>
             <p className="mt-1 text-xl font-semibold">{activeProviders}</p>
             <p className="text-xs text-muted-foreground">settings and compare-ready providers</p>
@@ -151,7 +178,7 @@ export default function DashboardPage(): React.ReactElement {
         {workflowPhases.map((phase) => {
           const items = dashboardNavItems.filter((item) => item.phase === phase.phase);
           return (
-            <article key={phase.phase} className="rounded-lg border bg-card p-4">
+            <article key={phase.phase} className={cn('dashboard-panel soft-surface rounded-xl p-4', phase.themeClass)}>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{phase.title}</p>
               <p className="mt-1 text-sm text-muted-foreground">{phase.subtitle}</p>
               <div className="mt-3 space-y-2">
@@ -159,7 +186,7 @@ export default function DashboardPage(): React.ReactElement {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-start justify-between rounded-md border px-3 py-2 hover:bg-muted/40"
+                    className="flex items-start justify-between rounded-md border bg-background/75 px-3 py-2 hover:bg-muted/40"
                   >
                     <span>
                       <span className="flex items-center gap-2 text-sm font-medium">
@@ -177,13 +204,13 @@ export default function DashboardPage(): React.ReactElement {
         })}
       </section>
 
-      <section className="rounded-lg border bg-card p-6">
+      <section className="dashboard-panel soft-surface rounded-xl p-6">
         <h2 className="text-lg font-semibold">Transfer Map</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Hangi cikti hangi modulde kullaniliyor bilgisini adim bazli izle.
         </p>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
-          <div className="rounded-md border p-3">
+          <div className="rounded-md border border-sky-300/60 bg-sky-100/55 p-3 dark:border-sky-800 dark:bg-sky-950/35">
             <p className="text-xs text-muted-foreground">1) Analyzer output -&gt; Projects Kanban</p>
             <p className="mt-1 text-sm font-medium">{allTasks.length} task proje backloglarinda tutuluyor.</p>
             <Link href="/dashboard/projects" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -191,7 +218,7 @@ export default function DashboardPage(): React.ReactElement {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="rounded-md border p-3">
+          <div className="rounded-md border border-emerald-300/60 bg-emerald-100/55 p-3 dark:border-emerald-800 dark:bg-emerald-950/35">
             <p className="text-xs text-muted-foreground">2) Kanban tasks -&gt; Effort snapshots</p>
             <p className="mt-1 text-sm font-medium">{estimatedTasks} task estimate-ready, {(analysesQuery.data?.length ?? 0)} snapshot saved.</p>
             <Link href="/dashboard/effort" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -199,7 +226,7 @@ export default function DashboardPage(): React.ReactElement {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="rounded-md border p-3">
+          <div className="rounded-md border border-amber-300/60 bg-amber-100/55 p-3 dark:border-amber-800 dark:bg-amber-950/35">
             <p className="text-xs text-muted-foreground">3) Effort analyses -&gt; Compare</p>
             <p className="mt-1 text-sm font-medium">Model/provider senaryolari yan yana fiyat ve sure farklariyla kiyaslanir.</p>
             <Link href="/dashboard/compare" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -207,7 +234,7 @@ export default function DashboardPage(): React.ReactElement {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="rounded-md border p-3">
+          <div className="rounded-md border border-indigo-300/60 bg-indigo-100/55 p-3 dark:border-indigo-800 dark:bg-indigo-950/35">
             <p className="text-xs text-muted-foreground">4) Final analyses -&gt; GitHub / Ops</p>
             <p className="mt-1 text-sm font-medium">Secilen analiz issue/export olarak aktarilir ve sprint operasyonuna girer.</p>
             <Link href="/dashboard/integrations" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
@@ -220,7 +247,7 @@ export default function DashboardPage(): React.ReactElement {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.name} className="rounded-lg border bg-card p-6">
+          <div key={stat.name} className={cn('dashboard-panel rounded-xl p-6', stat.cardClass)}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">{stat.name}</span>
               <stat.icon className={cn('h-5 w-5', stat.color)} />
@@ -231,7 +258,7 @@ export default function DashboardPage(): React.ReactElement {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_360px]">
-        <section className="rounded-lg border bg-card p-6">
+        <section className="dashboard-panel soft-surface rounded-xl p-6">
           <h2 className="text-lg font-semibold">Recent Activity</h2>
           <div className="mt-4">
             {hasError && (
@@ -246,12 +273,17 @@ export default function DashboardPage(): React.ReactElement {
               </p>
             )}
             {!hasError && !isLoading && recentTasks.length === 0 && (
-              <p className="text-sm text-muted-foreground">No recent activity. Create a project to get started.</p>
+              <div className="rounded-md border border-dashed bg-background/70 p-6 text-sm text-muted-foreground">
+                <p className="inline-flex items-center gap-2">
+                  <CircleDashed className="h-4 w-4" />
+                  No recent activity. Create a project to get started.
+                </p>
+              </div>
             )}
             {!hasError && !isLoading && recentTasks.length > 0 && (
               <div className="space-y-3">
                 {recentTasks.map((task) => (
-                  <div key={task.id} className="rounded-md border p-3">
+                  <div key={task.id} className="rounded-md border bg-background/70 p-3">
                     <p className="text-sm font-medium">{task.title}</p>
                     <p className="text-xs text-muted-foreground">
                       Status: {task.status} | Updated: {new Date(task.updatedAt).toLocaleString()}
@@ -263,7 +295,7 @@ export default function DashboardPage(): React.ReactElement {
           </div>
         </section>
 
-        <section className="rounded-lg border bg-card p-6">
+        <section className="dashboard-panel soft-surface rounded-xl p-6">
           <h2 className="text-lg font-semibold">Execution Pulse</h2>
           <div className="mt-4 space-y-2">
             {([
@@ -273,9 +305,23 @@ export default function DashboardPage(): React.ReactElement {
               { status: 'in_review', count: statusCounts.in_review ?? 0 },
               { status: 'done', count: statusCounts.done ?? 0 },
             ]).map((row) => (
-              <div key={row.status} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                <span className="text-muted-foreground">{row.status.replace('_', ' ')}</span>
-                <span className={cn('font-semibold', row.status === 'done' ? 'text-green-600' : 'text-foreground')}>
+              <div key={row.status} className="flex items-center justify-between rounded-md border bg-background/70 px-3 py-2 text-sm">
+                <span className={cn(
+                  'status-pill',
+                  row.status === 'done'
+                    ? 'status-tone-done'
+                    : row.status === 'in_progress'
+                      ? 'status-tone-in-progress'
+                      : row.status === 'in_review'
+                        ? 'status-tone-in-review'
+                        : row.status === 'todo'
+                          ? 'status-tone-todo'
+                          : 'status-tone-backlog',
+                )}
+                >
+                  {row.status.replace('_', ' ')}
+                </span>
+                <span className={cn('font-semibold', row.status === 'done' ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground')}>
                   {row.count}
                 </span>
               </div>

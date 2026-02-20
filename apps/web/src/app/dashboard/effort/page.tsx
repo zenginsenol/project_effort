@@ -25,29 +25,29 @@ import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
 const STATUS_COLORS: Record<string, string> = {
-  backlog: 'bg-gray-100 text-gray-700',
-  todo: 'bg-blue-100 text-blue-700',
-  in_progress: 'bg-yellow-100 text-yellow-700',
-  in_review: 'bg-purple-100 text-purple-700',
-  done: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-700',
+  backlog: 'border border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
+  todo: 'border border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200',
+  in_progress: 'border border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200',
+  in_review: 'border border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200',
+  done: 'border border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200',
+  cancelled: 'border border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-200',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  critical: 'bg-red-100 text-red-700',
-  high: 'bg-orange-100 text-orange-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-green-100 text-green-700',
-  none: 'bg-gray-100 text-gray-700',
+  critical: 'border border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-200',
+  high: 'border border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200',
+  medium: 'border border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200',
+  low: 'border border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200',
+  none: 'border border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  epic: 'bg-purple-100 text-purple-700',
-  feature: 'bg-blue-100 text-blue-700',
-  story: 'bg-green-100 text-green-700',
-  task: 'bg-gray-100 text-gray-700',
-  subtask: 'bg-gray-50 text-gray-600',
-  bug: 'bg-red-100 text-red-700',
+  epic: 'border border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200',
+  feature: 'border border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200',
+  story: 'border border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200',
+  task: 'border border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
+  subtask: 'border border-zinc-300 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200',
+  bug: 'border border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-700 dark:bg-rose-950/60 dark:text-rose-200',
 };
 
 const EMPTY_UUID = '00000000-0000-0000-0000-000000000000';
@@ -607,10 +607,11 @@ export default function EffortPage(): React.ReactElement {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border bg-gradient-to-r from-primary/10 via-primary/5 to-background p-6">
+      <section className="page-shell soft-surface noise-overlay">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+            <span className="status-pill status-tone-in-progress">Estimate Phase</span>
+            <h1 className="mt-3 flex items-center gap-2 text-2xl font-bold md:text-3xl">
               <Calculator className="h-6 w-6 text-primary" />
               Effort & Cost Workflow
             </h1>
@@ -621,14 +622,14 @@ export default function EffortPage(): React.ReactElement {
           <div className="flex flex-wrap gap-2">
             <Link
               href="/dashboard/projects"
-              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+              className="inline-flex items-center gap-2 rounded-md border bg-background/80 px-3 py-2 text-sm font-medium hover:bg-muted"
             >
               Back to projects
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href={selectedProjectId ? `/dashboard/compare?projectId=${selectedProjectId}` : '/dashboard/compare'}
-              className="inline-flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
+              className="inline-flex items-center gap-2 rounded-md border bg-background/80 px-3 py-2 text-sm font-medium hover:bg-muted"
             >
               Open compare
               <ArrowRight className="h-4 w-4" />
@@ -636,19 +637,19 @@ export default function EffortPage(): React.ReactElement {
           </div>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-4">
-          <div className="rounded-md border bg-card/70 p-3">
+          <div className="dashboard-panel border-sky-300/60 bg-sky-100/60 p-3 dark:border-sky-800 dark:bg-sky-950/35">
             <p className="text-xs text-muted-foreground">Step 1</p>
             <p className="text-sm font-medium">Project + parameters</p>
           </div>
-          <div className="rounded-md border bg-card/70 p-3">
+          <div className="dashboard-panel border-emerald-300/60 bg-emerald-100/60 p-3 dark:border-emerald-800 dark:bg-emerald-950/35">
             <p className="text-xs text-muted-foreground">Step 2</p>
             <p className="text-sm font-medium">Roadmap + kanban sync</p>
           </div>
-          <div className="rounded-md border bg-card/70 p-3">
+          <div className="dashboard-panel border-amber-300/60 bg-amber-100/60 p-3 dark:border-amber-800 dark:bg-amber-950/35">
             <p className="text-xs text-muted-foreground">Step 3</p>
             <p className="text-sm font-medium">Snapshot + AI analysis</p>
           </div>
-          <div className="rounded-md border bg-card/70 p-3">
+          <div className="dashboard-panel border-indigo-300/60 bg-indigo-100/60 p-3 dark:border-indigo-800 dark:bg-indigo-950/35">
             <p className="text-xs text-muted-foreground">Step 4</p>
             <p className="text-sm font-medium">Compare + export + GitHub</p>
           </div>
@@ -656,7 +657,7 @@ export default function EffortPage(): React.ReactElement {
       </section>
 
       {/* Parameters Panel */}
-      <div className="rounded-lg border bg-card p-6">
+      <div className="dashboard-panel soft-surface rounded-xl p-6">
         <h2 className="text-lg font-semibold mb-4">Step 1: Project & Calculation Parameters</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
@@ -664,7 +665,7 @@ export default function EffortPage(): React.ReactElement {
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
             >
               <option value="">Select a project...</option>
               {(allProjectsQuery.data ?? []).map((p: { id: string; name: string }) => (
@@ -679,13 +680,13 @@ export default function EffortPage(): React.ReactElement {
                 type="number"
                 value={hourlyRate}
                 onChange={(e) => setHourlyRate(Number(e.target.value))}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                 min={0}
               />
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="rounded-md border bg-background px-2 py-2 text-sm"
+                className="rounded-md border bg-background/85 px-2 py-2 text-sm"
               >
                 <option value="TRY">TL</option>
                 <option value="USD">USD</option>
@@ -699,7 +700,7 @@ export default function EffortPage(): React.ReactElement {
               type="number"
               value={contingency}
               onChange={(e) => setContingency(Number(e.target.value))}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
               min={0}
               max={100}
             />
@@ -710,7 +711,7 @@ export default function EffortPage(): React.ReactElement {
               type="number"
               value={workHoursPerDay}
               onChange={(e) => setWorkHoursPerDay(Number(e.target.value))}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
               min={1}
               max={24}
             />
@@ -774,7 +775,7 @@ export default function EffortPage(): React.ReactElement {
           <p className="mt-3 text-sm text-muted-foreground">{kanbanSyncNotice}</p>
         )}
 
-        <div className="mt-5 rounded-md border border-dashed p-4">
+        <div className="mt-5 rounded-md border border-dashed bg-background/65 p-4">
           <h3 className="text-sm font-semibold">Operational Cost Inputs (Year-1 Projection)</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
@@ -783,7 +784,7 @@ export default function EffortPage(): React.ReactElement {
                 type="number"
                 value={monthlyInfraOpsCost}
                 onChange={(event) => setMonthlyInfraOpsCost(Number(event.target.value))}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                 min={0}
               />
             </div>
@@ -793,7 +794,7 @@ export default function EffortPage(): React.ReactElement {
                 type="number"
                 value={annualDomainCost}
                 onChange={(event) => setAnnualDomainCost(Number(event.target.value))}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                 min={0}
               />
             </div>
@@ -803,7 +804,7 @@ export default function EffortPage(): React.ReactElement {
                 type="number"
                 value={monthlyMaintenanceHours}
                 onChange={(event) => setMonthlyMaintenanceHours(Number(event.target.value))}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
                 min={0}
               />
             </div>
@@ -815,7 +816,7 @@ export default function EffortPage(): React.ReactElement {
       </div>
 
       {!selectedProjectId && (
-        <div className="rounded-lg border border-dashed bg-card p-12 text-center">
+        <div className="dashboard-panel rounded-xl border-dashed p-12 text-center">
           <Calculator className="h-12 w-12 text-muted-foreground/50 mx-auto" />
           <h3 className="mt-4 text-lg font-medium">Select a Project</h3>
           <p className="mt-1 text-sm text-muted-foreground">Choose a project above to calculate effort and cost.</p>
@@ -823,7 +824,7 @@ export default function EffortPage(): React.ReactElement {
       )}
 
       {effortQuery.isLoading && selectedProjectId && (
-        <div className="rounded-lg border bg-card p-12 text-center">
+        <div className="dashboard-panel soft-surface rounded-xl p-12 text-center">
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto" />
           <p className="mt-4 text-muted-foreground">Calculating...</p>
         </div>
@@ -842,7 +843,7 @@ export default function EffortPage(): React.ReactElement {
       )}
 
       {roadmapData && (
-        <div className="rounded-lg border bg-card p-6">
+        <div className="dashboard-panel soft-surface rounded-xl p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">Step 2: Execution Roadmap</h2>
@@ -856,19 +857,19 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-md border p-3">
+            <div className="rounded-md border border-sky-300/60 bg-sky-100/55 p-3 dark:border-sky-800 dark:bg-sky-950/35">
               <p className="text-xs text-muted-foreground">Planned Hours</p>
               <p className="text-lg font-semibold">{roadmapData.summary.totalPlannedHours}h</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className="rounded-md border border-amber-300/60 bg-amber-100/55 p-3 dark:border-amber-800 dark:bg-amber-950/35">
               <p className="text-xs text-muted-foreground">Contingency</p>
               <p className="text-lg font-semibold">{roadmapData.summary.contingencyHours}h</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className="rounded-md border border-indigo-300/60 bg-indigo-100/55 p-3 dark:border-indigo-800 dark:bg-indigo-950/35">
               <p className="text-xs text-muted-foreground">Duration</p>
               <p className="text-lg font-semibold">{roadmapData.summary.totalDays} day(s)</p>
             </div>
-            <div className="rounded-md border p-3">
+            <div className="rounded-md border border-emerald-300/60 bg-emerald-100/55 p-3 dark:border-emerald-800 dark:bg-emerald-950/35">
               <p className="text-xs text-muted-foreground">Weekly Capacity</p>
               <p className="text-lg font-semibold">{roadmapData.summary.hoursPerWeek}h/week</p>
             </div>
@@ -876,7 +877,7 @@ export default function EffortPage(): React.ReactElement {
 
           <div className="mt-4 space-y-3">
             {roadmapData.phases.map((phase) => (
-              <div key={phase.week} className="rounded-md border">
+              <div key={phase.week} className="rounded-md border bg-background/70">
                 <div className="flex items-center justify-between border-b px-4 py-2">
                   <p className="font-medium">
                     Week {phase.week} (Day {phase.startDay}-{phase.endDay})
@@ -934,7 +935,7 @@ export default function EffortPage(): React.ReactElement {
 
       {data && (
         <>
-          <div className="rounded-lg border bg-card p-4">
+          <div className="dashboard-panel soft-surface rounded-xl p-4">
             <h2 className="text-lg font-semibold">Step 3: Baseline Cost Summary</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Hesaplanan efor, sure ve yil-1 operasyon maliyetini baz senaryo olarak sabitle.
@@ -943,7 +944,7 @@ export default function EffortPage(): React.ReactElement {
 
           {/* Summary Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-lg border bg-card p-6">
+            <div className="dashboard-panel border-sky-300/60 bg-sky-100/60 p-6 dark:border-sky-800 dark:bg-sky-950/35">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">Total Tasks</span>
                 <FileText className="h-5 w-5 text-blue-600" />
@@ -953,7 +954,7 @@ export default function EffortPage(): React.ReactElement {
                 {data.summary.estimatedTasks} estimated, {data.summary.unestimatedTasks} pending
               </p>
             </div>
-            <div className="rounded-lg border bg-card p-6">
+            <div className="dashboard-panel border-emerald-300/60 bg-emerald-100/60 p-6 dark:border-emerald-800 dark:bg-emerald-950/35">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">Total Man-Hours</span>
                 <Clock className="h-5 w-5 text-green-600" />
@@ -963,7 +964,7 @@ export default function EffortPage(): React.ReactElement {
                 +{data.summary.contingencyHours}h contingency = {data.summary.totalWithContingency}h
               </p>
             </div>
-            <div className="rounded-lg border bg-card p-6">
+            <div className="dashboard-panel border-indigo-300/60 bg-indigo-100/60 p-6 dark:border-indigo-800 dark:bg-indigo-950/35">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">Duration</span>
                 <TrendingUp className="h-5 w-5 text-purple-600" />
@@ -973,7 +974,7 @@ export default function EffortPage(): React.ReactElement {
                 ~{data.summary.totalWeeks} weeks ({workHoursPerDay}h/day)
               </p>
             </div>
-            <div className="rounded-lg border bg-gradient-to-br from-primary/10 to-primary/5 p-6">
+            <div className="dashboard-panel border-amber-300/60 bg-gradient-to-br from-amber-100/70 to-orange-100/70 p-6 dark:border-amber-800 dark:from-amber-950/50 dark:to-orange-950/40">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-muted-foreground">Total Cost</span>
                 <DollarSign className="h-5 w-5 text-orange-600" />
@@ -986,17 +987,17 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-lg border bg-card p-4">
+            <div className="dashboard-panel border-sky-300/60 bg-sky-100/60 p-4 dark:border-sky-800 dark:bg-sky-950/35">
               <p className="text-xs text-muted-foreground">Annual Infra/Ops</p>
               <p className="mt-1 text-xl font-semibold">{formatCurrency(annualInfraOpsCost)}</p>
               <p className="text-xs text-muted-foreground">{formatCurrency(monthlyInfraOpsCost)}/month x 12</p>
             </div>
-            <div className="rounded-lg border bg-card p-4">
+            <div className="dashboard-panel border-emerald-300/60 bg-emerald-100/60 p-4 dark:border-emerald-800 dark:bg-emerald-950/35">
               <p className="text-xs text-muted-foreground">Annual Maintenance</p>
               <p className="mt-1 text-xl font-semibold">{formatCurrency(annualMaintenanceCost)}</p>
               <p className="text-xs text-muted-foreground">{monthlyMaintenanceHours}h/month x {formatCurrency(hourlyRate)}/h</p>
             </div>
-            <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+            <div className="dashboard-panel border-2 border-primary/25 bg-primary/10 p-4">
               <p className="text-xs text-muted-foreground">Year-1 Total (Dev + Ops)</p>
               <p className="mt-1 text-xl font-semibold text-primary">{formatCurrency(firstYearTotalCost)}</p>
               <p className="text-xs text-muted-foreground">
@@ -1029,7 +1030,7 @@ export default function EffortPage(): React.ReactElement {
           )}
 
           {/* Breakdown by Type */}
-          <div className="rounded-lg border bg-card">
+          <div className="dashboard-panel rounded-xl">
             <button
               onClick={() => setExpandedSection(expandedSection === 'type' ? null : 'type')}
               className="flex w-full items-center justify-between p-4 text-left"
@@ -1076,7 +1077,7 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           {/* Breakdown by Priority */}
-          <div className="rounded-lg border bg-card">
+          <div className="dashboard-panel rounded-xl">
             <button
               onClick={() => setExpandedSection(expandedSection === 'priority' ? null : 'priority')}
               className="flex w-full items-center justify-between p-4 text-left"
@@ -1121,7 +1122,7 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           {/* Breakdown by Status */}
-          <div className="rounded-lg border bg-card">
+          <div className="dashboard-panel rounded-xl">
             <button
               onClick={() => setExpandedSection(expandedSection === 'status' ? null : 'status')}
               className="flex w-full items-center justify-between p-4 text-left"
@@ -1178,7 +1179,7 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           {/* All Tasks Detail */}
-          <div className="rounded-lg border bg-card">
+          <div className="dashboard-panel rounded-xl">
             <button
               onClick={() => setShowTasks(!showTasks)}
               className="flex w-full items-center justify-between p-4 text-left"
@@ -1249,7 +1250,7 @@ export default function EffortPage(): React.ReactElement {
           </div>
 
           {/* Cost Summary Box */}
-          <div className="rounded-lg border-2 border-primary bg-gradient-to-r from-primary/5 to-primary/10 p-6">
+          <div className="dashboard-panel border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-primary/5 p-6">
             <h2 className="text-xl font-bold mb-4">Cost Summary</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
@@ -1287,7 +1288,7 @@ export default function EffortPage(): React.ReactElement {
 
       {selectedProjectId && (
         <>
-          <div className="rounded-lg border bg-card p-6">
+          <div className="dashboard-panel soft-surface rounded-xl p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -1363,7 +1364,7 @@ export default function EffortPage(): React.ReactElement {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card p-6">
+          <div className="dashboard-panel soft-surface rounded-xl p-6">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               Step 5: AI Cost Analysis (OpenAI / Claude / Other)
@@ -1469,7 +1470,7 @@ export default function EffortPage(): React.ReactElement {
             )}
           </div>
 
-          <div className="rounded-lg border bg-card p-6">
+          <div className="dashboard-panel soft-surface rounded-xl p-6">
             <h2 className="text-lg font-semibold">Editable Operational Cost Sections</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Maintain alternative infra/domain/maintenance cost items in saved analyses.
@@ -1523,7 +1524,7 @@ export default function EffortPage(): React.ReactElement {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card p-6">
+          <div className="dashboard-panel soft-surface rounded-xl p-6">
             <h2 className="text-lg font-semibold">Step 6: Saved Analyses</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Select one record to edit/export. Select multiple records to compare.
@@ -1587,7 +1588,7 @@ export default function EffortPage(): React.ReactElement {
             )}
           </div>
 
-          <div className="rounded-lg border bg-card p-6">
+          <div className="dashboard-panel soft-surface rounded-xl p-6">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <GitCompare className="h-5 w-5 text-primary" />
               Step 7: Compare Analyses
@@ -1653,7 +1654,7 @@ export default function EffortPage(): React.ReactElement {
             )}
           </div>
 
-          <div className="rounded-lg border bg-card p-6">
+          <div className="dashboard-panel soft-surface rounded-xl p-6">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Github className="h-5 w-5 text-primary" />
               Step 8: Export & GitHub Integration

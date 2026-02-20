@@ -33,7 +33,7 @@ describe('openai-oauth helpers', () => {
     expect(callbackUrl).toBe('http://localhost:1455/auth/callback');
   });
 
-  it('defaults to API callback mode and local API origin when env is not set', () => {
+  it('defaults to local temp callback mode when env is not set', () => {
     const previousMode = process.env.OPENAI_OAUTH_MODE;
     const previousBase = process.env.OAUTH_CALLBACK_BASE_URL;
     const previousApiPublic = process.env.API_PUBLIC_URL;
@@ -44,8 +44,8 @@ describe('openai-oauth helpers', () => {
     process.env.API_PUBLIC_URL = '';
     process.env.NEXT_PUBLIC_API_URL = '';
 
-    expect(resolveOAuthMode()).toBe('api_server_callback');
-    expect(getCallbackUrl()).toBe('http://127.0.0.1:4000/auth/openai/callback');
+    expect(resolveOAuthMode()).toBe('local_temp_server');
+    expect(getCallbackUrl()).toBe('http://localhost:1455/auth/callback');
 
     process.env.OPENAI_OAUTH_MODE = previousMode;
     process.env.OAUTH_CALLBACK_BASE_URL = previousBase;

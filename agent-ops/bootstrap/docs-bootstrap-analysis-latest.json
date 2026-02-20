@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-20T03:26:19.973Z",
+  "generatedAt": "2026-02-20T04:55:19.051Z",
   "documents": [
     {
       "relativePath": "Estimate Pro Document - Claude.docx",
@@ -1975,7 +1975,7 @@
     }
   ],
   "cos": {
-    "generatedAt": "2026-02-20T03:26:19.973Z",
+    "generatedAt": "2026-02-20T04:55:19.051Z",
     "documentsAnalyzed": 3,
     "tasksGenerated": 93,
     "effort": {
@@ -2003,10 +2003,10 @@
     "failed": []
   },
   "kanban": {
-    "mode": "pushed",
-    "reason": "all generated tasks already exist",
+    "mode": "skipped",
+    "reason": "KANBAN_PROJECT_ID or --project-id missing",
     "inserted": 0,
-    "attempted": 93,
-    "deduped": 93
+    "attempted": 0,
+    "deduped": 0
   }
 }

@@ -1,30 +1,30 @@
 # Go-Live Flow Runner Report
 
-Generated: 2026-02-20T00:39:32.666Z
+Generated: 2026-02-20T04:55:18.110Z
 Branch: `main`
-Commit: `f7f99a0`
+Commit: `812d0e3`
 
 ## Execution Context
 
-- withTransfer: true
-- projectId: cbf9557d-badf-4bce-81d4-d0e3291371f9
+- withTransfer: false
+- projectId: -
 - GITHUB_REPO: missing
 - GITHUB_TOKEN: missing
-- KANBAN_PROJECT_ID: set
+- KANBAN_PROJECT_ID: missing
 
 ## Step Results
 
 | Step | Status | Duration(ms) | Command | Exit |
 |---|---|---|---|---|
-| 1. Docs Bootstrap | pass | 998 | `pnpm ops:bootstrap:docs` | 0 |
-| 2. Integration Contracts | pass | 440 | `pnpm ops:integration:check` | 0 |
-| 3. Effort Workflow Check | pass | 4343 | `pnpm ops:effort:workflow:check` | 0 |
-| 4. Unified Roadmap | pass | 434 | `pnpm ops:flow:roadmap` | 0 |
+| 1. Docs Bootstrap | pass | 997 | `pnpm ops:bootstrap:docs` | 0 |
+| 2. Integration Contracts | pass | 437 | `pnpm ops:integration:check` | 0 |
+| 3. Effort Workflow Check | pass | 5442 | `pnpm ops:effort:workflow:check` | 0 |
+| 4. Unified Roadmap | pass | 441 | `pnpm ops:flow:roadmap` | 0 |
 
 ## Transfer Decision
 
-- status: blocked
-- detail: GITHUB_REPO or GITHUB_TOKEN missing
+- status: skipped
+- detail: with-transfer flag not enabled
 
 ## Consolidated Gates (from effort-flow-roadmap)
 

@@ -22,3 +22,9 @@ export const deleteApiKeyInput = z.object({
 export const getApiKeyForProviderInput = z.object({
   provider: z.enum(['openai', 'anthropic', 'openrouter']),
 });
+
+export const listOpenRouterModelsInput = z.object({
+  apiKey: z.string().min(10, 'API key is too short').max(500).optional(),
+  query: z.string().max(160).optional(),
+  limit: z.number().int().min(1).max(2000).optional(),
+});

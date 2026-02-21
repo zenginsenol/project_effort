@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -18,17 +18,25 @@ interface ModelDef {
 }
 
 const OPENAI_MODELS: ModelDef[] = [
+  // Codex-optimized models (recommended for ChatGPT subscription / Codex backend)
+  { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', description: 'Most capable agentic coding model', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
+  { id: 'gpt-5.3-codex-spark', name: 'GPT-5.3 Codex Spark', description: 'Fast real-time coding, 1000+ tok/s', category: 'standard', supportsReasoning: false, contextWindow: '400K' },
+  { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: 'Advanced agentic coding, strong reasoning', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
+  { id: 'gpt-5.1-codex', name: 'GPT-5.1 Codex', description: 'Previous codex flagship', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
+  { id: 'gpt-5.1-codex-max', name: 'GPT-5.1 Codex Max', description: 'Maximum capability codex', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
+  { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini', description: 'Cost-effective codex', category: 'standard', supportsReasoning: false, contextWindow: '400K' },
+  { id: 'gpt-5-codex', name: 'GPT-5 Codex', description: 'Default cloud tasks & code review', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
+  { id: 'gpt-5-codex-mini', name: 'GPT-5 Codex Mini', description: 'Lightweight codex variant', category: 'standard', supportsReasoning: false, contextWindow: '400K' },
+  { id: 'codex-mini-latest', name: 'Codex Mini', description: 'Default Codex CLI model', category: 'standard', supportsReasoning: false, contextWindow: '200K' },
   // GPT-5 Reasoning Series
   { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Flagship thinking model, 400K ctx', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5.2-pro', name: 'GPT-5.2 Pro', description: 'Enhanced reasoning, highest accuracy', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
   { id: 'gpt-5.1', name: 'GPT-5.1', description: 'Previous flagship with reasoning', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
   { id: 'gpt-5', name: 'GPT-5', description: 'Advanced reasoning model', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Lightweight reasoning', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
   // O-Series Reasoning
   { id: 'o3', name: 'o3', description: 'Dedicated reasoning, 200K ctx', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
   { id: 'o3-pro', name: 'o3-pro', description: 'Extended thinking, highest accuracy', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
   { id: 'o4-mini', name: 'o4-mini', description: 'Fast reasoning, cost-efficient', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  // Standard models
+  // Standard / Legacy models (API key only, may not work with ChatGPT subscription)
   { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Smartest standard model, 1M ctx', category: 'standard', supportsReasoning: false, contextWindow: '1M' },
   { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast, cost-effective, 1M ctx', category: 'standard', supportsReasoning: false, contextWindow: '1M' },
   { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', description: 'Ultra-fast, cheapest', category: 'standard', supportsReasoning: false, contextWindow: '1M' },
@@ -446,6 +454,34 @@ function ApiKeyCard({
     (existingKey?.reasoningEffort as ReasoningEffort) || 'medium'
   );
   const [showModelSettings, setShowModelSettings] = useState(false);
+  const [openRouterSearch, setOpenRouterSearch] = useState('');
+  const [openRouterLookupKey, setOpenRouterLookupKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (provider !== 'openrouter') {
+      return;
+    }
+
+    if (!isEditing && !showModelSettings) {
+      setOpenRouterLookupKey(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const typed = apiKey.trim();
+      if (typed.length >= 10) {
+        setOpenRouterLookupKey(typed);
+        return;
+      }
+      if (existingKey?.isActive) {
+        setOpenRouterLookupKey('__stored__');
+        return;
+      }
+      setOpenRouterLookupKey(null);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [apiKey, existingKey?.isActive, isEditing, provider, showModelSettings]);
 
   // If this key is managed via subscription (OAuth or setup key), don't show manual card
   // It's already shown in the "Sign in with Subscription" section above
@@ -453,6 +489,33 @@ function ApiKeyCard({
 
   const providerColor = getProviderColor(provider);
   const models = getModelsForProvider(provider);
+  const openRouterModelsQuery = trpc.apiKeys.listOpenRouterModels.useQuery(
+    openRouterLookupKey && openRouterLookupKey !== '__stored__'
+      ? { apiKey: openRouterLookupKey }
+      : {},
+    {
+      enabled: provider === 'openrouter' && openRouterLookupKey !== null,
+      retry: false,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  const openRouterModels = openRouterModelsQuery.data?.models ?? [];
+  const filteredOpenRouterModels = useMemo(() => {
+    const q = openRouterSearch.trim().toLowerCase();
+    if (!q) {
+      return openRouterModels;
+    }
+    return openRouterModels.filter((item) => (
+      item.id.toLowerCase().includes(q)
+      || item.name.toLowerCase().includes(q)
+      || (item.description?.toLowerCase().includes(q) ?? false)
+    ));
+  }, [openRouterModels, openRouterSearch]);
+  const openRouterReasoningModels = filteredOpenRouterModels.filter((item) => item.supportsReasoning);
+  const openRouterStandardModels = filteredOpenRouterModels.filter((item) => !item.supportsReasoning);
+  const openRouterModelPresent = filteredOpenRouterModels.some((item) => item.id === model);
 
   const handleSave = () => {
     if (!apiKey.trim()) return;
@@ -527,22 +590,73 @@ function ApiKeyCard({
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Model</label>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <optgroup label="Reasoning / Thinking Models">
-                {models.filter(m => m.category === 'reasoning').map((m) => (
-                  <option key={m.id} value={m.id}>{m.name} - {m.description}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Standard Models">
-                {models.filter(m => m.category === 'standard').map((m) => (
-                  <option key={m.id} value={m.id}>{m.name} - {m.description}</option>
-                ))}
-              </optgroup>
-            </select>
+            {provider === 'openrouter' ? (
+              <div className="mt-1 space-y-2">
+                <input
+                  type="text"
+                  value={openRouterSearch}
+                  onChange={(event) => setOpenRouterSearch(event.target.value)}
+                  placeholder="Search model (provider/model, name...)"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <select
+                  value={model}
+                  onChange={(event) => setModel(event.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {!openRouterModelPresent && model && (
+                    <option value={model}>Current: {model}</option>
+                  )}
+                  {openRouterReasoningModels.length > 0 && (
+                    <optgroup label="Reasoning / Thinking Models">
+                      {openRouterReasoningModels.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.id}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {openRouterStandardModels.length > 0 && (
+                    <optgroup label="Standard Models">
+                      {openRouterStandardModels.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.id}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {filteredOpenRouterModels.length === 0 && (
+                    <option value="" disabled>
+                      No model found for search
+                    </option>
+                  )}
+                </select>
+                <div className="text-xs text-muted-foreground">
+                  {openRouterModelsQuery.isFetching
+                    ? 'Loading OpenRouter models...'
+                    : openRouterModelsQuery.error
+                      ? `Model list unavailable: ${openRouterModelsQuery.error.message}`
+                      : `Models: ${openRouterModelsQuery.data?.total ?? 0} total, ${filteredOpenRouterModels.length} shown`}
+                </div>
+              </div>
+            ) : (
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <optgroup label="Reasoning / Thinking Models">
+                  {models.filter(m => m.category === 'reasoning').map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} - {m.description}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Standard Models">
+                  {models.filter(m => m.category === 'standard').map((m) => (
+                    <option key={m.id} value={m.id}>{m.name} - {m.description}</option>
+                  ))}
+                </optgroup>
+              </select>
+            )}
           </div>
           <div className="flex gap-2 pt-1">
             <button
@@ -596,14 +710,90 @@ function ApiKeyCard({
 
           {showModelSettings && (
             <div className="rounded-lg border border-border bg-background p-4">
-              <ModelSelector
-                provider={provider}
-                selectedModel={model}
-                selectedEffort={effort}
-                onModelChange={setModel}
-                onEffortChange={setEffort}
-                saving={saving}
-              />
+              {provider === 'openrouter' ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">OpenRouter Model</label>
+                    <input
+                      type="text"
+                      value={openRouterSearch}
+                      onChange={(event) => setOpenRouterSearch(event.target.value)}
+                      placeholder="Search model (provider/model, name...)"
+                      className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                    <select
+                      value={model}
+                      onChange={(event) => setModel(event.target.value)}
+                      className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {!openRouterModelPresent && model && (
+                        <option value={model}>Current: {model}</option>
+                      )}
+                      {openRouterReasoningModels.length > 0 && (
+                        <optgroup label="Reasoning / Thinking Models">
+                          {openRouterReasoningModels.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.id}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {openRouterStandardModels.length > 0 && (
+                        <optgroup label="Standard Models">
+                          {openRouterStandardModels.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.id}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {filteredOpenRouterModels.length === 0 && (
+                        <option value="" disabled>
+                          No model found for search
+                        </option>
+                      )}
+                    </select>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {openRouterModelsQuery.isFetching
+                        ? 'Loading OpenRouter models...'
+                        : openRouterModelsQuery.error
+                          ? `Model list unavailable: ${openRouterModelsQuery.error.message}`
+                          : `Models: ${openRouterModelsQuery.data?.total ?? 0} total, ${filteredOpenRouterModels.length} shown`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Reasoning Effort</label>
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      {REASONING_EFFORT_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setEffort(opt.value)}
+                          disabled={saving}
+                          className={cn(
+                            'group flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-all',
+                            effort === opt.value
+                              ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                              : 'border-border hover:border-primary/30 hover:bg-muted/50',
+                          )}
+                        >
+                          <span className={cn('h-2 w-2 rounded-full', opt.color)} />
+                          <span className="text-xs font-medium">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <ModelSelector
+                  provider={provider}
+                  selectedModel={model}
+                  selectedEffort={effort}
+                  onModelChange={setModel}
+                  onEffortChange={setEffort}
+                  saving={saving}
+                />
+              )}
               {hasModelChanges && (
                 <div className="mt-4 flex gap-2">
                   <button
@@ -738,8 +928,8 @@ export default function SettingsPage(): React.ReactElement {
       setConnectingOAuth(false);
       setClaudeOAuthPending(true);
       setClaudeOAuthState(data.state);
-      setSuccessMsg('Claude login window opened. After login, paste the authorization code shown on screen below.');
-      setTimeout(() => setSuccessMsg(null), 10000);
+      setSuccessMsg('Claude login window opened. Sign in with your Claude account, then paste the authorization code shown on screen below.');
+      setTimeout(() => setSuccessMsg(null), 15000);
     },
     onError: (err) => {
       setConnectingOAuth(false);
@@ -882,11 +1072,13 @@ export default function SettingsPage(): React.ReactElement {
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10 text-lg">🧠</div>
                     <div>
-                      <h3 className="font-semibold text-purple-400">Claude Subscription Connected</h3>
+                      <h3 className="font-semibold text-purple-400">Claude Max Subscription Connected</h3>
                       {anthropicKey.oauthEmail ? (
                         <p className="text-sm text-blue-400">{anthropicKey.oauthEmail}</p>
                       ) : (
-                        <p className="text-sm text-muted-foreground">{anthropicKey.keyHint}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {anthropicKey.authMethod === 'oauth' ? 'Using subscription quota (auto-refreshing)' : anthropicKey.keyHint}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -972,7 +1164,7 @@ export default function SettingsPage(): React.ReactElement {
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-lg">🧠</div>
                   <div className="flex-1">
                     <h3 className="font-semibold">Anthropic Claude</h3>
-                    <p className="text-sm text-muted-foreground">Connect with Claude Pro/Max subscription or setup key</p>
+                    <p className="text-sm text-muted-foreground">Sign in with your Claude Pro/Max subscription — uses your subscription quota directly</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-3">
@@ -1082,7 +1274,7 @@ export default function SettingsPage(): React.ReactElement {
           </div>
 
           <div className="mt-4 rounded-lg border border-blue-200/50 bg-blue-50/50 p-3 text-xs text-blue-600">
-            <strong>How it works:</strong> Sign in with your ChatGPT/Claude subscription → Choose your model → AI analysis uses your subscription quota.
+            <strong>How it works:</strong> Sign in with your ChatGPT/Claude subscription → Choose your model → AI analysis uses your subscription quota. Tokens auto-refresh every 8 hours.
           </div>
         </div>
 

@@ -1739,3 +1739,100 @@ Completed in this cycle:
 
 1. `TARGET_ORG_ID=<ORG_UUID> GITHUB_BINDINGS_JSON='[{\"projectId\":\"...\",\"repository\":\"owner/repo\",\"token\":\"...\"}]' pnpm ops:github:bind-projects`
 2. `GITHUB_BINDINGS_JSON` supports multiple entries; script upserts GitHub integrations by profile login and enforces unique per-project link ownership across active connections.
+
+### 14.26 OpenRouter Dynamic Model Catalog + Search Completion
+
+Date: 2026-02-21
+
+Completed in this cycle:
+1. Added OpenRouter model-list contract to API key schema with optional pasted-key, query and limit controls.
+2. Implemented `apiKeys.listOpenRouterModels` tRPC query:
+   - Accepts pasted OpenRouter key or falls back to saved active OpenRouter key.
+   - Calls real OpenRouter catalog endpoint (`/api/v1/models`).
+   - Parses and normalizes model metadata (`id`, `name`, `description`, `contextLength`, reasoning support).
+   - Applies in-memory per-key cache (5 min TTL) to reduce repeated catalog calls.
+   - Supports server-side query filtering and result limiting.
+3. Extended Settings page OpenRouter card:
+   - When user pastes key, model catalog auto-loads after debounce (no save required).
+   - When saved active key exists, catalog auto-loads in model settings without re-paste.
+   - Added in-card search input to quickly find models by id/name/description.
+   - Replaced static OpenRouter model options with dynamic catalog-backed options in both:
+     - initial save card
+     - "Change model & effort" panel
+4. Added OpenRouter catalog tests for:
+   - pasted-key fetch + query filtering
+   - stored active-key fallback
+5. Added global fetch stub cleanup in tests to prevent cross-test leakage.
+
+#### Evidence
+
+1. API schema:
+   - `apps/api/src/routers/api-keys/schema.ts`
+2. API router:
+   - `apps/api/src/routers/api-keys/router.ts`
+3. API tests:
+   - `apps/api/src/routers/api-keys/__tests__/openrouter-flow.test.ts`
+4. Settings UI:
+   - `apps/web/src/app/dashboard/settings/page.tsx`
+
+#### Validation Commands and Results
+
+1. `pnpm --filter @estimate-pro/api test -- src/routers/api-keys/__tests__/openrouter-flow.test.ts` -> pass (`6/6`)
+2. `pnpm --filter @estimate-pro/api typecheck` -> pass
+3. `pnpm --filter @estimate-pro/web typecheck` -> pass
+4. `pnpm quality:gate` -> pass (build + lint + typecheck + test + test:e2e)
+
+#### Operational Notes
+
+1. Runtime model catalog now comes from real OpenRouter API path and no static fallback is used for OpenRouter selection flow.
+2. Search is available at selection time so large catalogs remain usable immediately after key paste.
+
+### 14.27 Go-Live Transfer Execution + Runtime Smoke
+
+Date: 2026-02-21
+
+Completed in this cycle:
+1. End-to-end go-live transfer pipeline executed with live transfer mode:
+   - `pnpm ops:flow:run:transfer`
+2. Flow runner step results:
+   - Step 1 (`ops:bootstrap:docs`) => pass
+   - Step 2 (`ops:integration:check`) => pass
+   - Step 3 (`ops:effort:workflow:check`) => pass
+   - Step 4 (`ops:flow:roadmap`) => pass
+   - Step 5 (`ops:bootstrap:docs:push`) => pass
+   - Step 6 (`ops:flow:roadmap` post-transfer) => pass
+3. Transfer decision recorded as `executed` with GitHub + Kanban readiness gate `pass`.
+4. Runtime smoke executed:
+   - API on existing runtime (`:4000`) => `GET /health` returned `200`.
+   - Web production rebuilt and started on dedicated validation port (`:3100`) => key routes returned `200`:
+     - `/`
+     - `/healthz`
+     - `/dashboard`
+     - `/dashboard/projects`
+     - `/dashboard/sessions`
+     - `/dashboard/analyzer`
+5. API production binary startup tested on dedicated validation port (`:4100`):
+   - startup blocked by auth runtime guard:
+     - `CLERK_SECRET_KEY must be configured with a valid production key when NODE_ENV=production`
+   - this is environment quality gate (secret class/format), not application build break.
+
+#### Evidence
+
+1. `agent-ops/ops/go-live-flow-runner-latest.md`
+2. `agent-ops/ops/effort-flow-roadmap-latest.md`
+3. Runtime log captures:
+   - `/tmp/estimatepro-web-prod-3100.log`
+   - `/tmp/estimatepro-api-prod-4100.log`
+
+#### Validation Commands and Results
+
+1. `pnpm ops:flow:run:transfer` -> pass (all steps pass, transfer executed)
+2. `pnpm --filter @estimate-pro/web build` -> pass
+3. `pnpm --filter @estimate-pro/web exec next start -p 3100 -H 127.0.0.1` + HTTP checks -> all required routes `200`
+4. `pnpm --filter @estimate-pro/api build` -> pass
+5. `API_PORT=4100 NODE_ENV=production pnpm --filter @estimate-pro/api start` -> blocked by production Clerk secret validation
+
+#### Operational Notes
+
+1. Deployment transfer pipeline is operational and completed successfully with current integration wiring.
+2. Final production runtime cutover requires a valid production-grade Clerk secret in deployment environment.

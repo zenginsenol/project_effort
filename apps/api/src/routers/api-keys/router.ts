@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
+import { createHash } from 'node:crypto';
 
 import { db } from '@estimate-pro/db';
 import { apiKeys, users } from '@estimate-pro/db/schema';
@@ -37,6 +38,7 @@ import {
   updateApiKeyInput,
   deleteApiKeyInput,
   getApiKeyForProviderInput,
+  listOpenRouterModelsInput,
 } from './schema';
 
 /**
@@ -97,6 +99,105 @@ function validateModelForProvider(provider: string, model?: string | null): void
   }
 }
 
+type OpenRouterModelSummary = {
+  id: string;
+  name: string;
+  description: string | null;
+  contextLength: number | null;
+  supportsReasoning: boolean;
+};
+
+const OPENROUTER_MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
+const openRouterModelCache = new Map<string, {
+  expiresAt: number;
+  models: OpenRouterModelSummary[];
+}>();
+
+function getOpenRouterCacheKey(apiKey: string): string {
+  return createHash('sha256').update(apiKey).digest('hex');
+}
+
+function parseOpenRouterModel(raw: unknown): OpenRouterModelSummary | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+
+  const model = raw as Record<string, unknown>;
+  const id = typeof model.id === 'string' ? model.id.trim() : '';
+  if (!id) {
+    return null;
+  }
+
+  const name = typeof model.name === 'string' && model.name.trim().length > 0
+    ? model.name.trim()
+    : id;
+  const description = typeof model.description === 'string' && model.description.trim().length > 0
+    ? model.description.trim()
+    : null;
+  const contextLength = typeof model.context_length === 'number' && Number.isFinite(model.context_length)
+    ? model.context_length
+    : typeof model.contextLength === 'number' && Number.isFinite(model.contextLength)
+      ? model.contextLength
+      : null;
+
+  const supportedParameters = Array.isArray(model.supported_parameters)
+    ? model.supported_parameters.filter((item): item is string => typeof item === 'string')
+    : [];
+  const supportsReasoning = supportedParameters.some((item) => (
+    item.toLowerCase().includes('reason')
+    || item.toLowerCase().includes('thinking')
+  ));
+
+  return {
+    id,
+    name,
+    description,
+    contextLength,
+    supportsReasoning,
+  };
+}
+
+async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
+  const cacheKey = getOpenRouterCacheKey(apiKey);
+  const now = Date.now();
+  const cacheHit = openRouterModelCache.get(cacheKey);
+  if (cacheHit && cacheHit.expiresAt > now) {
+    return cacheHit.models;
+  }
+
+  const response = await fetch('https://openrouter.ai/api/v1/models', {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let message = `OpenRouter model list request failed (${response.status})`;
+    try {
+      const payload = JSON.parse(errorText) as { error?: { message?: string }; message?: string };
+      message = payload.error?.message || payload.message || message;
+    } catch {
+      // ignore parse failure
+    }
+    throw new TRPCError({ code: 'BAD_GATEWAY', message });
+  }
+
+  const payload = await response.json() as { data?: unknown[] };
+  const models = Array.isArray(payload.data)
+    ? payload.data.map(parseOpenRouterModel).filter((item): item is OpenRouterModelSummary => item !== null)
+    : [];
+
+  models.sort((a, b) => a.id.localeCompare(b.id));
+  openRouterModelCache.set(cacheKey, {
+    expiresAt: now + OPENROUTER_MODEL_CACHE_TTL_MS,
+    models,
+  });
+
+  return models;
+}
+
 export const apiKeysRouter = router({
   /**
    * List all API keys for the current user (keys are masked)
@@ -124,6 +225,53 @@ export const apiKeysRouter = router({
 
     return keys;
   }),
+
+  /**
+   * List OpenRouter models for the current user's key (or a pasted key).
+   * Used by Settings UI to provide searchable model picker.
+   */
+  listOpenRouterModels: authedProcedure
+    .input(listOpenRouterModelsInput)
+    .query(async ({ ctx, input }) => {
+      const userDbId = await resolveUserDbId(ctx.userId);
+
+      let resolvedApiKey = input.apiKey?.trim() || '';
+      if (!resolvedApiKey) {
+        const existing = await db.query.apiKeys.findFirst({
+          where: and(
+            eq(apiKeys.userId, userDbId),
+            eq(apiKeys.provider, 'openrouter'),
+            eq(apiKeys.isActive, true),
+          ),
+        });
+
+        if (!existing?.encryptedKey) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: 'OpenRouter API key is required. Paste a key or save one in Settings.',
+          });
+        }
+        resolvedApiKey = decrypt(existing.encryptedKey);
+      }
+
+      const allModels = await fetchOpenRouterModels(resolvedApiKey);
+      const normalizedQuery = input.query?.trim().toLowerCase() || '';
+      const limit = input.limit ?? 2000;
+
+      const models = normalizedQuery.length === 0
+        ? allModels
+        : allModels.filter((model) => (
+          model.id.toLowerCase().includes(normalizedQuery)
+          || model.name.toLowerCase().includes(normalizedQuery)
+          || (model.description?.toLowerCase().includes(normalizedQuery) ?? false)
+        ));
+
+      return {
+        total: allModels.length,
+        filtered: models.length,
+        models: models.slice(0, limit),
+      };
+    }),
 
   /**
    * Add a new API key (manual entry) - supports openai, anthropic, openrouter

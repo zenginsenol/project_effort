@@ -46,6 +46,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('apiKeysRouter openrouter flows', () => {
@@ -144,5 +145,58 @@ describe('apiKeysRouter openrouter flows', () => {
       authMethod: null,
       oauthBetaHeader: null,
     });
+  });
+
+  it('lists OpenRouter models for a pasted key and supports query filter', async () => {
+    mockDb.query.apiKeys.findFirst.mockResolvedValueOnce(null);
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          { id: 'openai/gpt-5.2', name: 'GPT-5.2', description: 'Flagship reasoning', supported_parameters: ['reasoning'] },
+          { id: 'meta-llama/llama-3.3-70b', name: 'Llama 3.3', description: 'Open source' },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const caller = createCaller();
+    const result = await caller.listOpenRouterModels({
+      apiKey: 'sk-or-v1-abcdefghijklmnopqrstuvwxyz1234',
+      query: 'gpt',
+    });
+
+    expect(result.total).toBe(2);
+    expect(result.filtered).toBe(1);
+    expect(result.models[0]).toMatchObject({
+      id: 'openai/gpt-5.2',
+      supportsReasoning: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists OpenRouter models using stored active key when apiKey is not provided', async () => {
+    mockDb.query.apiKeys.findFirst.mockResolvedValueOnce({
+      id: '66666666-6666-4666-8666-666666666666',
+      provider: 'openrouter',
+      encryptedKey: encrypt('sk-or-v1-abcdefghijklmnopqrstuvwxyz9012'),
+      isActive: true,
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 'openai/gpt-5.2', name: 'GPT-5.2' }],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const caller = createCaller();
+    const result = await caller.listOpenRouterModels({});
+
+    expect(result.total).toBe(1);
+    expect(result.models[0]?.id).toBe('openai/gpt-5.2');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

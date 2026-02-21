@@ -1,9 +1,9 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-20 02:36
-> Current Phase: Wave-2 Go-Live Hardening In Progress (Conflict Resolution + Cutover Readiness)
-> Overall Progress: Previous scope is complete; Wave-2 is opened to close remaining OAuth/DB/callback/cutover integration risks before live transition
-> Agent Backlog Progress: `49/64` done (`todo=14`, `in_progress=1`, `blocked=0`)
+> Last Updated: 2026-02-20 23:33
+> Current Phase: Wave-2 Closure + Post-Cutover Stabilization
+> Overall Progress: Wave-2 gates closed; focus is production hardening for multi-connection GitHub sync and effort/cost workflow reliability
+> Agent Backlog Progress: `64/64` done (`todo=0`, `in_progress=0`, `blocked=0`)
 
 ## Status Icons
 - ⬜ Pending
@@ -1619,3 +1619,123 @@ Completed in this cycle:
 2. `pnpm --filter @estimate-pro/api typecheck` -> pass
 3. `pnpm quality:gate` -> pass
 4. `pnpm ops:integration:gate` -> pass (`4/4`)
+
+### 14.23 Effort/Cost Freeze Fix + 7-Item Closure Update
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. Effort/Cost page freeze-loop behavior fixed (`applyRoadmap` auto-apply stabilization).
+2. Analyzer to document-analysis provider path aligned (selected provider now propagated consistently).
+3. Document router provider selection made deterministic (`findFirst + updatedAt desc`).
+4. Tenant/provider override tests updated for new deterministic query path.
+5. Root quality gate expanded with `test:e2e` and stabilized against stale reused web servers.
+6. Critical flow e2e coverage updated to current UI headings and effort workflow route.
+7. Cost workflow 7-item closure re-validated with latest report.
+
+#### Evidence
+
+1. Code files:
+   - `apps/web/src/app/dashboard/effort/page.tsx`
+   - `apps/web/src/app/dashboard/analyzer/page.tsx`
+   - `apps/api/src/routers/document/router.ts`
+   - `apps/api/src/routers/document/__tests__/tenant-provider-override.test.ts`
+   - `apps/web/playwright.config.ts`
+   - `apps/web/e2e/critical-flows.spec.ts`
+   - `scripts/quality-gate.mjs`
+2. Reports:
+   - `agent-ops/ops/effort-cost-stability-2026-02-20.md`
+   - `agent-ops/ops/cost-workflow-check-latest.md`
+
+#### Command Results
+
+1. `pnpm --filter @estimate-pro/web test:e2e` -> pass (`6/6`)
+2. `pnpm --filter @estimate-pro/api test` -> pass (`10 files / 38 tests`)
+3. `pnpm quality:gate` -> pass
+4. `pnpm ops:effort:workflow:check` -> `pass=8`, `warn=1`, `skip=1`, `fail=0`
+
+#### Closure Notes
+
+1. Core effort/cost workflow items are passing end-to-end.
+2. `GitHub sync` status remains `skip` until integration is connected for active workspace project.
+3. AI analysis warning is quota/rate-limit related and confirms real-provider execution path (no mock fallback).
+
+### 14.24 Multi-GitHub Connection + Per-Project Sync Update
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. GitHub OAuth callback flow upgraded to support multiple active GitHub accounts per organization (profile-based dedupe instead of single-record overwrite).
+2. Project-level GitHub repository links now persist `integrationId`, enabling each project to target a different GitHub account and repository.
+3. Cross-connection link cleanup added: when a project is linked to one connection, stale links for that project are removed from other GitHub connections.
+4. Effort/Cost GitHub sync resolution updated to prefer project-linked connection/repository, then analysis-level fallback, then latest active integration.
+5. Integrations UI upgraded to list all connected GitHub accounts, show profile label, and allow per-account disconnect.
+6. Project detail UI upgraded with explicit `GitHub connection` selector + repository binding for the selected connection.
+7. Effort page sync action now consumes linked project integration context so exported analyses go to the correct repository/account.
+
+#### Evidence
+
+1. API:
+   - `apps/api/src/routers/integration/router.ts`
+   - `apps/api/src/routers/effort/cost-analysis-service.ts`
+2. Web:
+   - `apps/web/src/app/dashboard/projects/[projectId]/page.tsx`
+   - `apps/web/src/app/dashboard/integrations/page.tsx`
+   - `apps/web/src/app/dashboard/effort/page.tsx`
+3. Validation reports:
+   - `agent-ops/ops/cost-workflow-check-latest.md`
+   - `agent-ops/ops/module-integration-check-latest.md`
+   - `agent-ops/ops/conflict-hotspots-latest.md`
+   - `agent-ops/ops/go-live-flow-runner-latest.md`
+   - `agent-ops/bootstrap/docs-bootstrap-report-latest.md`
+
+#### Validation Commands and Results
+
+1. `pnpm quality:gate` -> pass (build + lint + typecheck + test + test:e2e).
+2. `pnpm ops:effort:workflow:check:keep` -> `pass=9`, `warn=0`, `skip=1`, `fail=0` (real AI analysis succeeded; optional GitHub integration sync step skipped when no integration linked in workflow org).
+3. `set -a; source .env.local; set +a; pnpm ops:flow:run:transfer` -> pass (GitHub + Kanban transfer executed, transfer readiness gate=`pass`).
+4. `pnpm ops:integration:gate` -> pass (`4/4` contract checks + quality gate pass).
+5. `pnpm ops:conflicts` -> latest hotspot report regenerated with safe merge order guidance.
+6. Transfer output summary (`docs-bootstrap-report-latest`):
+   - GitHub pushed: `50/50`
+   - Kanban pushed: `0/93` (all deduped as already existing)
+
+#### Operational Notes
+
+1. No mock data fallback was used in the cost workflow run; AI analysis executed against real provider path.
+2. Transfer pipeline now verifies real push path (`docs -> GitHub issues + Kanban tasks`) when repo/token/project envs are present.
+3. Remaining risk area is parallel-branch merge conflict management; use `agent-ops/ops/conflict-hotspots-latest.md` merge order.
+
+### 14.25 Dual-User / Dual-Repo Binding Closure
+
+Date: 2026-02-20
+
+Completed in this cycle:
+1. Added operational binding script for multi-account GitHub project links:
+   - `packages/db/scripts/bind-project-github-repos.mjs`
+2. Added root command wrapper:
+   - `pnpm ops:github:bind-projects`
+3. Bound two projects to two separate GitHub users/repos in same org context:
+   - `TradeAI Pro` (`1817d63e-ffcb-4b77-82c9-1f9c171f9a48`) -> `zenginsenol/project_effort`
+   - `Ecommerce` (`4a3f755c-a152-4b02-bfcc-73fc8bba4300`) -> `elkekoitan/estimatepro-ecommerce-sync`
+4. Verified integration routing resolves per project to different `integrationId` and repository.
+5. Executed sync smoke for both projects via integration router.
+
+#### Evidence
+
+1. `packages/db/scripts/bind-project-github-repos.mjs`
+2. `package.json` (`ops:github:bind-projects`)
+3. Runtime binding output:
+   - TradeAI Pro integration: `a20f986c-b4be-47be-9aa7-d11257a9eb43`
+   - Ecommerce integration: `4f08341d-29a2-43ca-93b4-e4df3446347a`
+4. Sync smoke output:
+   - TradeAI Pro: `repo=zenginsenol/project_effort`, `imported=5`, `synced=5`
+   - Ecommerce: `repo=elkekoitan/estimatepro-ecommerce-sync`, `imported=0`, `synced=0`
+5. Transfer execution output (`ops:flow:run:transfer` with new repo):
+   - `Push GitHub + Kanban` -> `pass`
+   - New repo issue sample verified (e.g. `#51 [Bootstrap] Efor Tahmin Sistemi`)
+
+#### Operational Command Template
+
+1. `TARGET_ORG_ID=<ORG_UUID> GITHUB_BINDINGS_JSON='[{\"projectId\":\"...\",\"repository\":\"owner/repo\",\"token\":\"...\"}]' pnpm ops:github:bind-projects`
+2. `GITHUB_BINDINGS_JSON` supports multiple entries; script upserts GitHub integrations by profile login and enforces unique per-project link ownership across active connections.

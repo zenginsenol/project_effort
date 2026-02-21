@@ -45,6 +45,7 @@
     "ops:kanban:self-manage:core": "pnpm --filter @estimate-pro/api exec tsx scripts/kanban-self-manage.ts --write -- --skip-ai --skip-github-sync",
     "ops:bootstrap:docs": "pnpm --filter @estimate-pro/api exec node scripts/bootstrap-from-docs.mjs --write",
     "ops:bootstrap:docs:push": "pnpm --filter @estimate-pro/api exec node scripts/bootstrap-from-docs.mjs --write --push-github --push-kanban",
+    "ops:github:bind-projects": "pnpm --filter @estimate-pro/db exec node scripts/bind-project-github-repos.mjs",
     "ops:staging:check": "node scripts/staging-parity-check.mjs",
     "clean": "turbo clean && rm -rf node_modules",
     "prepare": "husky"

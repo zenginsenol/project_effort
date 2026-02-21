@@ -7,8 +7,6 @@ const DEFAULT_SIZE_MAP: Record<string, number> = {
   XXL: 21,
 };
 
-const DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
-
 export interface TShirtSizingResult {
   votes: readonly string[];
   distribution: Record<string, number>;

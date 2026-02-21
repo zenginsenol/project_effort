@@ -54,6 +54,26 @@ function parseCallbackType(rawState: string | null): SupportedIntegrationType | 
   return null;
 }
 
+function getGithubConnectionLabel(rawSettings: unknown, fallbackId: string): string {
+  if (rawSettings && typeof rawSettings === 'object' && !Array.isArray(rawSettings)) {
+    const settings = rawSettings as Record<string, unknown>;
+    const rawProfile = settings.profile;
+    if (rawProfile && typeof rawProfile === 'object' && !Array.isArray(rawProfile)) {
+      const profile = rawProfile as Record<string, unknown>;
+      const login = typeof profile.login === 'string' ? profile.login.trim() : '';
+      const name = typeof profile.name === 'string' ? profile.name.trim() : '';
+      if (login && name) {
+        return `${login} (${name})`;
+      }
+      if (login) {
+        return login;
+      }
+    }
+  }
+
+  return `github-${fallbackId.slice(0, 8)}`;
+}
+
 export default function IntegrationsPage(): React.ReactElement {
   const utils = trpc.useUtils();
   const router = useRouter();
@@ -127,12 +147,14 @@ export default function IntegrationsPage(): React.ReactElement {
     router.replace('/dashboard/integrations');
   }, [callbackHandled, callbackMutation, orgId, router, searchParams]);
 
-  const integrationsByType = useMemo(() => {
-    const map = new Map<string, NonNullable<typeof integrationsQuery.data>[number]>();
+  const activeIntegrationsByType = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof integrationsQuery.data>>();
     for (const integration of integrationsQuery.data ?? []) {
-      if (integration.isActive) {
-        map.set(integration.type, integration);
+      if (!integration.isActive) {
+        continue;
       }
+      const current = map.get(integration.type) ?? [];
+      map.set(integration.type, [...current, integration]);
     }
     return map;
   }, [integrationsQuery.data]);
@@ -180,8 +202,10 @@ export default function IntegrationsPage(): React.ReactElement {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {supportedIntegrations.map((integration) => {
-          const activeIntegration = integrationsByType.get(integration.id);
-          const isConnected = Boolean(activeIntegration);
+          const activeIntegrations = activeIntegrationsByType.get(integration.id) ?? [];
+          const isConnected = activeIntegrations.length > 0;
+          const primaryIntegration = activeIntegrations[0];
+          const isGithub = integration.id === 'github';
 
           return (
             <div
@@ -202,27 +226,47 @@ export default function IntegrationsPage(): React.ReactElement {
                 {isConnected && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900 dark:text-green-300">
                     <Check className="h-3 w-3" />
-                    Connected
+                    {isGithub ? `${activeIntegrations.length} connected` : 'Connected'}
                   </span>
                 )}
               </div>
 
-              {isConnected && activeIntegration && (
+              {isConnected && primaryIntegration && (
                 <div className="mt-3 rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <p>Last sync: {activeIntegration.lastSyncAt ? new Date(activeIntegration.lastSyncAt).toLocaleString() : 'Never'}</p>
-                  <p>Token encrypted: {activeIntegration.accessTokenEncrypted ? 'Yes' : 'No'}</p>
+                  <p>Last sync: {primaryIntegration.lastSyncAt ? new Date(primaryIntegration.lastSyncAt).toLocaleString() : 'Never'}</p>
+                  <p>Token encrypted: {primaryIntegration.accessTokenEncrypted ? 'Yes' : 'No'}</p>
+                </div>
+              )}
+
+              {isGithub && activeIntegrations.length > 0 && (
+                <div className="mt-3 space-y-2 rounded-md border border-dashed p-3 text-xs">
+                  {activeIntegrations.map((githubConnection) => (
+                    <div key={githubConnection.id} className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">
+                        {getGithubConnectionLabel(githubConnection.settings, githubConnection.id)}
+                      </span>
+                      <button
+                        onClick={() => handleDisconnect(githubConnection.id)}
+                        disabled={disconnectMutation.isPending}
+                        className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-950"
+                      >
+                        <Link2Off className="h-3 w-3" />
+                        Disconnect
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
               <div className="mt-4 flex gap-2">
-                {isConnected && activeIntegration ? (
+                {isConnected && !isGithub && primaryIntegration ? (
                   <>
                     <button className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted">
                       <ExternalLink className="h-3 w-3" />
                       Active
                     </button>
                     <button
-                      onClick={() => handleDisconnect(activeIntegration.id)}
+                      onClick={() => handleDisconnect(primaryIntegration.id)}
                       disabled={disconnectMutation.isPending}
                       className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-950"
                     >
@@ -236,7 +280,7 @@ export default function IntegrationsPage(): React.ReactElement {
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                   >
                     <Link2 className="h-3 w-3" />
-                    Connect
+                    {isGithub && isConnected ? 'Connect Another' : 'Connect'}
                   </button>
                 )}
               </div>

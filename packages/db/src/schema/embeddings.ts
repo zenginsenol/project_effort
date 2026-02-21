@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uuid, vector } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, vector } from 'drizzle-orm/pg-core';
 
 import { tasks } from './tasks';
 

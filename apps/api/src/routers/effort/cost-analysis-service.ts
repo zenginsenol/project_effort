@@ -7,13 +7,13 @@ import type { AIProvider, AIProviderConfig, ReasoningEffort } from '../../servic
 import { extractTasksFromText } from '../../services/document/task-extractor';
 import { decrypt, encrypt } from '../../services/crypto';
 import { isTokenExpired, refreshAccessToken } from '../../services/oauth/openai-oauth';
-import { refreshClaudeAccessToken } from '../../services/oauth/claude-oauth';
+import { refreshClaudeAccessToken, CLAUDE_OAUTH_BETA_HEADER } from '../../services/oauth/claude-oauth';
 import { decryptToken } from '../../services/security/token-crypto';
 
 type TaskType = typeof tasks.type.enumValues[number];
 type TaskPriority = typeof tasks.priority.enumValues[number];
 type TaskStatus = typeof tasks.status.enumValues[number];
-const ANTHROPIC_OAUTH_BETA_HEADER = 'oauth-2025-04-20';
+const ANTHROPIC_OAUTH_BETA_HEADER = CLAUDE_OAUTH_BETA_HEADER;
 
 type ProjectRow = {
   id: string;
@@ -156,6 +156,7 @@ type GithubProjectLink = {
   externalProjectId: string;
   autoSync: boolean;
   updatedAt: string;
+  integrationId?: string | null;
 };
 
 type IntegrationSettings = {
@@ -295,6 +296,7 @@ function toIntegrationSettings(raw: unknown): IntegrationSettings {
       externalProjectId,
       autoSync: candidate.autoSync !== false,
       updatedAt: typeof candidate.updatedAt === 'string' ? candidate.updatedAt : new Date().toISOString(),
+      integrationId: typeof candidate.integrationId === 'string' ? candidate.integrationId : null,
     };
   }
 
@@ -837,6 +839,23 @@ export class CostAnalysisService {
             ? key.reasoningEffort as ReasoningEffort
             : undefined);
 
+        // For OpenAI OAuth (ChatGPT subscription), extract account ID from JWT
+        let chatgptAccountId: string | null = null;
+        if (!isAnthropicOAuth) {
+          try {
+            const parts = accessToken.split('.');
+            if (parts.length === 3 && parts[1]) {
+              const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+              chatgptAccountId = payload.chatgpt_account_id
+                ?? payload.account_id
+                ?? payload['https://api.openai.com/auth']?.account_id
+                ?? null;
+            }
+          } catch {
+            // Ignore JWT decode failures
+          }
+        }
+
         return {
           provider,
           apiKey: accessToken,
@@ -844,6 +863,7 @@ export class CostAnalysisService {
           reasoningEffort: finalEffort,
           authMethod: 'oauth',
           oauthBetaHeader: isAnthropicOAuth ? ANTHROPIC_OAUTH_BETA_HEADER : undefined,
+          chatgptAccountId: !isAnthropicOAuth ? chatgptAccountId : undefined,
         };
       }
 
@@ -1271,6 +1291,74 @@ export class CostAnalysisService {
     };
   }
 
+  private async listActiveGithubIntegrations(orgId: string) {
+    return db.query.integrations.findMany({
+      where: and(
+        eq(integrations.organizationId, orgId),
+        eq(integrations.type, 'github'),
+        eq(integrations.isActive, true),
+      ),
+      orderBy: (table, { desc: descFn }) => [descFn(table.updatedAt)],
+    });
+  }
+
+  private resolveProjectLinkFromIntegration(
+    integration: typeof integrations.$inferSelect,
+    projectId: string,
+  ): GithubProjectLink | null {
+    const settings = toIntegrationSettings(integration.settings);
+    const explicitLink = settings.projectLinks[projectId];
+    if (explicitLink?.externalProjectId) {
+      return {
+        ...explicitLink,
+        integrationId: integration.id,
+      };
+    }
+    const fallbackExternalProjectId = integration.externalProjectId?.trim() || null;
+    if (!fallbackExternalProjectId) {
+      return null;
+    }
+    return {
+      externalProjectId: fallbackExternalProjectId,
+      autoSync: false,
+      updatedAt: integration.updatedAt.toISOString(),
+      integrationId: integration.id,
+    };
+  }
+
+  private async resolveGithubProjectLink(
+    orgId: string,
+    projectId: string,
+  ): Promise<{ integrationId: string; repository: string } | null> {
+    const connections = await this.listActiveGithubIntegrations(orgId);
+    if (connections.length === 0) {
+      return null;
+    }
+
+    for (const connection of connections) {
+      const settings = toIntegrationSettings(connection.settings);
+      const explicitLink = settings.projectLinks[projectId];
+      if (!explicitLink?.externalProjectId) {
+        continue;
+      }
+      return {
+        integrationId: connection.id,
+        repository: explicitLink.externalProjectId,
+      };
+    }
+
+    const fallback = connections[0];
+    const fallbackRepository = fallback?.externalProjectId?.trim();
+    if (fallback && fallbackRepository) {
+      return {
+        integrationId: fallback.id,
+        repository: fallbackRepository,
+      };
+    }
+
+    return null;
+  }
+
   private async resolveGithubIntegration(
     orgId: string,
     integrationId?: string,
@@ -1290,15 +1378,8 @@ export class CostAnalysisService {
       return row;
     }
 
-    const row = await db.query.integrations.findFirst({
-      where: and(
-        eq(integrations.organizationId, orgId),
-        eq(integrations.type, 'github'),
-        eq(integrations.isActive, true),
-      ),
-      orderBy: (table, { desc: descFn }) => [descFn(table.updatedAt)],
-    });
-
+    const connections = await this.listActiveGithubIntegrations(orgId);
+    const row = connections[0];
     if (!row) {
       throw new Error('GitHub integration is not connected');
     }
@@ -1449,20 +1530,27 @@ export class CostAnalysisService {
       throw new Error('Analysis not found');
     }
 
-    const integration = await this.resolveGithubIntegration(orgId, integrationId);
+    const linkedProjectContext = await this.resolveGithubProjectLink(orgId, row.projectId);
+    const resolvedIntegrationId = integrationId
+      || linkedProjectContext?.integrationId
+      || row.githubIntegrationId
+      || undefined;
+    const integration = await this.resolveGithubIntegration(orgId, resolvedIntegrationId);
     const accessToken = decryptToken(integration.accessToken);
     if (!accessToken) {
       throw new Error('GitHub integration token is missing');
     }
 
-    const settings = toIntegrationSettings(integration.settings);
-    const linkedRepository = settings.projectLinks[row.projectId]?.externalProjectId
-      ?? integration.externalProjectId
-      ?? null;
+    const linkedRepository = linkedProjectContext?.integrationId === integration.id
+      ? linkedProjectContext.repository
+      : null;
+    const analysisRepository = row.githubIntegrationId === integration.id ? row.githubRepository : null;
     const repository = normalizeRepositoryInput(
       repositoryOverride?.trim()
-      || row.githubRepository
       || linkedRepository
+      || analysisRepository
+      || row.githubRepository
+      || integration.externalProjectId
       || '',
     );
 

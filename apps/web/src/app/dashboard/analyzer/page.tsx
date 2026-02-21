@@ -5,7 +5,7 @@ import {
   AlertCircle, DollarSign, Loader2, Sparkles, Table, ClipboardPaste
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { getApiUrl } from '@/lib/api-url';
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 const TYPE_OPTIONS = ['epic', 'feature', 'story', 'task', 'subtask', 'bug'] as const;
 const PRIORITY_OPTIONS = ['critical', 'high', 'medium', 'low'] as const;
+const PROVIDER_OPTIONS = ['openai', 'anthropic', 'openrouter'] as const;
 
 const TYPE_COLORS: Record<string, string> = {
   epic: 'bg-purple-100 text-purple-700',
@@ -43,6 +44,7 @@ interface TaskItem {
 }
 
 type TabType = 'ai-text' | 'file-upload' | 'manual';
+type ProviderOption = typeof PROVIDER_OPTIONS[number];
 
 function createProjectKeySeed(input: string): string {
   const normalized = input
@@ -82,6 +84,7 @@ export default function AnalyzerPage(): React.ReactElement {
   const [error, setError] = useState('');
   const [showReview, setShowReview] = useState(false);
   const [hourlyRate, setHourlyRate] = useState(150);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderOption | ''>('');
   const [savedSuccess, setSavedSuccess] = useState('');
   const [justCreatedProjectId, setJustCreatedProjectId] = useState('');
 
@@ -107,7 +110,19 @@ export default function AnalyzerPage(): React.ReactElement {
   const [autoCreateProjectOnSave, setAutoCreateProjectOnSave] = useState(!projectIdFromQuery);
   const allProjectsQuery = trpc.project.list.useQuery({ organizationId: '' }, { retry: false });
   const orgsQuery = trpc.organization.list.useQuery(undefined, { retry: false });
+  const apiKeysQuery = trpc.apiKeys.list.useQuery(undefined, { retry: false });
   const orgId = allProjectsQuery.data?.[0]?.organizationId ?? orgsQuery.data?.[0]?.id ?? '';
+
+  const availableProviders = useMemo(() => {
+    const providers = new Set<ProviderOption>();
+    for (const key of apiKeysQuery.data ?? []) {
+      if (!key.isActive) continue;
+      if (PROVIDER_OPTIONS.includes(key.provider as ProviderOption)) {
+        providers.add(key.provider as ProviderOption);
+      }
+    }
+    return Array.from(providers);
+  }, [apiKeysQuery.data]);
 
   const analyzeTextMutation = trpc.document.analyzeText.useMutation();
   const bulkCreateMutation = trpc.document.bulkCreateTasks.useMutation();
@@ -120,6 +135,22 @@ export default function AnalyzerPage(): React.ReactElement {
       setAutoCreateProjectOnSave(false);
     }
   }, [projectIdFromQuery, selectedProjectId]);
+
+  useEffect(() => {
+    if (availableProviders.length === 0) {
+      if (selectedProvider) {
+        setSelectedProvider('');
+      }
+      return;
+    }
+
+    if (!selectedProvider || !availableProviders.includes(selectedProvider)) {
+      const defaultProvider = availableProviders[0];
+      if (defaultProvider) {
+        setSelectedProvider(defaultProvider);
+      }
+    }
+  }, [availableProviders, selectedProvider]);
 
   useEffect(() => {
     const projects = allProjectsQuery.data ?? [];
@@ -176,6 +207,7 @@ export default function AnalyzerPage(): React.ReactElement {
         text: inputText,
         projectContext: projectContext || undefined,
         hourlyRate,
+        provider: selectedProvider || undefined,
       });
 
       const extractedTasks: TaskItem[] = result.tasks.map((t) => ({
@@ -219,6 +251,7 @@ export default function AnalyzerPage(): React.ReactElement {
       const url = new URL(getApiUrl('/api/analyze-document'));
       url.searchParams.set('hourlyRate', String(hourlyRate));
       if (projectContext) url.searchParams.set('projectContext', projectContext);
+      if (selectedProvider) url.searchParams.set('provider', selectedProvider);
 
       const response = await fetch(url.toString(), {
         method: 'POST',
@@ -426,6 +459,22 @@ export default function AnalyzerPage(): React.ReactElement {
             placeholder="Project context (e.g., 'E-commerce platform with React + Node.js')"
             className="w-full rounded-md border bg-background px-3 py-1 text-sm"
           />
+        </div>
+        <div className="w-48">
+          <select
+            value={selectedProvider}
+            onChange={(event) => setSelectedProvider(event.target.value as ProviderOption)}
+            className="w-full rounded-md border bg-background px-3 py-1 text-sm"
+            disabled={availableProviders.length === 0}
+          >
+            {availableProviders.length === 0 ? (
+              <option value="">No active provider</option>
+            ) : (
+              availableProviders.map((provider) => (
+                <option key={provider} value={provider}>{provider}</option>
+              ))
+            )}
+          </select>
         </div>
       </div>
 

@@ -141,7 +141,8 @@ export default function EffortPage(): React.ReactElement {
       await utils.task.list.invalidate({ projectId: result.project.id });
     },
     onError: (error) => {
-      autoAppliedSignatureRef.current = null;
+      // Keep signature locked on failure to avoid auto-apply retry loops.
+      // User can still trigger a manual retry via "Apply Roadmap to Kanban".
       setKanbanSyncNotice(`Kanban sync failed: ${error.message}`);
     },
   });
@@ -197,6 +198,10 @@ export default function EffortPage(): React.ReactElement {
   const compareAnalysesQuery = trpc.effort.compareAnalyses.useQuery(
     { projectId: selectedProjectId, analysisIds: compareSelection },
     { enabled: Boolean(selectedProjectId) && compareSelection.length >= 2, retry: false },
+  );
+  const githubProjectLinkQuery = trpc.integration.getGithubProjectLink.useQuery(
+    { projectId: selectedProjectId || EMPTY_UUID },
+    { enabled: Boolean(selectedProjectId), retry: false },
   );
 
   const saveCurrentAnalysisMutation = trpc.effort.saveCurrentAnalysis.useMutation({
@@ -371,6 +376,9 @@ export default function EffortPage(): React.ReactElement {
     if (!selectedProjectId || !autoApplyKanban || !roadmapData || applyRoadmapMutation.isPending) {
       return;
     }
+    if (roadmapData.phases.length === 0) {
+      return;
+    }
     if (autoAppliedSignatureRef.current === autoApplySignature) {
       return;
     }
@@ -384,7 +392,8 @@ export default function EffortPage(): React.ReactElement {
       autoMoveFirstWeekToTodo,
     });
   }, [
-    applyRoadmapMutation,
+    applyRoadmapMutation.isPending,
+    applyRoadmapMutation.mutate,
     autoApplyKanban,
     autoApplySignature,
     autoMoveFirstWeekToTodo,
@@ -598,10 +607,14 @@ export default function EffortPage(): React.ReactElement {
     if (!selectedAnalysisId) {
       return;
     }
+    const linkedIntegrationId = githubProjectLinkQuery.data?.link?.integrationId
+      ?? githubProjectLinkQuery.data?.integrationId
+      ?? undefined;
 
     syncAnalysisToGithubMutation.mutate({
       analysisId: selectedAnalysisId,
       repository: githubRepositoryOverride.trim() || undefined,
+      ...(linkedIntegrationId ? { integrationId: linkedIntegrationId } : {}),
     });
   }
 
@@ -1662,6 +1675,13 @@ export default function EffortPage(): React.ReactElement {
             <p className="mt-1 text-sm text-muted-foreground">
               Export selected analysis or sync it as GitHub issue in linked repository.
             </p>
+            {selectedProjectId && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {githubProjectLinkQuery.data?.connected
+                  ? `Project link: ${githubProjectLinkQuery.data?.link?.externalProjectId ?? 'not set'}`
+                  : 'GitHub integration not connected for this project yet.'}
+              </p>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <button
                 onClick={() => { void handleExportAnalysis('json'); }}

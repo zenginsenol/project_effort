@@ -1,11 +1,11 @@
 # Cost Workflow Check
 
-Generated: 2026-02-20T07:37:24.646Z
+Generated: 2026-02-21T04:42:10.675Z
 Project: `cbf9557d-badf-4bce-81d4-d0e3291371f9`
 Org: `8976700f-b00f-496c-8b8c-44e58bc58250`
 User: `user_demo_001`
 Active providers: openai
-Result summary: pass=8, warn=1, skip=1, fail=0
+Result summary: pass=9, warn=1, skip=0, fail=0
 
 ## Step Results
 
@@ -13,14 +13,14 @@ Result summary: pass=8, warn=1, skip=1, fail=0
 |---|---|---|---|
 | 1 | Effort Calculate | pass | tasks=194, totalHours=7178.4, totalCost=1076760 |
 | 2 | Roadmap Generate | pass | phases=96, totalWeeks=180 |
-| 3 | Save Baseline Analysis | pass | analysisId=52cac163-4b66-429b-af88-3ca773e19b38 |
-| 4 | Save Variant Analysis | pass | analysisId=cae5252d-1b6b-4b6f-86e0-dcf1dc72a72b |
-| 5 | List Analyses | pass | listCount=2 |
+| 3 | Save Baseline Analysis | pass | analysisId=e03b9dca-3267-4ee3-861f-1708b842bc86 |
+| 4 | Save Variant Analysis | pass | analysisId=48843edb-cdb2-4164-91fd-90490cf47474 |
+| 5 | List Analyses | pass | listCount=5 |
 | 6 | Update Analysis | pass | updatedFirstYearTotal=1405560 |
 | 7 | Compare Analyses | pass | rows=2, baseline=Workflow Check Baseline Updated |
 | 8 | Export Analysis (json/csv/md) | pass | json=78516B, csv=15226B, md=14812B |
-| 9 | GitHub Sync (optional) | skip | GitHub integration is not connected |
-| 10-openai | AI Analysis (openai) | warn | Rate limit exceeded: Your openai API key has hit its rate limit. Please try again later. |
+| 9 | GitHub Sync (optional) | pass | issue=https://github.com/elkekoitan/estimatepro-ecommerce-sync/issues/52 |
+| 10-openai | AI Analysis (openai) | warn | AI analysis failed: terminated |
 
 ## Process Checklist
 

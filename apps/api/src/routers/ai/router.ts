@@ -52,7 +52,7 @@ export const aiRouter = router({
           ...suggestion,
           similarTasks,
         };
-      } catch (error) {
+      } catch {
         return {
           suggestedPoints: null,
           suggestedHours: null,

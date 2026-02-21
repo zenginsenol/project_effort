@@ -6,7 +6,7 @@ import multipart from '@fastify/multipart';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify from 'fastify';
 
-import { createContext } from './trpc/context';
+import { createContext, validateAuthRuntimeConfig } from './trpc/context';
 import { appRouter } from './routers/index';
 import { parseDocument } from './services/document/parser';
 import { upsertOpenAIOAuthCredential } from './services/oauth/oauth-credential-store';
@@ -19,6 +19,8 @@ const HOST = process.env.API_HOST || '0.0.0.0';
 const WEB_APP_URL = process.env.NEXT_PUBLIC_APP_URL?.trim() || 'http://127.0.0.1:3000';
 
 async function start(): Promise<void> {
+  validateAuthRuntimeConfig();
+
   const fastify = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || 'info',
@@ -168,7 +170,7 @@ async function start(): Promise<void> {
 
   await fastify.listen({ port: PORT, host: HOST });
 
-  const io = setupWebSocket(fastify);
+  setupWebSocket(fastify);
   console.log(`API server running at http://${HOST}:${PORT}`);
   console.log(`WebSocket server running at ws://${HOST}:${PORT}/ws`);
 }

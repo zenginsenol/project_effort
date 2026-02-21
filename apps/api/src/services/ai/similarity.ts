@@ -1,4 +1,4 @@
-import { cosineDistance, desc, eq, gt, sql } from 'drizzle-orm';
+import { cosineDistance, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@estimate-pro/db';
 import { taskEmbeddings } from '@estimate-pro/db/schema';

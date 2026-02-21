@@ -78,8 +78,8 @@ export async function upsertOpenAIOAuthCredential(params: {
 }
 
 /**
- * Upsert Claude OAuth credential - stores the API key from OAuth flow
- * or the setup key directly.
+ * Upsert Claude OAuth credential - stores the API key from Console mode OAuth flow
+ * or the setup key directly. Clears any existing OAuth tokens.
  */
 export async function upsertClaudeOAuthCredential(params: {
   clerkUserId: string;
@@ -136,4 +136,64 @@ export async function upsertClaudeOAuthCredential(params: {
   }
 
   return { email };
+}
+
+/**
+ * Upsert Claude Max subscription credential.
+ * Stores OAuth access token + refresh token for Bearer auth.
+ * This is the "Max mode" flow — token is used directly for API calls
+ * with `Authorization: Bearer` + `anthropic-beta: oauth-2025-04-20`.
+ */
+export async function upsertClaudeMaxOAuthCredential(params: {
+  clerkUserId: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  defaultModel?: string;
+  defaultReasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh';
+}): Promise<{ email: string | null }> {
+  const defaultModel = params.defaultModel ?? 'claude-sonnet-4-6';
+
+  const user = await db.query.users.findFirst({
+    columns: { id: true },
+    where: eq(users.clerkId, params.clerkUserId),
+  });
+
+  if (!user) {
+    throw new Error(`User not found in DB: ${params.clerkUserId}`);
+  }
+
+  const existing = await db.query.apiKeys.findFirst({
+    where: and(
+      eq(apiKeys.userId, user.id),
+      eq(apiKeys.provider, 'anthropic'),
+    ),
+  });
+
+  const tokenData = {
+    authMethod: 'oauth' as const,
+    encryptedAccessToken: encrypt(params.accessToken),
+    encryptedRefreshToken: encrypt(params.refreshToken),
+    tokenExpiresAt: new Date(Date.now() + params.expiresIn * 1000),
+    keyHint: 'OAuth: Claude Max Subscription',
+    label: 'Claude Max Subscription',
+    model: defaultModel,
+    reasoningEffort: params.defaultReasoningEffort ?? 'medium',
+    isActive: true,
+    oauthEmail: null,
+    // Clear any manual API key data
+    encryptedKey: null,
+  };
+
+  if (existing) {
+    await db.update(apiKeys).set(tokenData).where(eq(apiKeys.id, existing.id));
+  } else {
+    await db.insert(apiKeys).values({
+      userId: user.id,
+      provider: 'anthropic',
+      ...tokenData,
+    });
+  }
+
+  return { email: null };
 }

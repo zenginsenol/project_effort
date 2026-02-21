@@ -27,7 +27,7 @@ export class WidebandDelphi {
   public processRound(
     roundNumber: number,
     estimates: readonly number[],
-    previousRounds: readonly DelphiRound[] = [],
+    _previousRounds: readonly DelphiRound[] = [],
   ): DelphiRound {
     if (estimates.length === 0) {
       throw new Error('At least one estimate is required');

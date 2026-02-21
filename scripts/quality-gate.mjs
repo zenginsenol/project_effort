@@ -7,6 +7,7 @@ const steps = [
   { name: 'lint', cmd: 'pnpm lint' },
   { name: 'typecheck', cmd: 'pnpm typecheck' },
   { name: 'test', cmd: 'pnpm test' },
+  { name: 'test:e2e', cmd: 'pnpm test:e2e' },
 ];
 
 for (const step of steps) {

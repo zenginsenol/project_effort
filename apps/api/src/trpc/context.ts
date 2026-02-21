@@ -32,8 +32,60 @@ function getOrgIdFromPayload(payload: Record<string, unknown>): string | null {
   return null;
 }
 
+function hasValidClerkSecret(secret?: string): boolean {
+  if (!secret) return false;
+  const trimmed = secret.trim();
+  if (!trimmed) return false;
+  return !trimmed.includes('xxxxx');
+}
+
+/**
+ * Demo auth mode is useful in local/dev bootstrap, but must never be auto-enabled
+ * in production.
+ */
+export function isDemoModeEnabled(
+  env: {
+    NODE_ENV?: string;
+    CLERK_SECRET_KEY?: string;
+    ENABLE_DEMO_AUTH?: string;
+  } = process.env,
+): boolean {
+  const nodeEnv = (env.NODE_ENV ?? 'development').toLowerCase();
+  const demoOverride = (env.ENABLE_DEMO_AUTH ?? '').toLowerCase();
+  const clerkOk = hasValidClerkSecret(env.CLERK_SECRET_KEY);
+
+  if (nodeEnv === 'production') {
+    return false;
+  }
+
+  if (demoOverride === 'true' || demoOverride === '1') {
+    return true;
+  }
+  if (demoOverride === 'false' || demoOverride === '0') {
+    return false;
+  }
+
+  return !clerkOk;
+}
+
+export function validateAuthRuntimeConfig(
+  env: {
+    NODE_ENV?: string;
+    CLERK_SECRET_KEY?: string;
+  } = process.env,
+): void {
+  const nodeEnv = (env.NODE_ENV ?? 'development').toLowerCase();
+  if (nodeEnv !== 'production') {
+    return;
+  }
+
+  if (!hasValidClerkSecret(env.CLERK_SECRET_KEY)) {
+    throw new Error('CLERK_SECRET_KEY must be configured with a valid production key when NODE_ENV=production.');
+  }
+}
+
 // Demo mode: use fixed user/org when Clerk is not configured
-const DEMO_MODE = !process.env.CLERK_SECRET_KEY || process.env.CLERK_SECRET_KEY.includes('xxxxx');
+const DEMO_MODE = isDemoModeEnabled();
 const DEMO_USER_ID = 'user_demo_001';
 const DEMO_ORG_ID = '00000000-0000-0000-0000-000000000000';
 let demoIdentityCache: { userId: string | null; orgId: string | null } | null = null;

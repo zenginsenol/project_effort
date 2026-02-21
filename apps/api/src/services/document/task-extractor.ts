@@ -40,6 +40,8 @@ export interface AIProviderConfig {
   reasoningEffort?: ReasoningEffort | null;
   authMethod?: 'api_key' | 'oauth';
   oauthBetaHeader?: string | null;
+  /** ChatGPT account ID extracted from OpenAI OAuth JWT (needed for subscription mode) */
+  chatgptAccountId?: string | null;
 }
 
 // ─── Model Capability Maps ──────────────────────────────────
@@ -216,6 +218,136 @@ async function extractWithOpenAI(
   if (!content) throw new Error('OpenAI did not return a response');
 
   return { ...parseJsonResponse(content) as ExtractionResult, raw: true };
+}
+
+/**
+ * Extract the chatgpt_account_id from an OpenAI OAuth access token JWT.
+ * The access token is a JWT whose payload contains account/user claims.
+ */
+function extractChatGPTAccountId(accessToken: string): string | null {
+  try {
+    const parts = accessToken.split('.');
+    if (parts.length !== 3 || !parts[1]) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    // Try multiple claim names used by OpenAI
+    return payload.chatgpt_account_id
+      ?? payload.account_id
+      ?? payload['https://api.openai.com/auth']?.account_id
+      ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extract tasks using ChatGPT Backend API (Responses API).
+ * Used when the user authenticated via ChatGPT subscription OAuth.
+ * The ChatGPT subscription token cannot be used with api.openai.com;
+ * it must use https://chatgpt.com/backend-api/codex/responses instead,
+ * mirroring how the official Codex CLI works.
+ */
+async function extractWithOpenAIChatGPT(
+  accessToken: string,
+  model: string,
+  userPrompt: string,
+  reasoningEffort?: ReasoningEffort | null,
+  chatgptAccountId?: string | null,
+): Promise<ExtractionResult & { raw: true }> {
+  const CHATGPT_RESPONSES_URL = 'https://chatgpt.com/backend-api/codex/responses';
+
+  // Try to extract account ID from JWT if not provided
+  const accountId = chatgptAccountId || extractChatGPTAccountId(accessToken);
+
+  const isReasoning = isReasoningModel(model, 'openai');
+
+  // Build Responses API request body
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestBody: Record<string, any> = {
+    model,
+    instructions: SYSTEM_PROMPT,
+    input: [
+      { role: 'user', content: [{ type: 'input_text', text: userPrompt }] },
+    ],
+    store: false,
+    stream: false,
+  };
+
+  if (isReasoning && reasoningEffort) {
+    requestBody.reasoning = {
+      effort: reasoningEffort === 'xhigh' ? 'high' : reasoningEffort,
+      summary: 'auto',
+    };
+  }
+
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  if (accountId) {
+    headers['chatgpt-account-id'] = accountId;
+  }
+
+  // ChatGPT backend requires streaming
+  requestBody.stream = true;
+
+  console.log(`[task-extractor] ChatGPT Backend API request: model=${model}, reasoning=${isReasoning}${reasoningEffort ? `, effort=${reasoningEffort}` : ''}, hasAccountId=${!!accountId}`);
+
+  const response = await fetch(CHATGPT_RESPONSES_URL, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`ChatGPT API error (${response.status}): ${errorText}`);
+  }
+
+  // Parse SSE stream to collect text output
+  const responseText = await response.text();
+  let textContent = '';
+  let responseId = '';
+
+  for (const line of responseText.split('\n')) {
+    if (!line.startsWith('data: ')) continue;
+    const dataStr = line.slice(6).trim();
+    if (dataStr === '[DONE]') break;
+
+    try {
+      const event = JSON.parse(dataStr);
+
+      // Handle response.completed event which has the full output
+      if (event.type === 'response.completed' && event.response) {
+        responseId = event.response.id ?? responseId;
+        const outputItems = event.response.output ?? [];
+        for (const item of outputItems) {
+          if (item.type === 'message' && Array.isArray(item.content)) {
+            for (const block of item.content) {
+              if (block.type === 'output_text' && typeof block.text === 'string') {
+                textContent = block.text;
+              }
+            }
+          }
+        }
+      }
+
+      // Also collect text deltas for incremental output
+      if (event.type === 'response.output_text.delta' && typeof event.delta === 'string') {
+        textContent += event.delta;
+      }
+    } catch {
+      // Ignore unparseable SSE lines
+    }
+  }
+
+  if (!textContent) {
+    throw new Error('ChatGPT did not return a response');
+  }
+
+  console.log(`[task-extractor] ChatGPT response received (${textContent.length} chars)${responseId ? `, id=${responseId}` : ''}`);
+
+  return { ...parseJsonResponse(textContent) as ExtractionResult, raw: true };
 }
 
 /**
@@ -465,8 +597,42 @@ export async function extractTasksFromText(
         rawResult = await extractWithOpenRouter(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
       } else {
         modelName = aiConfig.model || 'gpt-5.2';
-        console.log(`[task-extractor] Using OpenAI (${modelName}) with user key, effort=${aiConfig.reasoningEffort || 'default'}`);
-        rawResult = await extractWithOpenAI(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
+
+        // ChatGPT subscription OAuth tokens use a different backend API
+        if (aiConfig.authMethod === 'oauth') {
+          // ChatGPT Codex backend supports specific models only.
+          // Reference: https://developers.openai.com/codex/models/
+          const CHATGPT_SUPPORTED_MODELS = new Set([
+            // Codex-optimized models (recommended)
+            'gpt-5.3-codex', 'gpt-5.3-codex-spark',
+            'gpt-5.2-codex',
+            'gpt-5.1-codex', 'gpt-5.1-codex-max', 'gpt-5.1-codex-mini',
+            'gpt-5-codex', 'gpt-5-codex-mini',
+            // General GPT models that work with Codex
+            'gpt-5.2', 'gpt-5.1', 'gpt-5',
+            // Reasoning models
+            'o3', 'o3-mini', 'o3-pro', 'o4-mini',
+            // Codex-mini alias
+            'codex-mini', 'codex-mini-latest',
+          ]);
+          if (!CHATGPT_SUPPORTED_MODELS.has(modelName)) {
+            const fallback = 'gpt-5.2-codex';
+            console.log(`[task-extractor] ChatGPT backend: model '${modelName}' not supported, falling back to '${fallback}'`);
+            modelName = fallback;
+          }
+
+          console.log(`[task-extractor] Using ChatGPT Backend API (${modelName}) with OAuth subscription, effort=${aiConfig.reasoningEffort || 'default'}`);
+          rawResult = await extractWithOpenAIChatGPT(
+            aiConfig.apiKey,
+            modelName,
+            userPrompt,
+            aiConfig.reasoningEffort,
+            aiConfig.chatgptAccountId,
+          );
+        } else {
+          console.log(`[task-extractor] Using OpenAI (${modelName}) with user key, effort=${aiConfig.reasoningEffort || 'default'}`);
+          rawResult = await extractWithOpenAI(aiConfig.apiKey, modelName, userPrompt, aiConfig.reasoningEffort);
+        }
       }
     } else {
       const envApiKey = process.env.OPENAI_API_KEY;

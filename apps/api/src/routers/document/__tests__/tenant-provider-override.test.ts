@@ -9,8 +9,10 @@ const { mockDb, extractTasksFromTextMock, extractWithMultipleProvidersMock } = v
       users: {
         findFirst: vi.fn(),
       },
+      apiKeys: {
+        findFirst: vi.fn(),
+      },
     },
-    select: vi.fn(),
     update: vi.fn(),
   },
   extractTasksFromTextMock: vi.fn(),
@@ -35,10 +37,8 @@ function createCaller() {
   });
 }
 
-function mockSelectRows(rows: unknown[]) {
-  const where = vi.fn().mockResolvedValue(rows);
-  const from = vi.fn().mockReturnValue({ where });
-  mockDb.select.mockReturnValue({ from });
+function mockApiKeyRow(row: unknown) {
+  mockDb.query.apiKeys.findFirst.mockResolvedValue(row);
 }
 
 function mockUpdateChain() {
@@ -73,7 +73,7 @@ afterEach(() => {
 
 describe('document router tenant/provider override guards', () => {
   it('does not use mismatched provider credentials for analyzeText provider override', async () => {
-    mockSelectRows([{
+    mockApiKeyRow({
       id: 'key-1',
       provider: 'openai',
       authMethod: 'api_key',
@@ -84,7 +84,7 @@ describe('document router tenant/provider override guards', () => {
       model: 'gpt-5.2',
       reasoningEffort: 'medium',
       isActive: true,
-    }]);
+    });
 
     const caller = createCaller();
     await caller.analyzeText({
@@ -103,18 +103,7 @@ describe('document router tenant/provider override guards', () => {
   });
 
   it('returns missing_config when comparative analyze cannot resolve requested provider safely', async () => {
-    mockSelectRows([{
-      id: 'key-2',
-      provider: 'openai',
-      authMethod: 'api_key',
-      encryptedKey: encrypt('sk-openai-abcdefghijklmnopqrstuvwxyz5678'),
-      encryptedAccessToken: null,
-      encryptedRefreshToken: null,
-      tokenExpiresAt: null,
-      model: 'gpt-5.2',
-      reasoningEffort: 'medium',
-      isActive: true,
-    }]);
+    mockApiKeyRow(null);
 
     const caller = createCaller();
     const result = await caller.comparativeAnalyze({

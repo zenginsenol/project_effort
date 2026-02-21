@@ -1,18 +1,18 @@
 # Effort Flow Roadmap (Live Readiness)
 
-Generated: 2026-02-20T07:37:27.776Z
+Generated: 2026-02-21T04:43:32.839Z
 Branch: `main`
-Commit: `22afe77`
+Commit: `69a347a`
 
 ## Gate Summary
 
 | Gate | Status | Evidence |
 |---|---|---|
 | Docs -> COS extraction | pass | tasks=93, effort=1269.6h |
-| Effort/Cost workflow | pass | pass=8, warn=1, skip=1, fail=0 |
+| Effort/Cost workflow | pass | pass=9, warn=1, skip=0, fail=0 |
 | Module contracts | pass | 4/4 passed |
-| GitHub + Kanban transfer readiness | warn | github=skipped, kanban=skipped |
-| AI provider health | warn | warn: Rate limit exceeded: Your openai API key has hit its rate limit. Please try again later. |
+| GitHub + Kanban transfer readiness | pass | github=pushed, kanban=pushed |
+| AI provider health | warn | warn: AI analysis failed: terminated |
 
 ## COS Effort Baseline
 
@@ -41,14 +41,12 @@ Commit: `22afe77`
 
 ## Agent System Status
 
-- Backlog summary: todo=3, in_progress=1, blocked=0, done=60
+- Backlog summary: todo=0, in_progress=0, blocked=0, done=64
 - Active task (Agent-A): -
 
 ## Current Blockers
 
-- GitHub aktarimi hazir degil: GITHUB_REPO or GITHUB_TOKEN missing
-- Kanban aktarimi hazir degil: KANBAN_PROJECT_ID or --project-id missing
-- AI analizde uyari var: Rate limit exceeded: Your openai API key has hit its rate limit. Please try again later.
+- AI analizde uyari var: AI analysis failed: terminated
 
 ## Step-by-Step Execution (Go-Live Flow)
 

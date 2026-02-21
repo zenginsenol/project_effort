@@ -1,8 +1,8 @@
 # Conflict Hotspots Report
 
-Updated: 2026-02-20T06:53:35.519Z
+Updated: 2026-02-20T23:32:52.435Z
 Branch: `main`
-Working tree: tracked=14, untracked=5, total=19
+Working tree: tracked=26, untracked=2, total=28
 
 ## Active Hotspots
 
@@ -13,14 +13,9 @@ Safe merge order: 1) services/oauth 2) server callback route 3) api-keys router
 
 | Status | File |
 |---|---|
-| `M` | `apps/api/src/routers/api-keys/router.ts` |
-| `M` | `apps/api/src/services/oauth/__tests__/openai-oauth.test.ts` |
+| `M` | `apps/api/src/server.ts` |
 | `M` | `apps/api/src/services/oauth/claude-oauth.ts` |
 | `M` | `apps/api/src/services/oauth/oauth-credential-store.ts` |
-| `M` | `apps/api/src/services/oauth/openai-oauth.ts` |
-| `??` | `apps/api/src/routers/api-keys/__tests__/` |
-| `??` | `apps/api/src/services/oauth/__tests__/callback-session-store.test.ts` |
-| `??` | `apps/api/src/services/oauth/callback-session-store.ts` |
 
 ### P1 - Provider schema and DB alignment
 
@@ -29,7 +24,7 @@ Safe merge order: 1) DB migration SQL 2) schema enums/columns 3) API input/outpu
 
 | Status | File |
 |---|---|
-| `M` | `apps/api/src/routers/api-keys/router.ts` |
+| `M` | `packages/db/src/schema/embeddings.ts` |
 
 ### P1 - Document analysis contract drift
 
@@ -38,8 +33,9 @@ Safe merge order: 1) document schema 2) extractor service 3) document router
 
 | Status | File |
 |---|---|
+| `M` | `apps/api/src/routers/document/__tests__/tenant-provider-override.test.ts` |
 | `M` | `apps/api/src/routers/document/router.ts` |
-| `??` | `apps/api/src/routers/document/__tests__/` |
+| `M` | `apps/api/src/services/document/task-extractor.ts` |
 
 ### P2 - Web settings/compare UX consistency
 
@@ -48,18 +44,30 @@ Safe merge order: 1) compare route 2) settings page 3) sidebar/nav links
 
 | Status | File |
 |---|---|
-| `M` | `apps/web/src/app/dashboard/compare/page.tsx` |
 | `M` | `apps/web/src/app/dashboard/settings/page.tsx` |
 
 ## Unmapped Files
 
 - `M` `PROJECT_TRACKER.md`
-- `M` `agent-ops/agent-backlog.json`
-- `M` `agent-ops/agent-next-tasks.md`
+- `M` `agent-ops/ops/cost-workflow-check-latest.md`
 - `M` `agent-ops/ops/go-live-wave2-status.md`
-- `M` `agent-ops/ops/kanban-self-manage-latest.md`
+- `M` `agent-ops/ops/module-integration-check-latest.md`
+- `M` `apps/api/src/routers/ai/router.ts`
 - `M` `apps/api/src/routers/effort/cost-analysis-service.ts`
-- `??` `agent-ops/ops/comparative-analysis-contract-2026-02-20.md`
+- `M` `apps/api/src/routers/integration/router.ts`
+- `M` `apps/api/src/services/ai/similarity.ts`
+- `M` `apps/api/src/trpc/context.ts`
+- `M` `apps/web/e2e/critical-flows.spec.ts`
+- `M` `apps/web/playwright.config.ts`
+- `M` `apps/web/src/app/dashboard/analyzer/page.tsx`
+- `M` `apps/web/src/app/dashboard/effort/page.tsx`
+- `M` `apps/web/src/app/dashboard/integrations/page.tsx`
+- `M` `apps/web/src/app/dashboard/projects/[projectId]/page.tsx`
+- `M` `packages/estimation-core/src/tshirt-sizing.ts`
+- `M` `packages/estimation-core/src/wideband-delphi.ts`
+- `M` `scripts/quality-gate.mjs`
+- `??` `agent-ops/ops/effort-cost-stability-2026-02-20.md`
+- `??` `apps/api/src/trpc/__tests__/`
 
 ## Operator Notes
 

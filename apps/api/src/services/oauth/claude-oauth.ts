@@ -1,40 +1,41 @@
 import { randomBytes, createHash } from 'node:crypto';
-import http from 'node:http';
-
-import { getPendingFlow, removePendingFlow } from './oauth-store';
 
 /**
  * Anthropic Claude OAuth 2.0 PKCE Flow
  *
  * Uses the same OAuth client ID that Claude Code CLI uses.
  * Two modes:
- *   - "max" mode: Auth via claude.ai - uses subscription quota (blocked for third-party Jan 2026)
- *   - "console" mode: Auth via console.anthropic.com - can create API key
+ *   - "max" mode: Auth via claude.ai — uses Pro/Max subscription quota directly.
+ *     Token used as Bearer, requires `anthropic-beta: oauth-2025-04-20` header.
+ *   - "console" mode: Auth via console.anthropic.com — creates a permanent API key.
  *
- * We use console mode to generate a real API key via the user's account.
- * This is the only officially supported way for third-party tools.
+ * Default: "max" mode (subscription login, like Claude Code / AutoClaude).
  *
- * Flow:
- * 1. User opens authorization URL in browser
+ * Flow (Max mode):
+ * 1. Build authorization URL → claude.ai/oauth/authorize
  * 2. User logs in with their Claude Pro/Max/Team account
- * 3. Callback receives authorization code
- * 4. Exchange code for tokens
- * 5. Use token to create an API key via console endpoint
- * 6. Store the API key (not the OAuth token) for future use
+ * 3. Anthropic redirects to console.anthropic.com/oauth/code/callback
+ *    which shows the auth code on screen
+ * 4. User pastes code back into our UI
+ * 5. Exchange code for tokens (access_token + refresh_token)
+ * 6. Store tokens — access_token used as Bearer for API calls
+ * 7. Auto-refresh when token expires (8 hours)
  */
 
 const CLAUDE_CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
+const CLAUDE_AUTH_URL_MAX = 'https://claude.ai/oauth/authorize';
 const CLAUDE_AUTH_URL_CONSOLE = 'https://console.anthropic.com/oauth/authorize';
 const CLAUDE_TOKEN_URL = 'https://console.anthropic.com/v1/oauth/token';
 const CLAUDE_CREATE_API_KEY_URL = 'https://api.anthropic.com/api/oauth/claude_cli/create_api_key';
 const CLAUDE_SCOPES = 'org:create_api_key user:profile user:inference';
 
-// We use a non-standard redirect URI that Anthropic's OAuth accepts
+// Anthropic's static callback that shows the code on screen
 const CLAUDE_REDIRECT_URI = 'https://console.anthropic.com/oauth/code/callback';
 
-// Local callback port for catching the redirect
-const CLAUDE_CALLBACK_PORT = 1456;
-const CLAUDE_CALLBACK_PATH = '/auth/claude-callback';
+/** Required beta header for OAuth-based API calls (Max mode) */
+export const CLAUDE_OAUTH_BETA_HEADER = 'oauth-2025-04-20';
+
+export type ClaudeOAuthMode = 'max' | 'console';
 
 export interface ClaudeTokenResponse {
   access_token: string;
@@ -49,13 +50,7 @@ export interface ClaudeApiKeyResponse {
   name: string;
 }
 
-export type ClaudeOAuthResult =
-  | { ok: true; apiKey: string; email: string | null; accountName: string | null }
-  | { ok: false; error: string };
-
-export type ClaudeOAuthCompleteHandler = (result: ClaudeOAuthResult) => void | Promise<void>;
-
-// ─── PKCE helpers (reuse same pattern as OpenAI) ─────────────
+// ─── PKCE helpers ─────────────────────────────────────────────
 
 export function generateClaudePKCE(): { codeVerifier: string; codeChallenge: string } {
   const bytes = randomBytes(32);
@@ -70,14 +65,19 @@ export function generateClaudeState(): string {
 }
 
 /**
- * Build the authorization URL for Anthropic Console OAuth.
- * The user opens this in their browser to authenticate.
+ * Build the authorization URL.
+ *   - "max" mode  → claude.ai/oauth/authorize  (subscription login)
+ *   - "console" mode → console.anthropic.com/oauth/authorize (API key creation)
  */
 export function buildClaudeAuthorizationUrl(params: {
   codeChallenge: string;
   state: string;
+  mode?: ClaudeOAuthMode;
 }): string {
-  const url = new URL(CLAUDE_AUTH_URL_CONSOLE);
+  const mode = params.mode ?? 'max';
+  const baseUrl = mode === 'max' ? CLAUDE_AUTH_URL_MAX : CLAUDE_AUTH_URL_CONSOLE;
+
+  const url = new URL(baseUrl);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', CLAUDE_CLIENT_ID);
   url.searchParams.set('redirect_uri', CLAUDE_REDIRECT_URI);
@@ -90,14 +90,13 @@ export function buildClaudeAuthorizationUrl(params: {
 
 /**
  * Exchange authorization code for tokens.
+ * Works the same for both max and console modes.
  */
 export async function exchangeClaudeCodeForTokens(params: {
   code: string;
   codeVerifier: string;
   state: string;
 }): Promise<ClaudeTokenResponse> {
-  // Anthropic token endpoint requires application/x-www-form-urlencoded (OAuth 2.0 standard)
-  // Must include state parameter as per Anthropic's implementation
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     code: params.code,
@@ -132,8 +131,8 @@ export async function exchangeClaudeCodeForTokens(params: {
 }
 
 /**
- * Use the OAuth access token to create an API key via Anthropic Console.
- * This creates a real API key that works with api.anthropic.com.
+ * Use the OAuth access token to create a permanent API key via Anthropic Console.
+ * Used in "console" mode only.
  */
 export async function createApiKeyFromOAuth(accessToken: string): Promise<ClaudeApiKeyResponse> {
   const response = await fetch(CLAUDE_CREATE_API_KEY_URL, {
@@ -149,14 +148,7 @@ export async function createApiKeyFromOAuth(accessToken: string): Promise<Claude
 
   if (!response.ok) {
     const errorText = await response.text();
-    // If the create-api-key endpoint is blocked, fall back to direct token usage
-    if (response.status === 403 || response.status === 404) {
-      console.log('[claude-oauth] API key creation endpoint not available, using access token directly');
-      return {
-        api_key: accessToken,
-        name: 'OAuth Access Token (direct)',
-      };
-    }
+    console.log(`[claude-oauth] Create API key failed (${response.status}):`, errorText);
     throw new Error(`Failed to create API key (${response.status}): ${errorText}`);
   }
 
@@ -165,7 +157,8 @@ export async function createApiKeyFromOAuth(accessToken: string): Promise<Claude
 
 /**
  * Refresh a Claude OAuth access token.
- * Note: Anthropic refresh tokens are single-use!
+ * Note: Anthropic refresh tokens are single-use — each refresh returns
+ * a new refresh_token that must be saved.
  */
 export async function refreshClaudeAccessToken(refreshToken: string): Promise<ClaudeTokenResponse> {
   const body = new URLSearchParams({
@@ -188,177 +181,16 @@ export async function refreshClaudeAccessToken(refreshToken: string): Promise<Cl
   return response.json() as Promise<ClaudeTokenResponse>;
 }
 
-// ─── Temporary Callback Server ───────────────────────────────
-// Anthropic uses a non-standard callback format: the code is delivered
-// to console.anthropic.com/oauth/code/callback, which then shows the
-// code on screen. We intercept by polling or using a local proxy.
-//
-// Alternative approach: We open the auth URL with our own local redirect.
-// Some Anthropic OAuth implementations accept localhost redirects.
-
-let activeClaudeCallbackServer: http.Server | null = null;
-
-/**
- * Start a temporary HTTP server to receive the Claude OAuth callback.
- * Since Anthropic's redirect goes to console.anthropic.com, the user
- * needs to copy-paste the code. Or we try localhost as redirect URI.
- *
- * This uses a "manual code entry" approach as fallback.
- */
-export function startClaudeCallbackServer(opts: {
-  onComplete: ClaudeOAuthCompleteHandler;
-  codeVerifier: string;
-  state: string;
-  timeoutMs?: number;
-}): Promise<void> {
-  const { onComplete, codeVerifier, state, timeoutMs = 300_000 } = opts;
-
-  return new Promise((resolveStartup, rejectStartup) => {
-    if (activeClaudeCallbackServer) {
-      try { activeClaudeCallbackServer.close(); } catch { /* ignore */ }
-      activeClaudeCallbackServer = null;
-    }
-
-    const handleRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
-      const url = new URL(req.url || '/', `http://localhost:${CLAUDE_CALLBACK_PORT}`);
-
-      // Handle callback with code parameter
-      if (url.pathname === CLAUDE_CALLBACK_PATH || url.pathname === '/callback') {
-        const code = url.searchParams.get('code');
-        const returnedState = url.searchParams.get('state');
-        const error = url.searchParams.get('error');
-
-        if (error) {
-          const errorDesc = url.searchParams.get('error_description') || error;
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-          res.end(claudeCallbackHtml(false, `Authentication error: ${errorDesc}`));
-          cleanup();
-          void onComplete({ ok: false, error: errorDesc });
-          return;
-        }
-
-        if (code) {
-          try {
-            // Exchange code for tokens
-            const tokens = await exchangeClaudeCodeForTokens({
-              code,
-              codeVerifier,
-              state: returnedState || state,
-            });
-
-            // Try to create an API key, fall back to direct token
-            let apiKey: string;
-            try {
-              const keyResult = await createApiKeyFromOAuth(tokens.access_token);
-              apiKey = keyResult.api_key;
-              console.log(`[claude-oauth] Created API key: ${keyResult.name}`);
-            } catch (keyErr) {
-              console.log('[claude-oauth] Using access token directly as API key');
-              apiKey = tokens.access_token;
-            }
-
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(claudeCallbackHtml(true, 'Claude connected! You can close this window.'));
-            cleanup();
-            void onComplete({ ok: true, apiKey, email: null, accountName: null });
-          } catch (err) {
-            const errMsg = err instanceof Error ? err.message : 'Token exchange failed';
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(claudeCallbackHtml(false, errMsg));
-            cleanup();
-            void onComplete({ ok: false, error: errMsg });
-          }
-          return;
-        }
-      }
-
-      // Handle manual code submission (POST /submit-code)
-      if (url.pathname === '/submit-code' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', () => {
-          void (async () => {
-            try {
-              const { code: manualCode } = JSON.parse(body) as { code: string };
-              if (!manualCode) throw new Error('No code provided');
-
-              const tokens = await exchangeClaudeCodeForTokens({
-                code: manualCode.trim(),
-                codeVerifier,
-                state,
-              });
-
-              let apiKey: string;
-              try {
-                const keyResult = await createApiKeyFromOAuth(tokens.access_token);
-                apiKey = keyResult.api_key;
-              } catch {
-                apiKey = tokens.access_token;
-              }
-
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true }));
-              cleanup();
-              void onComplete({ ok: true, apiKey, email: null, accountName: null });
-            } catch (err) {
-              const errMsg = err instanceof Error ? err.message : 'Code exchange failed';
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: errMsg }));
-            }
-          })();
-        });
-        return;
-      }
-
-      // Show manual code entry page
-      if (url.pathname === '/' || url.pathname === '/enter-code') {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(claudeCodeEntryHtml());
-        return;
-      }
-
-      res.writeHead(404);
-      res.end('Not found');
-    };
-
-    const server = http.createServer((req, res) => {
-      void handleRequest(req, res);
-    });
-
-    const timeout = setTimeout(() => {
-      cleanup();
-      void onComplete({ ok: false, error: 'Claude OAuth timed out (5 min). Please try again.' });
-    }, timeoutMs);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      try { server.close(); } catch { /* ignore */ }
-      activeClaudeCallbackServer = null;
-    }
-
-    server.on('error', (err) => {
-      const errMsg = err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'EADDRINUSE'
-        ? 'Port 1456 is in use. Please close it and try again.'
-        : err.message;
-      cleanup();
-      rejectStartup(new Error(errMsg));
-    });
-
-    server.listen(CLAUDE_CALLBACK_PORT, 'localhost', () => {
-      console.log(`[claude-oauth] Callback server listening on localhost:${CLAUDE_CALLBACK_PORT}`);
-      activeClaudeCallbackServer = server;
-      resolveStartup();
-    });
-  });
-}
-
 // ─── Setup Key Support ───────────────────────────────────────
 
 /**
  * Validate and use a setup key (sk-ant-oat01-...) directly.
  * These are long-lived OAuth tokens from `claude setup-token`.
- * We try to use it as an API key for the Messages API.
- * If blocked by Anthropic's third-party lockdown, we create an API key.
+ *
+ * Strategy:
+ * 1. Try using it directly as x-api-key (works for regular API keys)
+ * 2. If invalid as API key, try to create a real API key via the OAuth endpoint
+ * 3. If scope is insufficient, give a clear error message
  */
 export async function validateSetupKey(setupKey: string): Promise<{
   valid: boolean;
@@ -366,7 +198,7 @@ export async function validateSetupKey(setupKey: string): Promise<{
   method: 'direct' | 'created_key';
   error?: string;
 }> {
-  // First, try the setup key directly with a simple API call
+  // Step 1: Try the key directly as a standard API key
   try {
     const testResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -387,27 +219,51 @@ export async function validateSetupKey(setupKey: string): Promise<{
     }
 
     const errorText = await testResponse.text();
+    console.log(`[claude-oauth] Direct API key test failed (${testResponse.status}):`, errorText);
 
-    // If it's a "not authorized for third-party" error, try creating API key
-    if (testResponse.status === 403 && errorText.includes('Claude Code')) {
-      console.log('[claude-oauth] Setup key blocked for third-party use, trying to create API key...');
+    // Step 2: If it's an OAuth token (sk-ant-oat*), try to create an API key
+    if (setupKey.startsWith('sk-ant-oat')) {
+      console.log('[claude-oauth] Token is an OAuth token, trying to create API key...');
 
       try {
         const keyResult = await createApiKeyFromOAuth(setupKey);
         return { valid: true, apiKey: keyResult.api_key, method: 'created_key' };
       } catch (keyErr) {
+        const keyErrMsg = keyErr instanceof Error ? keyErr.message : '';
+        console.log('[claude-oauth] Create API key failed:', keyErrMsg);
+
+        // Check for specific scope error
+        if (keyErrMsg.includes('scope') || keyErrMsg.includes('permission')) {
+          return {
+            valid: false,
+            apiKey: setupKey,
+            method: 'direct',
+            error: 'This setup token does not have permission to create API keys. Please use "Sign in with Claude" instead, or create an API key at console.anthropic.com/settings/keys',
+          };
+        }
+
+        // Check for Claude Code restriction
+        if (keyErrMsg.includes('Claude Code') || (testResponse.status === 403 && errorText.includes('Claude Code'))) {
+          return {
+            valid: false,
+            apiKey: setupKey,
+            method: 'direct',
+            error: 'This setup token is restricted to Claude Code only and cannot be used by third-party applications. Please create an API key at console.anthropic.com/settings/keys',
+          };
+        }
+
         return {
           valid: false,
           apiKey: setupKey,
           method: 'direct',
-          error: 'This OAuth token is restricted to Claude Code only. Please use a regular API key from console.anthropic.com instead.',
+          error: 'This setup token cannot be used. Please create an API key at console.anthropic.com/settings/keys or use "Sign in with Claude".',
         };
       }
     }
 
-    // Other errors (invalid key, etc.)
+    // Not an OAuth token — standard API key error handling
     if (testResponse.status === 401) {
-      return { valid: false, apiKey: setupKey, method: 'direct', error: 'Invalid or expired setup key.' };
+      return { valid: false, apiKey: setupKey, method: 'direct', error: 'Invalid or expired API key.' };
     }
 
     return { valid: true, apiKey: setupKey, method: 'direct' };
@@ -419,63 +275,4 @@ export async function validateSetupKey(setupKey: string): Promise<{
       error: err instanceof Error ? err.message : 'Failed to validate setup key',
     };
   }
-}
-
-// ─── HTML Templates ──────────────────────────────────────────
-
-function claudeCallbackHtml(success: boolean, message: string): string {
-  const color = success ? '#a855f7' : '#ef4444';
-  const icon = success ? '✅' : '❌';
-  const title = success ? 'Connected!' : 'Error';
-  const safeMessage = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>EstimatePro - Claude ${title}</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff}
-.card{text-align:center;max-width:400px;padding:40px;border-radius:16px;background:#1a1a1a;border:1px solid #333}
-.icon{font-size:48px;margin-bottom:12px}h1{margin:0 0 8px;font-size:22px;color:${color}}
-p{margin:0;color:#999;font-size:14px;line-height:1.5}
-.note{margin-top:16px;font-size:12px;color:#666}</style></head>
-<body><div class="card">
-<div class="icon">${icon}</div>
-<h1>${title}</h1>
-<p>${safeMessage}</p>
-<p class="note">${success ? 'Return to EstimatePro settings page.' : 'Please try again from the settings page.'}</p>
-</div>
-<script>${success ? 'setTimeout(()=>window.close(),3000)' : ''}</script>
-</body></html>`;
-}
-
-function claudeCodeEntryHtml(): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>EstimatePro - Enter Claude Code</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0a0a0a;color:#fff}
-.card{text-align:center;max-width:500px;padding:40px;border-radius:16px;background:#1a1a1a;border:1px solid #333}
-h1{margin:0 0 8px;font-size:22px;color:#a855f7}
-p{margin:0 0 20px;color:#999;font-size:14px}
-input{width:100%;padding:12px;border-radius:8px;border:1px solid #333;background:#0a0a0a;color:#fff;font-family:monospace;font-size:14px;box-sizing:border-box;margin-bottom:12px}
-button{width:100%;padding:12px;border-radius:8px;border:none;background:#a855f7;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
-button:hover{background:#9333ea}
-.status{margin-top:12px;font-size:13px}
-.error{color:#ef4444}.success{color:#22c55e}</style></head>
-<body><div class="card">
-<h1>🧠 Claude OAuth</h1>
-<p>After logging in at Anthropic, paste the authorization code below:</p>
-<input id="code" type="text" placeholder="Paste authorization code here..." autofocus />
-<button onclick="submitCode()">Connect Claude</button>
-<div id="status" class="status"></div>
-</div>
-<script>
-async function submitCode(){
-  const code=document.getElementById('code').value.trim();
-  if(!code){document.getElementById('status').innerHTML='<span class="error">Please enter a code</span>';return}
-  document.getElementById('status').innerHTML='Connecting...';
-  try{
-    const r=await fetch('/submit-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
-    const d=await r.json();
-    if(d.success){document.getElementById('status').innerHTML='<span class="success">Connected! You can close this window.</span>';setTimeout(()=>window.close(),2000)}
-    else{document.getElementById('status').innerHTML='<span class="error">'+(d.error||'Failed')+'</span>'}
-  }catch(e){document.getElementById('status').innerHTML='<span class="error">'+e.message+'</span>'}
-}
-document.getElementById('code').addEventListener('keydown',e=>{if(e.key==='Enter')submitCode()});
-</script>
-</body></html>`;
 }

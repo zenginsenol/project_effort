@@ -3,12 +3,12 @@ import { expect, test } from '@playwright/test';
 test.describe('Critical flows', () => {
   test('auth/demo entry reaches dashboard route', async ({ page }) => {
     await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Go-live Control Center' })).toBeVisible();
   });
 
   test('project CRUD entry screen is available', async ({ page }) => {
     await page.goto('/dashboard/projects');
-    await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Kanban Project Dashboard' })).toBeVisible();
     await expect(page.getByPlaceholder('Project Name')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Create Project' })).toBeVisible();
   });
@@ -25,5 +25,11 @@ test.describe('Critical flows', () => {
     await expect(page.getByRole('heading', { name: 'Task Analyzer' })).toBeVisible();
     await expect(page.getByText('AI Text Analysis')).toBeVisible();
     await expect(page.getByRole('button', { name: /Analyze .* Extract Tasks/ })).toBeVisible();
+  });
+
+  test('effort workflow screen is available', async ({ page }) => {
+    await page.goto('/dashboard/effort');
+    await expect(page.getByRole('heading', { name: 'Effort & Cost Workflow' })).toBeVisible();
+    await expect(page.getByText('Step 1: Project & Calculation Parameters')).toBeVisible();
   });
 });

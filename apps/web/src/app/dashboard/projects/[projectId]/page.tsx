@@ -35,6 +35,12 @@ type SortOption = typeof sortOptions[number];
 type ViewOption = typeof viewOptions[number];
 type TaskStatus = Exclude<StatusOption, ''>;
 type TaskType = Exclude<TypeOption, ''>;
+type GithubConnectionOption = {
+  integrationId: string;
+  displayName: string;
+  updatedAt: string;
+  lastSyncAt: string | null;
+};
 
 type CreateTaskDraft = {
   title: string;
@@ -140,6 +146,7 @@ export default function ProjectDetailPage(): React.ReactElement {
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [githubRepoInput, setGithubRepoInput] = useState('');
   const [githubAutoSync, setGithubAutoSync] = useState(true);
+  const [selectedGithubIntegrationId, setSelectedGithubIntegrationId] = useState('');
   const [githubNotice, setGithubNotice] = useState('');
   const autoSyncedKeysRef = useRef(new Set<string>());
 
@@ -169,10 +176,18 @@ export default function ProjectDetailPage(): React.ReactElement {
     { id: selectedTaskId ?? EMPTY_UUID },
     { enabled: Boolean(selectedTaskId), retry: false },
   );
-  const githubProjectLinkQuery = trpc.integration.getGithubProjectLink.useQuery(
-    { projectId },
-    { enabled: Boolean(projectId), retry: false },
+  const githubProjectLinkInput = useMemo(
+    () => ({
+      projectId,
+      ...(selectedGithubIntegrationId ? { integrationId: selectedGithubIntegrationId } : {}),
+    }),
+    [projectId, selectedGithubIntegrationId],
   );
+  const githubProjectLinkQuery = trpc.integration.getGithubProjectLink.useQuery(githubProjectLinkInput, {
+    enabled: Boolean(projectId),
+    retry: false,
+  });
+  const githubConnections = (githubProjectLinkQuery.data?.availableConnections ?? []) as GithubConnectionOption[];
 
   const linkGithubProjectMutation = trpc.integration.linkGithubProject.useMutation({
     onSuccess: async (result) => {
@@ -216,8 +231,30 @@ export default function ProjectDetailPage(): React.ReactElement {
   }, [selectedTaskQuery.data]);
 
   useEffect(() => {
+    if (!selectedGithubIntegrationId && githubProjectLinkQuery.data?.integrationId) {
+      setSelectedGithubIntegrationId(githubProjectLinkQuery.data.integrationId);
+    }
+  }, [githubProjectLinkQuery.data?.integrationId, selectedGithubIntegrationId]);
+
+  useEffect(() => {
+    if (githubConnections.length === 0) {
+      if (selectedGithubIntegrationId) {
+        setSelectedGithubIntegrationId('');
+      }
+      return;
+    }
+    if (selectedGithubIntegrationId && githubConnections.some((item) => item.integrationId === selectedGithubIntegrationId)) {
+      return;
+    }
+    const firstIntegrationId = githubConnections[0]?.integrationId ?? '';
+    setSelectedGithubIntegrationId(firstIntegrationId);
+  }, [githubConnections, selectedGithubIntegrationId]);
+
+  useEffect(() => {
     const link = githubProjectLinkQuery.data?.link;
     if (!link) {
+      setGithubRepoInput('');
+      setGithubAutoSync(true);
       return;
     }
     setGithubRepoInput(link.externalProjectId);
@@ -238,18 +275,22 @@ export default function ProjectDetailPage(): React.ReactElement {
       return;
     }
 
-    const autoSyncKey = `${projectId}:${link.externalProjectId}`;
+    const autoSyncKey = `${projectId}:${selectedGithubIntegrationId}:${link.externalProjectId}`;
     if (autoSyncedKeysRef.current.has(autoSyncKey)) {
       return;
     }
 
     autoSyncedKeysRef.current.add(autoSyncKey);
-    syncGithubProjectMutation.mutate({ projectId });
+    syncGithubProjectMutation.mutate({
+      projectId,
+      ...(selectedGithubIntegrationId ? { integrationId: selectedGithubIntegrationId } : {}),
+    });
   }, [
     githubProjectLinkQuery.data?.connected,
     githubProjectLinkQuery.data?.link?.autoSync,
     githubProjectLinkQuery.data?.link?.externalProjectId,
     projectId,
+    selectedGithubIntegrationId,
     syncGithubProjectMutation,
   ]);
 
@@ -482,8 +523,8 @@ export default function ProjectDetailPage(): React.ReactElement {
       projectId,
       repository,
       autoSync: githubAutoSync,
-      ...(githubProjectLinkQuery.data?.integrationId
-        ? { integrationId: githubProjectLinkQuery.data.integrationId }
+      ...(selectedGithubIntegrationId
+        ? { integrationId: selectedGithubIntegrationId }
         : {}),
     });
   }
@@ -492,8 +533,8 @@ export default function ProjectDetailPage(): React.ReactElement {
     setGithubNotice('');
     syncGithubProjectMutation.mutate({
       projectId,
-      ...(githubProjectLinkQuery.data?.integrationId
-        ? { integrationId: githubProjectLinkQuery.data.integrationId }
+      ...(selectedGithubIntegrationId
+        ? { integrationId: selectedGithubIntegrationId }
         : {}),
     });
   }
@@ -574,31 +615,54 @@ export default function ProjectDetailPage(): React.ReactElement {
         )}
 
         {githubProjectLinkQuery.data?.connected && (
-          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
-            <input
-              type="text"
-              value={githubRepoInput}
-              onChange={(event) => setGithubRepoInput(event.target.value)}
-              placeholder="owner/repo or https://github.com/owner/repo"
-              className="rounded-md border bg-background/85 px-3 py-2 text-sm"
-            />
-            <button
-              onClick={handleSaveGithubLink}
-              disabled={!githubRepoInput.trim() || linkGithubProjectMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-md border bg-background/80 px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
-            >
-              <Link2 className="h-4 w-4" />
-              {linkGithubProjectMutation.isPending ? 'Linking...' : 'Save Link'}
-            </button>
-            <button
-              onClick={handleSyncGithubNow}
-              disabled={!githubRepoInput.trim() || syncGithubProjectMutation.isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncGithubProjectMutation.isPending ? 'animate-spin' : ''}`} />
-              {syncGithubProjectMutation.isPending ? 'Syncing...' : 'Sync Now'}
-            </button>
-          </div>
+          <>
+            <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,260px)_1fr]">
+              <label className="text-xs font-medium text-muted-foreground">GitHub connection</label>
+              <label className="text-xs font-medium text-muted-foreground">Repository for this project</label>
+              <select
+                value={selectedGithubIntegrationId}
+                onChange={(event) => {
+                  setSelectedGithubIntegrationId(event.target.value);
+                  setGithubNotice('');
+                }}
+                className="rounded-md border bg-background/85 px-3 py-2 text-sm"
+              >
+                {githubConnections.map((connection) => (
+                  <option key={connection.integrationId} value={connection.integrationId}>
+                    {connection.displayName}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={githubRepoInput}
+                onChange={(event) => setGithubRepoInput(event.target.value)}
+                placeholder="owner/repo or https://github.com/owner/repo"
+                className="rounded-md border bg-background/85 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="mt-3 grid gap-3 lg:grid-cols-[auto_auto]">
+              <button
+                onClick={handleSaveGithubLink}
+                disabled={!githubRepoInput.trim() || linkGithubProjectMutation.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-md border bg-background/80 px-3 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                <Link2 className="h-4 w-4" />
+                {linkGithubProjectMutation.isPending ? 'Linking...' : 'Save Link'}
+              </button>
+              <button
+                onClick={handleSyncGithubNow}
+                disabled={!githubRepoInput.trim() || syncGithubProjectMutation.isPending}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncGithubProjectMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncGithubProjectMutation.isPending ? 'Syncing...' : 'Sync Now'}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Each project can map to a different `owner/repo` and different GitHub connection.
+            </p>
+          </>
         )}
 
         {githubProjectLinkQuery.data?.connected && (

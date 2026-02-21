@@ -126,14 +126,10 @@ async function getUserAIConfig(
     conditions.push(eq(apiKeys.provider, targetProvider));
   }
 
-  const keys = await db
-    .select()
-    .from(apiKeys)
-    .where(and(...conditions));
-
-  if (keys.length === 0) return null;
-
-  const [key] = keys;
+  const key = await db.query.apiKeys.findFirst({
+    where: and(...conditions),
+    orderBy: (table, { desc: descFn }) => [descFn(table.updatedAt)],
+  });
   if (!key) return null;
 
   // Defensive guard: never allow provider override mismatches even if the query layer
@@ -179,6 +175,23 @@ async function getUserAIConfig(
         }
       }
 
+      // For OpenAI OAuth (ChatGPT subscription), extract account ID from JWT
+      let chatgptAccountId: string | null = null;
+      if (!isAnthropicOAuth) {
+        try {
+          const parts = accessToken.split('.');
+          if (parts.length === 3 && parts[1]) {
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+            chatgptAccountId = payload.chatgpt_account_id
+              ?? payload.account_id
+              ?? payload['https://api.openai.com/auth']?.account_id
+              ?? null;
+          }
+        } catch {
+          // Ignore JWT decode failures
+        }
+      }
+
       return {
         provider: key.provider as AIProvider,
         apiKey: accessToken,
@@ -186,6 +199,7 @@ async function getUserAIConfig(
         reasoningEffort: overrideEffort !== undefined ? overrideEffort : (key.reasoningEffort as ReasoningEffort) ?? undefined,
         authMethod: 'oauth',
         oauthBetaHeader: isAnthropicOAuth ? ANTHROPIC_OAUTH_BETA_HEADER : undefined,
+        chatgptAccountId: !isAnthropicOAuth ? chatgptAccountId : undefined,
       };
     }
 

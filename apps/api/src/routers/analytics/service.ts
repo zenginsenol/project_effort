@@ -6,6 +6,7 @@ import { estimates, projects, sessions, sprints, tasks } from '@estimate-pro/db/
 import { generateCSV, generatePDF, generateXLSX } from '../../services/export';
 import { hasProjectAccess } from '../../services/security/tenant-access';
 import { generateCalibrationRecommendations } from '../../services/ai/openai-client';
+import { findSimilarTasks } from '../../services/ai/similarity';
 import type { ExportData } from '../../services/export';
 
 function taskWeight(task: { estimatedPoints: number | null }): number {
@@ -658,6 +659,32 @@ export class AnalyticsService {
     });
 
     return recommendations;
+  }
+
+  async getSimilarTasksWithOutcomes(taskId: string, limit: number, orgId: string) {
+    const task = await db.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+      columns: {
+        id: true,
+        title: true,
+        description: true,
+        projectId: true,
+      },
+    });
+
+    if (!task) {
+      return [];
+    }
+
+    const allowed = await hasProjectAccess(task.projectId, orgId);
+    if (!allowed) {
+      return [];
+    }
+
+    const textContent = task.description ? `${task.title}\n${task.description}` : task.title;
+    const similarTasks = await findSimilarTasks(textContent, task.projectId, limit);
+
+    return similarTasks;
   }
 
   private async buildExportData(projectId: string, orgId: string): Promise<{

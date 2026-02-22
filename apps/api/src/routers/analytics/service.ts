@@ -4,7 +4,7 @@ import { db } from '@estimate-pro/db';
 import { estimates, projects, sessions, sprints, tasks } from '@estimate-pro/db/schema';
 
 import { withCache } from '../../middleware/cache-middleware';
-import { generateCSV, generatePDF, generateXLSX } from '../../services/export';
+import { generateCSV } from '../../services/export';
 import { hasProjectAccess } from '../../services/security/tenant-access';
 import type { ExportData } from '../../services/export';
 
@@ -356,6 +356,7 @@ export class AnalyticsService {
       return null;
     }
 
+    const { generateXLSX } = await import('../../services/export');
     const xlsx = generateXLSX(payload.exportData);
 
     return {
@@ -370,6 +371,7 @@ export class AnalyticsService {
       return null;
     }
 
+    const { generatePDF } = await import('../../services/export');
     const pdfBytes = await generatePDF(payload.exportData);
     const pdfBuffer = Buffer.from(pdfBytes);
 

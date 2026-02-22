@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { and, avg, count, eq, sql } from 'drizzle-orm';
 
 import { db } from '@estimate-pro/db';
@@ -430,18 +431,26 @@ export class AnalyticsService {
       if (!estimatesByMethod.has(method)) {
         estimatesByMethod.set(method, []);
       }
-      estimatesByMethod.get(method)!.push(est.value);
+      const methodArray = estimatesByMethod.get(method);
+      if (methodArray) {
+        methodArray.push(est.value);
+      }
 
       // Track by task and method
       if (!estimatesByTask.has(est.taskId)) {
         estimatesByTask.set(est.taskId, new Map());
         taskTitles.set(est.taskId, est.taskTitle);
       }
-      const taskMethods = estimatesByTask.get(est.taskId)!;
-      if (!taskMethods.has(method)) {
-        taskMethods.set(method, []);
+      const taskMethods = estimatesByTask.get(est.taskId);
+      if (taskMethods) {
+        if (!taskMethods.has(method)) {
+          taskMethods.set(method, []);
+        }
+        const methodArray = taskMethods.get(method);
+        if (methodArray) {
+          methodArray.push(est.value);
+        }
       }
-      taskMethods.get(method)!.push(est.value);
     }
 
     // Calculate statistics for each method
@@ -511,8 +520,8 @@ export class AnalyticsService {
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     const median = sorted.length % 2 === 0
-      ? (sorted[mid - 1]! + sorted[mid]!) / 2
-      : sorted[mid]!;
+      ? ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
+      : (sorted[mid] ?? 0);
 
     // Standard deviation
     const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
@@ -601,9 +610,17 @@ export class AnalyticsService {
     }
 
     if (methodStats.length === 1) {
+      const firstMethod = methodStats[0];
+      if (!firstMethod) {
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Unexpected empty methodStats',
+        });
+      }
+
       return {
-        preferredMethod: methodStats[0]!.method as 'planning_poker' | 'tshirt_sizing' | 'pert' | 'wideband_delphi',
-        reason: `Only one estimation method (${methodStats[0]!.method}) has been used`,
+        preferredMethod: firstMethod.method as 'planning_poker' | 'tshirt_sizing' | 'pert' | 'wideband_delphi',
+        reason: `Only one estimation method (${firstMethod.method}) has been used`,
         confidenceLevel: 'low',
       };
     }

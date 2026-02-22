@@ -61,7 +61,6 @@ export function MethodComparisonChart({ taskComparisons, className }: MethodComp
   const barWidth = Math.min(20, barGroupWidth / allMethods.length - 4);
   const chartWidth = Math.max(800, taskComparisons.length * (barGroupWidth + 20));
   const plotHeight = chartHeight - chartPadding.top - chartPadding.bottom;
-  const plotWidth = chartWidth - chartPadding.left - chartPadding.right;
 
   // Calculate scale
   const yScale = (value: number): number => {

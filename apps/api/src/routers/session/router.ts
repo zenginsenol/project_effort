@@ -18,7 +18,7 @@ export const sessionRouter = router({
   create: orgProcedure
     .input(createSessionInput)
     .mutation(async ({ ctx, input }) => {
-      const session = await sessionService.create(ctx.orgId, input);
+      const session = await sessionService.create(ctx.orgId, input, ctx.userId ?? undefined);
       if (!session) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Project access denied' });
       }
@@ -100,6 +100,7 @@ export const sessionRouter = router({
         input.sessionId,
         input.finalEstimate,
         ctx.orgId,
+        ctx.userId ?? undefined,
       );
       if (!session) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Session not found' });

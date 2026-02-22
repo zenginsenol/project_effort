@@ -1,11 +1,12 @@
 'use client';
 
 import { Command } from 'cmdk';
-import { FileSearch, Loader2, Search, X } from 'lucide-react';
+import { Briefcase, Calculator, FileSearch, FolderKanban, Loader2, Search, Users, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { SearchResultItem } from '@/components/search/search-result-item';
+import { useSearch } from '@/components/search/use-search';
 import { useKeyboardShortcut } from '@/hooks/use-keyboard-shortcut';
 import { cn } from '@/lib/utils';
 
@@ -15,23 +16,31 @@ interface CommandPaletteProps {
   className?: string;
 }
 
-// Mock data for now - will be replaced with actual search in next subtask
-const MOCK_RECENT_SEARCHES: string[] = [];
-const MOCK_SEARCH_RESULTS: SearchResult[] = [];
-
 export function CommandPalette({ className }: CommandPaletteProps): React.ReactElement {
   const router = useRouter();
   const { isOpen, close } = useKeyboardShortcut({ key: 'k', ctrlKey: true, metaKey: true });
   const [search, setSearch] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [results, setResults] = useState<SearchResult[]>(MOCK_SEARCH_RESULTS);
-  const [recentSearches, setRecentSearches] = useState<string[]>(MOCK_RECENT_SEARCHES);
+  const [entityTypeFilter, setEntityTypeFilter] = useState<EntityType[] | undefined>(undefined);
+
+  // Use the search hook with tRPC integration
+  const { data: searchData, isLoading, recentSearches } = useSearch(
+    {
+      query: search,
+      entityTypes: entityTypeFilter,
+    },
+    {
+      enabled: isOpen,
+    }
+  );
+
+  const results = searchData?.results ?? [];
+  const recentSearchQueries = recentSearches.map((rs) => rs.query);
 
   // Reset search when palette closes
   useEffect(() => {
     if (!isOpen) {
       setSearch('');
-      setResults([]);
+      setEntityTypeFilter(undefined);
     }
   }, [isOpen]);
 
@@ -75,6 +84,23 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
     setSearch(query);
   };
 
+  const toggleEntityFilter = (entityType: EntityType): void => {
+    setEntityTypeFilter((prev) => {
+      if (!prev) {
+        return [entityType];
+      }
+      if (prev.includes(entityType)) {
+        const newFilter = prev.filter((t) => t !== entityType);
+        return newFilter.length > 0 ? newFilter : undefined;
+      }
+      return [...prev, entityType];
+    });
+  };
+
+  const isEntityTypeActive = (entityType: EntityType): boolean => {
+    return entityTypeFilter?.includes(entityType) ?? false;
+  };
+
   // Group results by entity type
   const groupedResults = results.reduce<Record<EntityType, SearchResult[]>>(
     (acc, result) => {
@@ -93,7 +119,7 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
   );
 
   const hasResults = results.length > 0;
-  const hasRecentSearches = recentSearches.length > 0;
+  const hasRecentSearches = recentSearchQueries.length > 0;
   const showEmptyState = !isLoading && search.length > 0 && !hasResults;
   const showRecentSearches = !isLoading && search.length === 0 && hasRecentSearches;
 
@@ -117,27 +143,85 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
           shouldFilter={false}
         >
           {/* Search Input */}
-          <div className="flex items-center border-b border-border px-4">
-            <Search className="mr-2 h-5 w-5 shrink-0 text-muted-foreground" />
-            <Command.Input
-              value={search}
-              onValueChange={setSearch}
-              placeholder="Search projects, tasks, cost analyses, sessions..."
-              className="flex h-14 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-              autoFocus
-            />
-            {isLoading && (
-              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
-            )}
-            {search.length > 0 && !isLoading && (
+          <div className="border-b border-border">
+            <div className="flex items-center px-4">
+              <Search className="mr-2 h-5 w-5 shrink-0 text-muted-foreground" />
+              <Command.Input
+                value={search}
+                onValueChange={setSearch}
+                placeholder="Search projects, tasks, cost analyses, sessions..."
+                className="flex h-14 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                autoFocus
+              />
+              {isLoading && (
+                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />
+              )}
+              {search.length > 0 && !isLoading && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="shrink-0 rounded-sm p-1 hover:bg-accent"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+
+            {/* Entity Type Filters */}
+            <div className="flex gap-2 px-4 pb-3">
               <button
-                onClick={() => setSearch('')}
-                className="shrink-0 rounded-sm p-1 hover:bg-accent"
-                aria-label="Clear search"
+                onClick={() => toggleEntityFilter('projects')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
+                  isEntityTypeActive('projects')
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80'
+                )}
+                data-testid="filter-projects"
               >
-                <X className="h-4 w-4 text-muted-foreground" />
+                <FolderKanban className="h-3.5 w-3.5" />
+                <span>Projects</span>
               </button>
-            )}
+              <button
+                onClick={() => toggleEntityFilter('tasks')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
+                  isEntityTypeActive('tasks')
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80'
+                )}
+                data-testid="filter-tasks"
+              >
+                <Briefcase className="h-3.5 w-3.5" />
+                <span>Tasks</span>
+              </button>
+              <button
+                onClick={() => toggleEntityFilter('cost_analyses')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
+                  isEntityTypeActive('cost_analyses')
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80'
+                )}
+                data-testid="filter-cost-analyses"
+              >
+                <Calculator className="h-3.5 w-3.5" />
+                <span>Cost Analyses</span>
+              </button>
+              <button
+                onClick={() => toggleEntityFilter('sessions')}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs transition-colors',
+                  isEntityTypeActive('sessions')
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted hover:bg-muted/80'
+                )}
+                data-testid="filter-sessions"
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>Sessions</span>
+              </button>
+            </div>
           </div>
 
           {/* Results */}
@@ -163,7 +247,7 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
             {/* Recent Searches */}
             {showRecentSearches && (
               <Command.Group heading="Recent Searches" className="px-2 py-2">
-                {recentSearches.map((query, index) => (
+                {recentSearchQueries.map((query, index) => (
                   <Command.Item
                     key={`recent-${index}`}
                     onSelect={() => handleRecentSearchClick(query)}

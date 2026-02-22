@@ -3,9 +3,18 @@ import { and, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '@estimate-pro/db';
 import { costAnalyses, projects, sessions, tasks } from '@estimate-pro/db/schema';
 
-import type { EntityType, SearchInput, SearchOutput, SearchResultItem } from './schema';
+import type { EntityType, RecentSearchOutput, SearchInput, SearchOutput, SearchResultItem } from './schema';
+
+interface RecentSearch {
+  query: string;
+  entityTypes?: EntityType[];
+  timestamp: string;
+}
 
 export class SearchService {
+  // In-memory storage for recent searches (TODO: Replace with Redis or PostgreSQL)
+  private recentSearchesCache = new Map<string, RecentSearch[]>();
+  private readonly MAX_RECENT_SEARCHES = 10;
   /**
    * Search across projects using PostgreSQL full-text search
    */
@@ -263,7 +272,7 @@ export class SearchService {
   /**
    * Main search method that searches across all entity types
    */
-  async search(input: SearchInput, organizationId: string): Promise<SearchOutput> {
+  async search(input: SearchInput, organizationId: string, userId: string): Promise<SearchOutput> {
     const { query, entityTypes, projectId, status, dateRange } = input;
     const filters = { projectId, status, dateRange };
 
@@ -296,6 +305,9 @@ export class SearchService {
       ...sessionResults,
     ].sort((a, b) => b.relevanceScore - a.relevanceScore);
 
+    // Save this search to recent searches
+    this.saveSearch(userId, organizationId, query, entityTypes);
+
     return {
       results: allResults,
       totalCount: allResults.length,
@@ -305,6 +317,56 @@ export class SearchService {
         cost_analyses: costAnalysisResults,
         sessions: sessionResults,
       },
+    };
+  }
+
+  /**
+   * Save a search to recent searches for a user
+   */
+  private saveSearch(
+    userId: string,
+    organizationId: string,
+    query: string,
+    entityTypes?: EntityType[],
+  ): void {
+    const cacheKey = `${userId}_${organizationId}`;
+    const recentSearch: RecentSearch = {
+      query,
+      entityTypes,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Get existing searches for this user+org
+    const existingSearches = this.recentSearchesCache.get(cacheKey) || [];
+
+    // Remove duplicate searches with same query and entityTypes
+    const filteredSearches = existingSearches.filter((search) => {
+      if (search.query !== query) return true;
+      // Check if entityTypes are the same
+      const existingTypes = search.entityTypes?.sort().join(',') || '';
+      const newTypes = entityTypes?.sort().join(',') || '';
+      return existingTypes !== newTypes;
+    });
+
+    // Add new search at the beginning
+    const updatedSearches = [recentSearch, ...filteredSearches];
+
+    // Keep only the last MAX_RECENT_SEARCHES
+    const trimmedSearches = updatedSearches.slice(0, this.MAX_RECENT_SEARCHES);
+
+    // Save back to cache
+    this.recentSearchesCache.set(cacheKey, trimmedSearches);
+  }
+
+  /**
+   * Get recent searches for a user within an organization
+   */
+  getRecentSearches(userId: string, organizationId: string): RecentSearchOutput {
+    const cacheKey = `${userId}_${organizationId}`;
+    const searches = this.recentSearchesCache.get(cacheKey) || [];
+
+    return {
+      searches,
     };
   }
 }

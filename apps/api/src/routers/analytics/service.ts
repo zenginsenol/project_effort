@@ -255,6 +255,88 @@ export class AnalyticsService {
     }));
   }
 
+  async getAccuracyTrends(projectId: string, orgId: string) {
+    const allowed = await hasProjectAccess(projectId, orgId);
+    if (!allowed) {
+      return [];
+    }
+
+    const tasksWithBoth = await db
+      .select({
+        estimatedHours: tasks.estimatedHours,
+        actualHours: tasks.actualHours,
+        updatedAt: tasks.updatedAt,
+      })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.projectId, projectId),
+          sql`${tasks.estimatedHours} IS NOT NULL`,
+          sql`${tasks.actualHours} IS NOT NULL`,
+          sql`${tasks.estimatedHours} > 0`,
+        ),
+      )
+      .orderBy(tasks.updatedAt);
+
+    if (tasksWithBoth.length === 0) {
+      return [];
+    }
+
+    const windows = [
+      { weeks: 4, label: '4 weeks' },
+      { weeks: 8, label: '8 weeks' },
+      { weeks: 12, label: '12 weeks' },
+    ];
+
+    const now = new Date();
+
+    return windows.map((window) => {
+      const windowStart = new Date(now);
+      windowStart.setUTCDate(windowStart.getUTCDate() - (window.weeks * 7));
+
+      const windowTasks = tasksWithBoth.filter(
+        (task) => task.updatedAt >= windowStart && task.updatedAt <= now,
+      );
+
+      if (windowTasks.length === 0) {
+        return {
+          window: window.label,
+          weeks: window.weeks,
+          accuracyScore: 0,
+          taskCount: 0,
+          averageVariance: 0,
+        };
+      }
+
+      let totalAccuracy = 0;
+      let totalVariance = 0;
+
+      for (const task of windowTasks) {
+        const estimated = task.estimatedHours ?? 0;
+        const actual = task.actualHours ?? 0;
+
+        if (estimated > 0 && actual > 0) {
+          const accuracy = Math.min((estimated / actual) * 100, 200);
+          totalAccuracy += accuracy;
+
+          const variance = ((actual - estimated) / estimated) * 100;
+          totalVariance += variance;
+        }
+      }
+
+      const avgAccuracy = totalAccuracy / windowTasks.length;
+      const avgVariance = totalVariance / windowTasks.length;
+
+      return {
+        window: window.label,
+        weeks: window.weeks,
+        accuracyScore: roundTo2(avgAccuracy),
+        taskCount: windowTasks.length,
+        averageVariance: roundTo2(avgVariance),
+      };
+    });
+  }
+
   private async buildExportData(projectId: string, orgId: string): Promise<{
     safeProjectKey: string;
     dateStamp: string;

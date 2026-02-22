@@ -10,6 +10,7 @@ import {
   Key,
   Plug,
   Settings,
+  Webhook,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -114,12 +115,20 @@ export const dashboardNavItems: DashboardNavItem[] = [
     order: 10,
   },
   {
+    name: 'Webhooks',
+    href: '/dashboard/webhooks',
+    icon: Webhook,
+    description: 'Event bildirimlerini yapilandir',
+    phase: 'Operate',
+    order: 11,
+  },
+  {
     name: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
     description: 'AI provider key/model ve genel ayarlar',
     phase: 'Operate',
-    order: 11,
+    order: 12,
   },
 ];
 

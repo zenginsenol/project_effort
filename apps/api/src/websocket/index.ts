@@ -223,6 +223,22 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
       });
     });
 
+    socket.on('user-status-changed', async (data: { sessionId: string; status: string }) => {
+      const authorized = await authorizeSessionEvent(socket, data.sessionId);
+      if (!authorized) {
+        return;
+      }
+      const currentIdentity = getSocketIdentity(socket);
+      if (!currentIdentity) {
+        return;
+      }
+
+      socket.to(`session:${data.sessionId}`).emit('user-status-changed', {
+        userId: currentIdentity.userId,
+        status: data.status,
+      });
+    });
+
     socket.on('heartbeat', () => {
       socket.data.lastActivity = Date.now();
       socket.emit('heartbeat-ack');

@@ -27,7 +27,9 @@ export const sessionParticipants = pgTable('session_participants', {
   sessionId: uuid('session_id').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   isOnline: boolean('is_online').notNull().default(false),
+  status: text('status').notNull().default('active'),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
 }, (table) => [
   index('idx_session_participants_session_id').on(table.sessionId),
 ]);

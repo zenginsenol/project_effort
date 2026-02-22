@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server';
 
 import { orgProcedure, router } from '../../trpc/trpc';
 
-import { burndownInput, projectAnalyticsInput, velocityInput } from './schema';
+import { burndownInput, methodComparisonInput, projectAnalyticsInput, velocityInput } from './schema';
 import { analyticsService } from './service';
 
 export const analyticsRouter = router({
@@ -34,6 +34,18 @@ export const analyticsRouter = router({
     .input(projectAnalyticsInput)
     .query(async ({ ctx, input }) => {
       return analyticsService.getTeamBias(input.projectId, ctx.orgId);
+    }),
+
+  methodComparison: orgProcedure
+    .input(methodComparisonInput)
+    .query(async ({ ctx, input }) => {
+      return analyticsService.getMethodComparison(
+        input.projectId,
+        input.taskIds,
+        input.dateFrom,
+        input.dateTo,
+        ctx.orgId,
+      );
     }),
 
   exportCsv: orgProcedure

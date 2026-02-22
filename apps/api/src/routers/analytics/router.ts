@@ -77,4 +77,24 @@ export const analyticsRouter = router({
       }
       return payload;
     }),
+
+  exportMethodComparisonCsv: orgProcedure
+    .input(methodComparisonInput)
+    .query(async ({ ctx, input }) => {
+      const payload = await analyticsService.exportCsv(input.projectId, ctx.orgId);
+      if (!payload) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found or access denied' });
+      }
+      return payload;
+    }),
+
+  exportMethodComparisonXlsx: orgProcedure
+    .input(methodComparisonInput)
+    .query(async ({ ctx, input }) => {
+      const payload = await analyticsService.exportXlsx(input.projectId, ctx.orgId);
+      if (!payload) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found or access denied' });
+      }
+      return payload;
+    }),
 });

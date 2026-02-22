@@ -174,7 +174,7 @@ export default function MethodComparisonPage(): React.ReactElement {
                   <MethodStatsCard
                     key={stats.method}
                     stats={stats}
-                    isRecommended={data.recommendation?.recommendedMethod === stats.method}
+                    isRecommended={data.recommendation?.preferredMethod === stats.method}
                   />
                 ))}
               </div>

@@ -246,6 +246,28 @@ export class SessionService {
       with: { user: true },
     });
   }
+
+  async removeParticipant(sessionId: string, userId: string, orgId: string) {
+    const allowed = await hasSessionAccess(sessionId, orgId);
+    if (!allowed) {
+      return null;
+    }
+    const existing = await db.query.sessionParticipants.findFirst({
+      where: and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId),
+      ),
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    await db
+      .delete(sessionParticipants)
+      .where(eq(sessionParticipants.id, existing.id));
+    return existing;
+  }
 }
 
 export const sessionService = new SessionService();

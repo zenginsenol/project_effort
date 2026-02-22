@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 
 import { dashboardNavItems, getActiveNav, getNextNav, getPhaseMeta } from '@/components/layout/navigation-data';
+import { NotificationBell } from '@/components/notification/notification-bell';
 import { cn } from '@/lib/utils';
 
 export function Header(): React.ReactElement {
@@ -48,6 +49,7 @@ export function Header(): React.ReactElement {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           )}
+          <NotificationBell unreadCount={3} />
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="relative rounded-md border bg-background/80 p-2 hover:bg-muted"

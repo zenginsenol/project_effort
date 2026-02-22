@@ -17,6 +17,7 @@ export async function findSimilarTasks(
   similarity: number;
   estimatedPoints: number | null;
   estimatedHours: number | null;
+  actualHours: number | null;
 }>> {
   const { text: sanitized, isInjection } = sanitizeForAI(text);
   if (isInjection) {
@@ -36,6 +37,7 @@ export async function findSimilarTasks(
         similarity,
         estimatedPoints: tasks.estimatedPoints,
         estimatedHours: tasks.estimatedHours,
+        actualHours: tasks.actualHours,
       })
       .from(taskEmbeddings)
       .innerJoin(tasks, eq(taskEmbeddings.taskId, tasks.id))
@@ -49,6 +51,7 @@ export async function findSimilarTasks(
       similarity: Math.round((r.similarity ?? 0) * 100) / 100,
       estimatedPoints: r.estimatedPoints,
       estimatedHours: r.estimatedHours,
+      actualHours: r.actualHours,
     }));
   } catch (error) {
     console.error('Similarity search failed:', error);

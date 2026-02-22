@@ -25,6 +25,8 @@
     "migrate": "drizzle-kit migrate",
     "seed": "tsx src/seed.ts",
     "seed:demo": "tsx src/seed-demo.ts",
+    "seed:performance": "tsx src/seed-performance.ts",
+    "test:performance": "tsx src/test-performance.ts",
     "studio": "drizzle-kit studio",
     "clean": "rm -rf dist .turbo"
   },

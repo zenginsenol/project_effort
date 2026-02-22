@@ -1,6 +1,7 @@
 'use client';
 
 import { PlanCard } from '@/components/billing/plan-card';
+import { UsageChart } from '@/components/billing/usage-chart';
 
 // Plan limits from billing service
 const PLAN_DATA = {
@@ -42,6 +43,15 @@ export default function BillingPage(): React.ReactElement {
           Manage your subscription, view usage, and upgrade your plan
         </p>
       </div>
+
+      {/* Usage Statistics */}
+      <section className="mb-12">
+        <UsageChart
+          aiAnalyses={{ current: 3, limit: PLAN_DATA.free.limits.aiAnalysesPerMonth }}
+          projects={{ current: 1, limit: PLAN_DATA.free.limits.projects }}
+          teamMembers={{ current: 2, limit: PLAN_DATA.free.limits.teamMembers }}
+        />
+      </section>
 
       {/* Plan Comparison Cards */}
       <section className="mb-12">

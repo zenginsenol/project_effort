@@ -34,8 +34,10 @@ export async function registerRestApi(fastify: FastifyInstance): Promise<void> {
     const { projectsRoutes } = await import('./routes/v1/projects');
     await api.register(projectsRoutes, { prefix: '/projects' });
 
+    const { tasksRoutes } = await import('./routes/v1/tasks');
+    await api.register(tasksRoutes, { prefix: '/tasks' });
+
     // TODO: Register additional route modules here in phase-3
-    // await api.register(tasksRoutes, { prefix: '/tasks' });
     // await api.register(estimatesRoutes, { prefix: '/estimates' });
     // await api.register(costAnalysesRoutes, { prefix: '/cost-analyses' });
   }, { prefix: '/api/v1' });

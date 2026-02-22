@@ -23,3 +23,8 @@ export const skipOnboardingInput = z.object({
 export const resetOnboardingInput = z.object({
   userId: z.string().uuid(),
 });
+
+export const loadSampleDataInput = z.object({
+  userId: z.string().uuid(),
+  organizationId: z.string().uuid(),
+});

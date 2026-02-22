@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@estimate-pro/db';
-import { onboardingState } from '@estimate-pro/db/schema';
+import { onboardingState, projects, tasks } from '@estimate-pro/db/schema';
 
 export class OnboardingService {
   async getByUserId(userId: string) {
@@ -111,6 +111,157 @@ export class OnboardingService {
       .returning();
 
     return updated;
+  }
+
+  async loadSampleData(data: { userId: string; organizationId: string }) {
+    // Check for existing sample project
+    const existingProject = await db.query.projects.findFirst({
+      where: and(
+        eq(projects.organizationId, data.organizationId),
+        eq(projects.key, 'DEMO')
+      ),
+    });
+
+    if (existingProject) {
+      // Return existing project with task count
+      const taskCount = await db.query.tasks.findMany({
+        where: eq(tasks.projectId, existingProject.id),
+      });
+      return {
+        project: existingProject,
+        taskCount: taskCount.length,
+      };
+    }
+
+    // Create a sample project
+    const [project] = await db
+      .insert(projects)
+      .values({
+        organizationId: data.organizationId,
+        name: 'Demo Project - Getting Started',
+        key: 'DEMO',
+        description:
+          'Welcome to EstimatePro! This is a sample project with realistic tasks to help you explore the platform.',
+        defaultEstimationMethod: 'planning_poker',
+      })
+      .returning();
+
+    if (!project) {
+      return null;
+    }
+
+    // Sample task data for onboarding
+    const taskData: Array<{
+      title: string;
+      description: string;
+      type: 'epic' | 'feature' | 'story' | 'task' | 'subtask' | 'bug';
+      status: 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done';
+      priority: 'critical' | 'high' | 'medium' | 'low';
+      estimatedHours: number;
+      estimatedPoints: number;
+      actualHours: number | null;
+    }> = [
+      {
+        title: 'User Authentication System',
+        description: 'Implement user login, registration, and password reset',
+        type: 'epic',
+        status: 'done',
+        priority: 'critical',
+        estimatedHours: 80,
+        estimatedPoints: 34,
+        actualHours: 85,
+      },
+      {
+        title: 'OAuth Integration',
+        description: 'Add Google and GitHub OAuth providers',
+        type: 'feature',
+        status: 'done',
+        priority: 'high',
+        estimatedHours: 16,
+        estimatedPoints: 8,
+        actualHours: 18,
+      },
+      {
+        title: 'Dashboard Analytics',
+        description: 'Create analytics dashboard with charts and KPIs',
+        type: 'feature',
+        status: 'in_progress',
+        priority: 'high',
+        estimatedHours: 32,
+        estimatedPoints: 13,
+        actualHours: null,
+      },
+      {
+        title: 'API Rate Limiting',
+        description: 'Implement rate limiting for all API endpoints',
+        type: 'task',
+        status: 'todo',
+        priority: 'high',
+        estimatedHours: 8,
+        estimatedPoints: 5,
+        actualHours: null,
+      },
+      {
+        title: 'Email Notifications',
+        description: 'Send email notifications for important events',
+        type: 'feature',
+        status: 'todo',
+        priority: 'medium',
+        estimatedHours: 16,
+        estimatedPoints: 8,
+        actualHours: null,
+      },
+      {
+        title: 'Mobile Responsive Design',
+        description: 'Make all pages responsive for mobile devices',
+        type: 'task',
+        status: 'backlog',
+        priority: 'medium',
+        estimatedHours: 24,
+        estimatedPoints: 13,
+        actualHours: null,
+      },
+      {
+        title: 'Fix: Login redirect loop',
+        description: 'Users getting stuck in redirect loop after login',
+        type: 'bug',
+        status: 'todo',
+        priority: 'critical',
+        estimatedHours: 4,
+        estimatedPoints: 2,
+        actualHours: null,
+      },
+      {
+        title: 'Database Backup System',
+        description: 'Automated daily backups with retention policy',
+        type: 'task',
+        status: 'backlog',
+        priority: 'high',
+        estimatedHours: 12,
+        estimatedPoints: 5,
+        actualHours: null,
+      },
+    ];
+
+    // Insert all sample tasks
+    for (const t of taskData) {
+      await db.insert(tasks).values({
+        projectId: project.id,
+        title: t.title,
+        description: t.description,
+        type: t.type,
+        status: t.status,
+        priority: t.priority,
+        estimatedHours: t.estimatedHours,
+        estimatedPoints: t.estimatedPoints,
+        actualHours: t.actualHours,
+      });
+    }
+
+    return {
+      project,
+      taskCount: taskData.length,
+    };
   }
 }
 

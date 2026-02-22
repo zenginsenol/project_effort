@@ -5,6 +5,7 @@ import { authedProcedure, router } from '../../trpc/trpc';
 import {
   getOnboardingStateInput,
   initializeOnboardingStateInput,
+  loadSampleDataInput,
   resetOnboardingInput,
   skipOnboardingInput,
   updateOnboardingProgressInput,
@@ -65,5 +66,16 @@ export const onboardingRouter = router({
       throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to reset onboarding' });
     }
     return state;
+  }),
+
+  loadSampleData: authedProcedure.input(loadSampleDataInput).mutation(async ({ ctx, input }) => {
+    if (input.userId !== ctx.userId) {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'User ID mismatch' });
+    }
+    const result = await onboardingService.loadSampleData(input);
+    if (!result) {
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to load sample data' });
+    }
+    return result;
   }),
 });

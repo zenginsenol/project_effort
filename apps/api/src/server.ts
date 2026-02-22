@@ -52,6 +52,53 @@ async function start(): Promise<void> {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
+  // Stripe webhook endpoint - must preserve raw body for signature verification
+  fastify.post('/webhooks/stripe', {
+    bodyLimit: 1048576, // 1MB limit for webhook payloads
+    preParsing: async (request, reply, payload) => {
+      // Capture raw body before Fastify parses it
+      const chunks: Buffer[] = [];
+      for await (const chunk of payload) {
+        chunks.push(chunk);
+      }
+      const rawBody = Buffer.concat(chunks);
+
+      // Attach raw body to request for use in handler
+      (request as { rawBody?: Buffer }).rawBody = rawBody;
+
+      // Return stream for Fastify to continue parsing
+      const { Readable } = await import('stream');
+      return Readable.from(rawBody);
+    },
+  }, async (request, reply) => {
+    try {
+      const signature = request.headers['stripe-signature'];
+      if (!signature || typeof signature !== 'string') {
+        return reply.status(400).send({ error: 'Missing stripe-signature header' });
+      }
+
+      const rawBody = (request as { rawBody?: Buffer }).rawBody;
+      if (!rawBody) {
+        return reply.status(400).send({ error: 'Missing request body' });
+      }
+
+      const { stripeService } = await import('./services/stripe/stripe-client');
+      const { stripeWebhookHandler } = await import('./services/stripe/webhook-handler');
+
+      // Verify webhook signature and construct event
+      const event = await stripeService.constructWebhookEvent(rawBody, signature);
+
+      // Handle the webhook event
+      await stripeWebhookHandler.handleWebhook(event);
+
+      return { received: true };
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Webhook processing failed';
+      fastify.log.error('[stripe-webhook]', errMsg);
+      return reply.status(400).send({ error: errMsg });
+    }
+  });
+
   // REST endpoint for file upload + AI analysis (tRPC doesn't support file uploads)
   fastify.post('/api/analyze-document', async (request, reply) => {
     try {

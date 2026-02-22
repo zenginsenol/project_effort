@@ -12,7 +12,7 @@ export const teamRouter = router({
       if (input.organizationId !== ctx.orgId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Organization mismatch' });
       }
-      const member = await teamService.addMember({ ...input, organizationId: ctx.orgId });
+      const member = await teamService.addMember({ ...input, organizationId: ctx.orgId }, ctx.userId);
       if (!member) {
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to add member' });
       }
@@ -38,7 +38,7 @@ export const teamRouter = router({
       if (input.organizationId !== ctx.orgId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Organization mismatch' });
       }
-      const member = await teamService.removeMember(ctx.orgId, input.userId);
+      const member = await teamService.removeMember(ctx.orgId, input.userId, ctx.userId);
       if (!member) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Member not found' });
       }

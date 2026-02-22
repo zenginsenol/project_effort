@@ -3,6 +3,7 @@ import { router, publicProcedure } from '../trpc/trpc';
 import { aiRouter } from './ai/router';
 import { analyticsRouter } from './analytics/router';
 import { apiKeysRouter } from './api-keys/router';
+import { billingRouter } from './billing/router';
 import { documentRouter } from './document/router';
 import { effortRouter } from './effort/router';
 import { integrationRouter } from './integration/router';
@@ -26,6 +27,7 @@ export const appRouter = router({
   ai: aiRouter,
   analytics: analyticsRouter,
   apiKeys: apiKeysRouter,
+  billing: billingRouter,
   document: documentRouter,
   effort: effortRouter,
   integration: integrationRouter,

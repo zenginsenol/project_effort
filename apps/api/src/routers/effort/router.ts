@@ -201,7 +201,7 @@ export const effortRouter = router({
     .input(effortExportAnalysisInput)
     .query(async ({ ctx, input }) => {
       try {
-        return await costAnalysisService.exportAnalysis(input.analysisId, ctx.orgId, input.format);
+        return await costAnalysisService.exportAnalysis(input.analysisId, ctx.orgId, input.format, ctx.userId ?? undefined);
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Analysis not found' });

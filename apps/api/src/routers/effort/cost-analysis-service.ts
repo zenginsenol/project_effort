@@ -9,6 +9,7 @@ import { decrypt, encrypt } from '../../services/crypto';
 import { isTokenExpired, refreshAccessToken } from '../../services/oauth/openai-oauth';
 import { refreshClaudeAccessToken, CLAUDE_OAUTH_BETA_HEADER } from '../../services/oauth/claude-oauth';
 import { decryptToken } from '../../services/security/token-crypto';
+import { activityService } from '../activity/service';
 
 type TaskType = typeof tasks.type.enumValues[number];
 type TaskPriority = typeof tasks.priority.enumValues[number];
@@ -966,6 +967,23 @@ export class CostAnalysisService {
       throw new Error('Failed to save analysis');
     }
 
+    // Record activity
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType: 'cost_analysis_created',
+      entityType: 'cost_analysis',
+      entityId: created.id,
+      actorId: createdByUserId ?? undefined,
+      projectId,
+      metadata: {
+        analysisName: created.name,
+        sourceType: created.sourceType,
+        totalCost: calculated.summary.totalCost,
+        totalHours: calculated.summary.totalWithContingency,
+        currency: calculated.summary.currency,
+      },
+    });
+
     return this.buildAnalysisOutput(created, project);
   }
 
@@ -1046,6 +1064,25 @@ export class CostAnalysisService {
     if (!created) {
       throw new Error('Failed to save AI analysis');
     }
+
+    // Record activity
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType: 'cost_analysis_created',
+      entityType: 'cost_analysis',
+      entityId: created.id,
+      actorId: createdByUserId ?? undefined,
+      projectId,
+      metadata: {
+        analysisName: created.name,
+        sourceType: created.sourceType,
+        sourceProvider: created.sourceProvider,
+        sourceModel: created.sourceModel,
+        totalCost: calculated.summary.totalCost,
+        totalHours: calculated.summary.totalWithContingency,
+        currency: calculated.summary.currency,
+      },
+    });
 
     return this.buildAnalysisOutput(created, project);
   }
@@ -1259,36 +1296,53 @@ export class CostAnalysisService {
     return `${summaryCsv}\n\n${tasksCsv}`;
   }
 
-  async exportAnalysis(analysisId: string, orgId: string, format: AnalysisExportFormat) {
+  async exportAnalysis(analysisId: string, orgId: string, format: AnalysisExportFormat, actorClerkId?: string) {
     const analysis = await this.getAnalysisById(analysisId, orgId);
     const safeProjectKey = analysis.project.key.toLowerCase().replace(/[^a-z0-9_-]+/g, '-');
     const safeAnalysisName = slugify(analysis.name) || 'analysis';
     const dateStamp = formatDateForFilename(new Date());
 
+    let result;
     if (format === 'json') {
-      return {
+      result = {
         filename: `${safeProjectKey}-${safeAnalysisName}-${dateStamp}.json`,
         format,
         mimeType: 'application/json',
         content: JSON.stringify(analysis, null, 2),
       };
-    }
-
-    if (format === 'md') {
-      return {
+    } else if (format === 'md') {
+      result = {
         filename: `${safeProjectKey}-${safeAnalysisName}-${dateStamp}.md`,
         format,
         mimeType: 'text/markdown',
         content: this.buildMarkdownExport(analysis),
       };
+    } else {
+      result = {
+        filename: `${safeProjectKey}-${safeAnalysisName}-${dateStamp}.csv`,
+        format: 'csv' as const,
+        mimeType: 'text/csv;charset=utf-8',
+        content: this.buildCsvExport(analysis),
+      };
     }
 
-    return {
-      filename: `${safeProjectKey}-${safeAnalysisName}-${dateStamp}.csv`,
-      format: 'csv' as const,
-      mimeType: 'text/csv;charset=utf-8',
-      content: this.buildCsvExport(analysis),
-    };
+    // Record activity
+    const actorId = actorClerkId ? await this.resolveCreatedByUserId(actorClerkId) : null;
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType: 'cost_analysis_exported',
+      entityType: 'cost_analysis',
+      entityId: analysisId,
+      actorId: actorId ?? undefined,
+      projectId: analysis.projectId,
+      metadata: {
+        analysisName: analysis.name,
+        exportFormat: format,
+        fileName: result.filename,
+      },
+    });
+
+    return result;
   }
 
   private async listActiveGithubIntegrations(orgId: string) {

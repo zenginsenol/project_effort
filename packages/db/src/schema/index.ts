@@ -9,5 +9,8 @@ export * from './sessions';
 export * from './sprints';
 export * from './integrations';
 export * from './api-keys';
+export * from './subscriptions';
+export * from './invoices';
+export * from './usage-tracking';
 export * from './relations';
 export * from './embeddings';

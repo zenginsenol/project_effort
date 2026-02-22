@@ -4,6 +4,7 @@ import {
   Calculator,
   CalendarDays,
   Clock,
+  CreditCard,
   FolderKanban,
   GitCompareArrows,
   Home,
@@ -105,12 +106,20 @@ export const dashboardNavItems: DashboardNavItem[] = [
     order: 9,
   },
   {
+    name: 'Billing',
+    href: '/dashboard/billing',
+    icon: CreditCard,
+    description: 'Abonelik ve odeme yonetimi',
+    phase: 'Operate',
+    order: 10,
+  },
+  {
     name: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
     description: 'AI provider key/model ve genel ayarlar',
     phase: 'Operate',
-    order: 10,
+    order: 11,
   },
 ];
 

@@ -1,8 +1,15 @@
-import { integer, pgTable, text, timestamp, uuid, index, real } from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, uuid, index, real, customType } from 'drizzle-orm/pg-core';
 
 import { taskPriorityEnum, taskStatusEnum, taskTypeEnum } from './enums';
 import { projects } from './projects';
 import { users } from './users';
+
+// Custom type for PostgreSQL tsvector (full-text search)
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
 
 export const tasks = pgTable('tasks', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -18,6 +25,7 @@ export const tasks = pgTable('tasks', {
   estimatedHours: real('estimated_hours'),
   actualHours: real('actual_hours'),
   sortOrder: integer('sort_order').notNull().default(0),
+  searchVector: tsvector('search_vector'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
@@ -25,4 +33,5 @@ export const tasks = pgTable('tasks', {
   index('idx_tasks_parent_id').on(table.parentId),
   index('idx_tasks_assignee_id').on(table.assigneeId),
   index('idx_tasks_status').on(table.status),
+  index('idx_tasks_search_vector').on(table.searchVector),
 ]);

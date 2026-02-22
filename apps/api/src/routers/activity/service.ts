@@ -80,6 +80,42 @@ export class ActivityService {
       offset: params.offset,
     };
   }
+
+  /**
+   * Helper function to record an activity with optional metadata and change tracking
+   * This is a convenience wrapper around create() for use in other services
+   */
+  async recordActivity(params: {
+    organizationId: string;
+    activityType: 'task_created' | 'task_updated' | 'task_status_changed' | 'session_created' | 'session_completed' | 'cost_analysis_created' | 'cost_analysis_exported' | 'integration_sync_completed' | 'member_joined' | 'member_left' | 'project_created' | 'project_updated' | 'project_deleted';
+    entityType: string;
+    entityId: string;
+    actorId?: string;
+    projectId?: string;
+    metadata?: Record<string, unknown>;
+    changes?: {
+      before?: Record<string, unknown>;
+      after?: Record<string, unknown>;
+      fields?: string[];
+    };
+  }) {
+    const activityMetadata: Record<string, unknown> = { ...params.metadata };
+
+    // Include change tracking if provided
+    if (params.changes) {
+      activityMetadata.changes = params.changes;
+    }
+
+    return this.create({
+      organizationId: params.organizationId,
+      projectId: params.projectId,
+      actorId: params.actorId,
+      activityType: params.activityType,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      metadata: activityMetadata,
+    });
+  }
 }
 
 export const activityService = new ActivityService();

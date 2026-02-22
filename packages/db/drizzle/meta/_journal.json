@@ -15,6 +15,13 @@
       "when": 1771794621413,
       "tag": "0001_smart_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771794777471,
+      "tag": "0002_next_slyde",
+      "breakpoints": true
     }
   ]
 }

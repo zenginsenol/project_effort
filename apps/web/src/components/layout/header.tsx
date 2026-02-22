@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { ArrowRight, Moon, Sparkles, Sun } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -7,6 +8,7 @@ import { useTheme } from 'next-themes';
 
 import { dashboardNavItems, getActiveNav, getNextNav, getPhaseMeta } from '@/components/layout/navigation-data';
 import { NotificationBell } from '@/components/notification/notification-bell';
+import { NotificationCenter } from '@/components/notification/notification-center';
 import { cn } from '@/lib/utils';
 
 export function Header(): React.ReactElement {
@@ -16,6 +18,7 @@ export function Header(): React.ReactElement {
   const nextNav = getNextNav(pathname);
   const phaseMeta = activeNav?.phase ? getPhaseMeta(activeNav.phase) : null;
   const quickMobileItems = dashboardNavItems.filter((item) => item.order <= 5);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
 
   return (
     <header className="border-b bg-card/80 backdrop-blur">
@@ -49,7 +52,13 @@ export function Header(): React.ReactElement {
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           )}
-          <NotificationBell unreadCount={3} />
+          <div className="relative">
+            <NotificationBell onClick={() => setIsNotificationCenterOpen(!isNotificationCenterOpen)} />
+            <NotificationCenter
+              isOpen={isNotificationCenterOpen}
+              onClose={() => setIsNotificationCenterOpen(false)}
+            />
+          </div>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="relative rounded-md border bg-background/80 p-2 hover:bg-muted"

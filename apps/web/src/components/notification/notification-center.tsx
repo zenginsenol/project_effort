@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 
+import { useNotifications } from '@/providers/notification-provider';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,7 @@ export function NotificationCenter({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const utils = trpc.useUtils();
+  const { socket, setUnreadCount } = useNotifications();
 
   // Fetch notifications with pagination
   // @ts-expect-error - notification router exists but types may not be synced yet
@@ -43,6 +45,8 @@ export function NotificationCenter({
     onSuccess: async () => {
       // @ts-expect-error - notification router exists but types may not be synced yet
       await utils.notification.list.invalidate();
+      // Decrement unread count
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     },
   });
 
@@ -52,8 +56,37 @@ export function NotificationCenter({
     onSuccess: async () => {
       // @ts-expect-error - notification router exists but types may not be synced yet
       await utils.notification.list.invalidate();
+      // Update unread count to 0 after marking all as read
+      setUnreadCount(0);
     },
   });
+
+  // Sync unread count from API response
+  useEffect(() => {
+    if (notificationsQuery.data) {
+      const notifications = (notificationsQuery.data as any)?.notifications ?? [];
+      const count = notifications.filter((n: any) => !n.isRead).length;
+      setUnreadCount(count);
+    }
+  }, [notificationsQuery.data, setUnreadCount]);
+
+  // Listen for real-time notifications via WebSocket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (notification: unknown): void => {
+      console.log('Real-time notification received:', notification);
+      // Invalidate queries to fetch fresh data
+      // @ts-expect-error - notification router exists but types may not be synced yet
+      void utils.notification.list.invalidate();
+    };
+
+    socket.on('notification', handleNewNotification);
+
+    return () => {
+      socket.off('notification', handleNewNotification);
+    };
+  }, [socket, utils]);
 
   // Handle click outside to close dropdown
   useEffect(() => {

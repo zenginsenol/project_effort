@@ -2,14 +2,15 @@
 
 import { Bell } from 'lucide-react';
 
+import { useNotifications } from '@/providers/notification-provider';
 import { cn } from '@/lib/utils';
 
 interface NotificationBellProps {
-  unreadCount?: number;
   onClick?: () => void;
 }
 
-export function NotificationBell({ unreadCount = 0, onClick }: NotificationBellProps): React.ReactElement {
+export function NotificationBell({ onClick }: NotificationBellProps): React.ReactElement {
+  const { unreadCount } = useNotifications();
   const hasUnread = unreadCount > 0;
   const displayCount = unreadCount > 99 ? '99+' : unreadCount.toString();
 

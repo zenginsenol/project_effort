@@ -3,6 +3,7 @@
 import { PlanCard } from '@/components/billing/plan-card';
 import { UsageChart } from '@/components/billing/usage-chart';
 import { PaymentMethod } from '@/components/billing/payment-method';
+import { InvoiceList } from '@/components/billing/invoice-list';
 
 // Plan limits from billing service
 const PLAN_DATA = {
@@ -57,6 +58,11 @@ export default function BillingPage(): React.ReactElement {
       {/* Payment Method */}
       <section className="mb-12">
         <PaymentMethod />
+      </section>
+
+      {/* Invoice History */}
+      <section className="mb-12">
+        <InvoiceList />
       </section>
 
       {/* Plan Comparison Cards */}

@@ -29,7 +29,20 @@ type EditableProject = {
 
 export default function ProjectsPage(): React.ReactElement {
   const utils = trpc.useUtils();
-  const projectsQuery = trpc.project.list.useQuery({ organizationId: '' }, { retry: false });
+  const projectsQuery = trpc.project.list.useInfiniteQuery(
+    { organizationId: '', limit: 20 },
+    {
+      retry: false,
+      getNextPageParam: (lastPage) => {
+        // If the response has pagination property, use it
+        if (lastPage && typeof lastPage === 'object' && 'pagination' in lastPage) {
+          const paginatedResponse = lastPage as { pagination: { nextCursor: string | null; hasMore: boolean } };
+          return paginatedResponse.pagination.hasMore ? paginatedResponse.pagination.nextCursor : undefined;
+        }
+        return undefined;
+      },
+    }
+  );
   const orgsQuery = trpc.organization.list.useQuery(undefined, { retry: false });
 
   const [name, setName] = useState('');
@@ -37,8 +50,20 @@ export default function ProjectsPage(): React.ReactElement {
   const [description, setDescription] = useState('');
   const [editing, setEditing] = useState<EditableProject | null>(null);
 
-  const orgId = projectsQuery.data?.[0]?.organizationId ?? orgsQuery.data?.[0]?.id ?? null;
-  const projects = projectsQuery.data ?? [];
+  // Extract projects from paginated pages
+  const projects = useMemo(() => {
+    if (!projectsQuery.data?.pages) return [];
+
+    return projectsQuery.data.pages.flatMap((page) => {
+      // Handle paginated response (has data property)
+      if (page && typeof page === 'object' && 'data' in page && Array.isArray((page as { data: unknown }).data)) {
+        return (page as { data: unknown[] }).data;
+      }
+      return [];
+    });
+  }, [projectsQuery.data?.pages]);
+
+  const orgId = projects[0]?.organizationId ?? orgsQuery.data?.[0]?.id ?? null;
 
   const totalTasks = useMemo(
     () => projects.reduce((sum, project) => sum + (project.tasks?.length ?? 0), 0),
@@ -83,13 +108,13 @@ export default function ProjectsPage(): React.ReactElement {
 
   const createProject = trpc.project.create.useMutation({
     onMutate: async (input) => {
-      const queryInput = { organizationId: '' };
+      const queryInput = { organizationId: '', limit: 20 };
       await utils.project.list.cancel(queryInput);
 
-      const previous = utils.project.list.getData(queryInput);
+      const previous = utils.project.list.getInfiniteData(queryInput);
 
       // Optimistically add the new project to the cache
-      utils.project.list.setData(queryInput, (old) => {
+      utils.project.list.setInfiniteData(queryInput, (old) => {
         if (!old) {
           return old;
         }
@@ -108,9 +133,16 @@ export default function ProjectsPage(): React.ReactElement {
           tasks: [],
         };
 
-        // Handle paginated response (has data property)
-        if (old && typeof old === 'object' && 'data' in old && Array.isArray((old as { data: unknown }).data)) {
-          return { ...old, data: [optimisticProject, ...(old as { data: typeof optimisticProject[] }).data] } as typeof old;
+        // Add to the first page
+        const firstPage = old.pages[0];
+        if (firstPage && typeof firstPage === 'object' && 'data' in firstPage) {
+          return {
+            ...old,
+            pages: [
+              { ...firstPage, data: [optimisticProject, ...(firstPage as { data: typeof optimisticProject[] }).data] },
+              ...old.pages.slice(1),
+            ],
+          };
         }
 
         return old;
@@ -120,7 +152,7 @@ export default function ProjectsPage(): React.ReactElement {
     },
     onError: (_error, _input, context) => {
       if (context?.previous) {
-        utils.project.list.setData({ organizationId: '' }, context.previous);
+        utils.project.list.setInfiniteData({ organizationId: '', limit: 20 }, context.previous);
       }
     },
     onSuccess: async () => {
@@ -133,38 +165,42 @@ export default function ProjectsPage(): React.ReactElement {
 
   const updateProject = trpc.project.update.useMutation({
     onMutate: async (input) => {
-      const queryInput = { organizationId: '' };
+      const queryInput = { organizationId: '', limit: 20 };
       await utils.project.list.cancel(queryInput);
 
-      const previous = utils.project.list.getData(queryInput);
+      const previous = utils.project.list.getInfiniteData(queryInput);
 
       // Optimistically update the project in the cache
-      utils.project.list.setData(queryInput, (old) => {
+      utils.project.list.setInfiniteData(queryInput, (old) => {
         if (!old) {
           return old;
         }
 
         const { id, ...changes } = input;
 
-        // Handle paginated response (has data property)
-        if (old && typeof old === 'object' && 'data' in old && Array.isArray((old as { data: unknown[] }).data)) {
-          const oldTyped = old as { data: Array<{ id: string; [key: string]: unknown }> };
-          return {
-            ...old,
-            data: oldTyped.data.map((project) =>
-              project.id === id ? { ...project, ...changes, updatedAt: new Date() } : project
-            ),
-          } as typeof old;
-        }
-
-        return old;
+        // Update the project in all pages
+        return {
+          ...old,
+          pages: old.pages.map((page) => {
+            if (page && typeof page === 'object' && 'data' in page && Array.isArray((page as { data: unknown[] }).data)) {
+              const pageTyped = page as { data: Array<{ id: string; [key: string]: unknown }> };
+              return {
+                ...page,
+                data: pageTyped.data.map((project) =>
+                  project.id === id ? { ...project, ...changes, updatedAt: new Date() } : project
+                ),
+              };
+            }
+            return page;
+          }),
+        };
       });
 
       return { previous };
     },
     onError: (_error, _input, context) => {
       if (context?.previous) {
-        utils.project.list.setData({ organizationId: '' }, context.previous);
+        utils.project.list.setInfiniteData({ organizationId: '', limit: 20 }, context.previous);
       }
     },
     onSuccess: async () => {
@@ -444,6 +480,29 @@ export default function ProjectsPage(): React.ReactElement {
           </div>
         )}
       </div>
+
+      {/* Load More button */}
+      {projectsQuery.hasNextPage && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => projectsQuery.fetchNextPage()}
+            disabled={projectsQuery.isFetchingNextPage}
+            className="inline-flex items-center gap-2 rounded-md border bg-background/85 px-4 py-2 text-sm font-medium hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {projectsQuery.isFetchingNextPage ? (
+              <>
+                <CircleDashed className="h-4 w-4 animate-spin" />
+                Loading more...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Load more projects
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

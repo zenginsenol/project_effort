@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 
 import { orgProcedure, router } from '../../trpc/trpc';
+import { webhookEventEmitter } from '../../services/webhooks/events';
 
 import {
   completeSessionInput,
@@ -104,6 +105,26 @@ export const sessionRouter = router({
       if (!session) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Session not found' });
       }
+
+      // Emit webhook event (non-blocking)
+      if (session.taskId) {
+        void webhookEventEmitter.emitEstimationCompleted(ctx.orgId, {
+          sessionId: session.id,
+          projectId: session.projectId,
+          taskId: session.taskId,
+          estimate: {
+            points: session.finalEstimate,
+            hours: null,
+            optimistic: null,
+            mostLikely: null,
+            pessimistic: null,
+          },
+          completedBy: ctx.userId,
+        }).catch((error) => {
+          console.error('Failed to emit estimation.completed webhook:', error);
+        });
+      }
+
       return session;
     }),
 });

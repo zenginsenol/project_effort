@@ -9,6 +9,7 @@ import { IntegrationHttpError } from '../../services/integrations/base';
 import { jiraIntegration } from '../../services/integrations/jira';
 import { hasProjectAccess } from '../../services/security/tenant-access';
 import { decryptToken, describeStoredToken, encryptToken } from '../../services/security/token-crypto';
+import { webhookEventEmitter } from '../../services/webhooks/events';
 import { orgProcedure, router } from '../../trpc/trpc';
 import type { BaseIntegration } from '../../services/integrations/base';
 
@@ -824,6 +825,18 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
+        // Emit webhook event (non-blocking)
+        void webhookEventEmitter.emitSyncCompleted(ctx.orgId, {
+          integrationId: integration.id,
+          projectId: input.projectId,
+          provider: 'github',
+          itemsImported: scopedItems.length,
+          itemsExported: 0,
+          errors: [],
+        }).catch((error) => {
+          console.error('Failed to emit sync.completed webhook:', error);
+        });
+
         return {
           integrationId: integration.id,
           projectId: input.projectId,
@@ -865,6 +878,20 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
+        // Emit webhook event if items were synced (non-blocking)
+        if (input.syncToProject && syncedCount > 0) {
+          void webhookEventEmitter.emitSyncCompleted(ctx.orgId, {
+            integrationId: integration.id,
+            projectId: input.projectId,
+            provider: integration.type as 'jira' | 'azure_devops' | 'github' | 'gitlab',
+            itemsImported: importedItems.length,
+            itemsExported: 0,
+            errors: [],
+          }).catch((error) => {
+            console.error('Failed to emit sync.completed webhook:', error);
+          });
+        }
+
         return {
           importedCount: importedItems.length,
           syncedCount,
@@ -901,6 +928,18 @@ export const integrationRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(integrations.id, integration.id));
+
+        // Emit webhook event (non-blocking)
+        void webhookEventEmitter.emitSyncCompleted(ctx.orgId, {
+          integrationId: integration.id,
+          projectId: input.projectId,
+          provider: integration.type as 'jira' | 'azure_devops' | 'github' | 'gitlab',
+          itemsImported: scopedItems.length,
+          itemsExported: 0,
+          errors: [],
+        }).catch((error) => {
+          console.error('Failed to emit sync.completed webhook:', error);
+        });
 
         return {
           importedCount: scopedItems.length,

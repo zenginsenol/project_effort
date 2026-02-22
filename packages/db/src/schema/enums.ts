@@ -10,3 +10,4 @@ export const sessionStatusEnum = pgEnum('session_status', ['waiting', 'voting', 
 export const sprintStatusEnum = pgEnum('sprint_status', ['planning', 'active', 'completed', 'cancelled']);
 export const integrationTypeEnum = pgEnum('integration_type', ['jira', 'azure_devops', 'github', 'gitlab']);
 export const aiProviderEnum = pgEnum('ai_provider', ['openai', 'anthropic', 'openrouter']);
+export const notificationTypeEnum = pgEnum('notification_type', ['session_invitation', 'vote_reminder', 'session_complete', 'task_assigned', 'task_status_change', 'sync_complete', 'mention_in_comment']);

@@ -1,3 +1,4 @@
+import { NotificationProvider } from '@/providers/notification-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { TRPCProvider } from '@/providers/trpc-provider';
 
@@ -15,9 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         <TRPCProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            {children}
-          </ThemeProvider>
+          <NotificationProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+              {children}
+            </ThemeProvider>
+          </NotificationProvider>
         </TRPCProvider>
       </body>
     </html>

@@ -4,6 +4,7 @@ import { apiKeys } from './api-keys';
 import { costAnalyses } from './cost-analyses';
 import { estimates } from './estimates';
 import { integrations } from './integrations';
+import { onboardingState } from './onboarding';
 import { organizationMembers, users } from './users';
 import { organizations } from './organizations';
 import { projects } from './projects';
@@ -18,12 +19,13 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   costAnalyses: many(costAnalyses),
 }));
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   memberships: many(organizationMembers),
   assignedTasks: many(tasks),
   estimates: many(estimates),
   apiKeys: many(apiKeys),
   createdCostAnalyses: many(costAnalyses),
+  onboardingState: one(onboardingState),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
@@ -34,6 +36,17 @@ export const organizationMembersRelations = relations(organizationMembers, ({ on
   user: one(users, {
     fields: [organizationMembers.userId],
     references: [users.id],
+  }),
+}));
+
+export const onboardingStateRelations = relations(onboardingState, ({ one }) => ({
+  user: one(users, {
+    fields: [onboardingState.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [onboardingState.organizationId],
+    references: [organizations.id],
   }),
 }));
 

@@ -137,7 +137,12 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
       />
 
       {/* Command Palette Dialog */}
-      <div className={cn('fixed left-1/2 top-[20%] z-50 w-full max-w-2xl -translate-x-1/2', className)}>
+      <div
+        className={cn('fixed left-1/2 top-[20%] z-50 w-full max-w-2xl -translate-x-1/2', className)}
+        role="dialog"
+        aria-label="Global search"
+        aria-modal="true"
+      >
         <Command
           className="overflow-hidden rounded-lg border border-border bg-background shadow-2xl"
           shouldFilter={false}
@@ -168,7 +173,7 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
             </div>
 
             {/* Entity Type Filters */}
-            <div className="flex gap-2 px-4 pb-3">
+            <div className="flex gap-2 px-4 pb-3" role="group" aria-label="Filter by entity type">
               <button
                 onClick={() => toggleEntityFilter('projects')}
                 className={cn(
@@ -178,8 +183,10 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
                     : 'bg-muted hover:bg-muted/80'
                 )}
                 data-testid="filter-projects"
+                aria-pressed={isEntityTypeActive('projects')}
+                aria-label="Filter by projects"
               >
-                <FolderKanban className="h-3.5 w-3.5" />
+                <FolderKanban className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Projects</span>
               </button>
               <button
@@ -191,8 +198,10 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
                     : 'bg-muted hover:bg-muted/80'
                 )}
                 data-testid="filter-tasks"
+                aria-pressed={isEntityTypeActive('tasks')}
+                aria-label="Filter by tasks"
               >
-                <Briefcase className="h-3.5 w-3.5" />
+                <Briefcase className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Tasks</span>
               </button>
               <button
@@ -204,8 +213,10 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
                     : 'bg-muted hover:bg-muted/80'
                 )}
                 data-testid="filter-cost-analyses"
+                aria-pressed={isEntityTypeActive('cost_analyses')}
+                aria-label="Filter by cost analyses"
               >
-                <Calculator className="h-3.5 w-3.5" />
+                <Calculator className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Cost Analyses</span>
               </button>
               <button
@@ -217,8 +228,10 @@ export function CommandPalette({ className }: CommandPaletteProps): React.ReactE
                     : 'bg-muted hover:bg-muted/80'
                 )}
                 data-testid="filter-sessions"
+                aria-pressed={isEntityTypeActive('sessions')}
+                aria-label="Filter by estimation sessions"
               >
-                <Users className="h-3.5 w-3.5" />
+                <Users className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Sessions</span>
               </button>
             </div>

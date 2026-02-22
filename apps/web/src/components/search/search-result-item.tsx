@@ -86,6 +86,10 @@ export function SearchResultItem({
   isSelected = false,
 }: SearchResultItemProps): React.ReactElement {
   const entityColor = getEntityColor(result.entityType);
+  const entityLabel = getEntityLabel(result.entityType);
+
+  // Create accessible label for screen readers
+  const ariaLabel = `${entityLabel}: ${result.title}${result.projectName ? `, in project ${result.projectName}` : ''}`;
 
   return (
     <button
@@ -96,6 +100,7 @@ export function SearchResultItem({
           ? 'bg-accent text-accent-foreground'
           : 'hover:bg-accent/50',
       )}
+      aria-label={ariaLabel}
     >
       <div className={cn('mt-0.5 shrink-0', entityColor)}>
         {getEntityIcon(result.entityType)}

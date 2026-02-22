@@ -5,6 +5,9 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
+import { AccuracyTrendsChart } from './components/accuracy-trends-chart';
+import { CalibrationRecommendations } from './components/calibration-recommendations';
+import { TeamBiasAnalysis } from './components/team-bias-analysis';
 
 export default function AnalyticsPage(): React.ReactElement {
   const utils = trpc.useUtils();
@@ -332,6 +335,27 @@ export default function AnalyticsPage(): React.ReactElement {
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <AccuracyTrendsChart
+              data={accuracyTrendsQuery.data ?? []}
+              isLoading={accuracyTrendsQuery.isLoading}
+            />
+          </div>
+
+          <div className="mt-6">
+            <TeamBiasAnalysis
+              data={enhancedTeamBiasQuery.data ?? []}
+              isLoading={enhancedTeamBiasQuery.isLoading}
+            />
+          </div>
+
+          <div className="mt-6">
+            <CalibrationRecommendations
+              data={calibrationRecommendationsQuery.data}
+              isLoading={calibrationRecommendationsQuery.isLoading}
+            />
           </div>
 
           <div className="mt-6 rounded-lg border bg-card p-6">

@@ -21,3 +21,7 @@ export const resendInvitationInput = z.object({
 export const acceptInvitationInput = z.object({
   token: z.string().min(1),
 });
+
+export const getByTokenInput = z.object({
+  token: z.string().min(1),
+});

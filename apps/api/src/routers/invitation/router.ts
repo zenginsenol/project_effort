@@ -11,6 +11,7 @@ import {
   acceptInvitationInput,
   cancelInvitationInput,
   createInvitationInput,
+  getByTokenInput,
   listInvitationsInput,
   resendInvitationInput,
 } from './schema';
@@ -74,6 +75,16 @@ export const invitationRouter = router({
       throw new TRPCError({ code: 'FORBIDDEN', message: 'Organization mismatch' });
     }
     return invitationService.listInvitations(ctx.orgId);
+  }),
+
+  getByToken: publicProcedure.input(getByTokenInput).query(async ({ input }) => {
+    const invitation = await invitationService.getInvitationByToken(input.token);
+
+    if (!invitation) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Invitation not found' });
+    }
+
+    return invitation;
   }),
 
   cancel: orgProcedure

@@ -21,6 +21,8 @@ interface SocketClaims {
 
 const DEMO_MODE = !process.env.CLERK_SECRET_KEY || process.env.CLERK_SECRET_KEY.includes('xxxxx');
 const DEMO_ORG_ID = '00000000-0000-0000-0000-000000000000';
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
 
 function getAuthToken(socket: Socket): string | null {
   const authToken = socket.handshake.auth?.token;
@@ -150,6 +152,8 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
     const identity = getSocketIdentity(socket);
     console.log(`Client connected: ${socket.id} user=${identity?.userId ?? 'unknown'}`);
 
+    socket.data.lastActivity = Date.now();
+
     socket.on('join-session', async (data: { sessionId: string; userId: string }) => {
       const authorized = await authorizeSessionEvent(socket, data.sessionId);
       if (!authorized) {
@@ -219,9 +223,42 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
       });
     });
 
+    socket.on('heartbeat', () => {
+      socket.data.lastActivity = Date.now();
+      socket.emit('heartbeat-ack');
+    });
+
     socket.on('disconnect', () => {
       console.log(`Client disconnected: ${socket.id}`);
     });
+  });
+
+  const heartbeatCheck = setInterval(() => {
+    const now = Date.now();
+    const sockets = io.sockets.sockets;
+
+    for (const [socketId, socket] of sockets) {
+      const lastActivity = socket.data.lastActivity;
+      if (typeof lastActivity === 'number' && now - lastActivity > HEARTBEAT_TIMEOUT) {
+        const identity = getSocketIdentity(socket);
+        console.log(`Disconnecting idle socket: ${socketId} user=${identity?.userId ?? 'unknown'}`);
+
+        const rooms = Array.from(socket.rooms);
+        for (const room of rooms) {
+          if (room.startsWith('session:')) {
+            socket.to(room).emit('participant-idle', {
+              userId: identity?.userId ?? 'unknown',
+            });
+          }
+        }
+
+        socket.disconnect(true);
+      }
+    }
+  }, HEARTBEAT_INTERVAL);
+
+  io.engine.on('close', () => {
+    clearInterval(heartbeatCheck);
   });
 
   return io;

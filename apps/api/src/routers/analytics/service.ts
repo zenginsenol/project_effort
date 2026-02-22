@@ -5,6 +5,7 @@ import { estimates, projects, sessions, sprints, tasks } from '@estimate-pro/db/
 
 import { generateCSV, generatePDF, generateXLSX } from '../../services/export';
 import { hasProjectAccess } from '../../services/security/tenant-access';
+import { generateCalibrationRecommendations } from '../../services/ai/openai-client';
 import type { ExportData } from '../../services/export';
 
 function taskWeight(task: { estimatedPoints: number | null }): number {
@@ -558,6 +559,105 @@ export class AnalyticsService {
     }
 
     return { avgAccuracy, avgVariance, bias };
+  }
+
+  async getCalibrationRecommendations(
+    projectId: string,
+    orgId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const allowed = await hasProjectAccess(projectId, orgId);
+    if (!allowed) {
+      return {
+        recommendations: [],
+        overallInsight: 'Access denied or insufficient data.',
+      };
+    }
+
+    const dateConditions = [];
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      dateConditions.push(sql`${tasks.updatedAt} >= ${fromDate}`);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      dateConditions.push(sql`${tasks.updatedAt} <= ${toDate}`);
+    }
+
+    const baseConditions = [
+      eq(tasks.projectId, projectId),
+      sql`${tasks.estimatedHours} IS NOT NULL`,
+      sql`${tasks.actualHours} IS NOT NULL`,
+      sql`${tasks.estimatedHours} > 0`,
+      sql`${tasks.actualHours} > 0`,
+      ...dateConditions,
+    ];
+
+    const tasksWithBoth = await db
+      .select({
+        id: tasks.id,
+        type: tasks.type,
+        priority: tasks.priority,
+        estimatedHours: tasks.estimatedHours,
+        actualHours: tasks.actualHours,
+        estimatedPoints: tasks.estimatedPoints,
+      })
+      .from(tasks)
+      .where(and(...baseConditions));
+
+    if (tasksWithBoth.length === 0) {
+      return {
+        recommendations: [],
+        overallInsight: 'Insufficient historical data for calibration analysis.',
+      };
+    }
+
+    let totalAccuracy = 0;
+    for (const task of tasksWithBoth) {
+      const estimated = task.estimatedHours ?? 0;
+      const actual = task.actualHours ?? 0;
+      if (estimated > 0 && actual > 0) {
+        const accuracy = Math.min(estimated / actual, 2);
+        totalAccuracy += accuracy;
+      }
+    }
+    const overallAccuracy = totalAccuracy / tasksWithBoth.length;
+
+    const [taskTypeBias, priorityBias] = await Promise.all([
+      this.getEnhancedTeamBias(projectId, 'type', orgId, dateFrom, dateTo),
+      this.getEnhancedTeamBias(projectId, 'priority', orgId, dateFrom, dateTo),
+    ]);
+
+    const taskTypeBreakdown = taskTypeBias.map((item) => ({
+      taskType: item.value,
+      averageAccuracy: item.averageAccuracy / 100,
+      count: item.taskCount,
+    }));
+
+    const complexityBreakdown = priorityBias.map((item) => ({
+      complexity: item.value,
+      averageAccuracy: item.averageAccuracy / 100,
+      count: item.taskCount,
+    }));
+
+    const taskData = tasksWithBoth.map((task) => ({
+      taskType: task.type,
+      complexity: task.priority,
+      estimatedHours: task.estimatedHours ?? 0,
+      actualHours: task.actualHours ?? 0,
+      estimatedPoints: task.estimatedPoints,
+      actualPoints: null,
+    }));
+
+    const recommendations = await generateCalibrationRecommendations({
+      tasks: taskData,
+      overallAccuracy,
+      taskTypeBreakdown,
+      complexityBreakdown,
+    });
+
+    return recommendations;
   }
 
   private async buildExportData(projectId: string, orgId: string): Promise<{

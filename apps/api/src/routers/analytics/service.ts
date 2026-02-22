@@ -697,7 +697,7 @@ export class AnalyticsService {
       return null;
     }
 
-    const [project, projectTasks] = await Promise.all([
+    const [project, projectTasks, accuracyTrends, teamBias] = await Promise.all([
       db.query.projects.findFirst({
         where: and(eq(projects.id, projectId), eq(projects.organizationId, orgId)),
       }),
@@ -706,6 +706,8 @@ export class AnalyticsService {
         with: { assignee: true },
         orderBy: (task, { asc }) => [asc(task.createdAt)],
       }),
+      this.getAccuracyTrends(projectId, orgId),
+      this.getEnhancedTeamBias(projectId, 'all', orgId),
     ]);
 
     if (!project) {
@@ -715,6 +717,34 @@ export class AnalyticsService {
     const totalPoints = projectTasks.reduce((sum, task) => sum + (task.estimatedPoints ?? 0), 0);
     const totalHours = projectTasks.reduce((sum, task) => sum + (task.estimatedHours ?? 0), 0);
     const completedTasks = projectTasks.filter((task) => task.status === 'done').length;
+
+    const tasksWithBoth = projectTasks.filter(
+      (task) => task.estimatedHours !== null && task.actualHours !== null && task.estimatedHours > 0,
+    );
+
+    let overallBias = 0;
+    let optimismCount = 0;
+    let pessimismCount = 0;
+    let totalDeviation = 0;
+
+    for (const task of tasksWithBoth) {
+      const estimated = task.estimatedHours ?? 0;
+      const actual = task.actualHours ?? 0;
+
+      if (estimated > 0 && actual > 0) {
+        const variance = ((actual - estimated) / estimated) * 100;
+        totalDeviation += Math.abs(variance);
+        overallBias += variance;
+
+        if (variance > 10) {
+          pessimismCount += 1;
+        } else if (variance < -10) {
+          optimismCount += 1;
+        }
+      }
+    }
+
+    const taskCount = tasksWithBoth.length;
 
     const exportData: ExportData = {
       projectName: project.name,
@@ -734,6 +764,20 @@ export class AnalyticsService {
         completedTasks,
         totalPoints: roundTo2(totalPoints),
         totalHours: roundTo2(totalHours),
+      },
+      analytics: {
+        accuracyTrends: accuracyTrends.map((trend) => ({
+          period: trend.window,
+          accuracy: trend.accuracyScore,
+          meanAbsoluteError: Math.abs(trend.averageVariance),
+          sampleSize: trend.taskCount,
+        })),
+        biasAnalysis: {
+          overallBias: taskCount > 0 ? roundTo2(overallBias / taskCount) : 0,
+          optimismRate: taskCount > 0 ? roundTo2((optimismCount / taskCount) * 100) : 0,
+          pessimismRate: taskCount > 0 ? roundTo2((pessimismCount / taskCount) * 100) : 0,
+          averageDeviation: taskCount > 0 ? roundTo2(totalDeviation / taskCount) : 0,
+        },
       },
     };
 

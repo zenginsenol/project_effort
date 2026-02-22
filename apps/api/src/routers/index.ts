@@ -6,6 +6,7 @@ import { apiKeysRouter } from './api-keys/router';
 import { documentRouter } from './document/router';
 import { effortRouter } from './effort/router';
 import { integrationRouter } from './integration/router';
+import { invitationRouter } from './invitation/router';
 import { organizationRouter } from './organization/router';
 import { projectRouter } from './project/router';
 import { sessionRouter } from './session/router';
@@ -29,6 +30,7 @@ export const appRouter = router({
   document: documentRouter,
   effort: effortRouter,
   integration: integrationRouter,
+  invitation: invitationRouter,
 });
 
 export type AppRouter = typeof appRouter;

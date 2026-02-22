@@ -4,6 +4,7 @@ import { db } from '@estimate-pro/db';
 import { tasks } from '@estimate-pro/db/schema';
 
 import { hasProjectAccess, hasTaskAccess } from '../../services/security/tenant-access';
+import { activityService } from '../activity/service';
 
 export class TaskService {
   async create(orgId: string, data: {
@@ -17,12 +18,28 @@ export class TaskService {
     assigneeId?: string;
     estimatedPoints?: number;
     estimatedHours?: number;
-  }) {
+  }, actorId?: string) {
     const allowed = await hasProjectAccess(data.projectId, orgId);
     if (!allowed) {
       return null;
     }
     const [task] = await db.insert(tasks).values(data).returning();
+
+    // Record activity
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType: 'task_created',
+      entityType: 'task',
+      entityId: task.id,
+      actorId,
+      projectId: data.projectId,
+      metadata: {
+        taskTitle: task.title,
+        taskType: task.type,
+        taskStatus: task.status,
+      },
+    });
+
     return task;
   }
 
@@ -37,16 +54,96 @@ export class TaskService {
     }) ?? null;
   }
 
-  async update(id: string, orgId: string, data: Record<string, unknown>) {
+  async update(id: string, orgId: string, data: Record<string, unknown>, actorId?: string) {
     const allowed = await hasTaskAccess(id, orgId);
     if (!allowed) {
       return null;
     }
+
+    // Get the task before update to track changes
+    const beforeTask = await db.query.tasks.findFirst({
+      where: eq(tasks.id, id),
+    });
+
     const [task] = await db
       .update(tasks)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(tasks.id, id))
       .returning();
+
+    // Track which fields changed
+    const changedFields: string[] = [];
+    const before: Record<string, unknown> = {};
+    const after: Record<string, unknown> = {};
+    let statusChanged = false;
+
+    if (beforeTask) {
+      // Track specific field changes
+      if (data.title !== undefined && data.title !== beforeTask.title) {
+        changedFields.push('title');
+        before.title = beforeTask.title;
+        after.title = data.title;
+      }
+      if (data.description !== undefined && data.description !== beforeTask.description) {
+        changedFields.push('description');
+        before.description = beforeTask.description;
+        after.description = data.description;
+      }
+      if (data.type !== undefined && data.type !== beforeTask.type) {
+        changedFields.push('type');
+        before.type = beforeTask.type;
+        after.type = data.type;
+      }
+      if (data.status !== undefined && data.status !== beforeTask.status) {
+        changedFields.push('status');
+        before.status = beforeTask.status;
+        after.status = data.status;
+        statusChanged = true;
+      }
+      if (data.priority !== undefined && data.priority !== beforeTask.priority) {
+        changedFields.push('priority');
+        before.priority = beforeTask.priority;
+        after.priority = data.priority;
+      }
+      if (data.assigneeId !== undefined && data.assigneeId !== beforeTask.assigneeId) {
+        changedFields.push('assigneeId');
+        before.assigneeId = beforeTask.assigneeId;
+        after.assigneeId = data.assigneeId;
+      }
+      if (data.estimatedPoints !== undefined && data.estimatedPoints !== beforeTask.estimatedPoints) {
+        changedFields.push('estimatedPoints');
+        before.estimatedPoints = beforeTask.estimatedPoints;
+        after.estimatedPoints = data.estimatedPoints;
+      }
+      if (data.estimatedHours !== undefined && data.estimatedHours !== beforeTask.estimatedHours) {
+        changedFields.push('estimatedHours');
+        before.estimatedHours = beforeTask.estimatedHours;
+        after.estimatedHours = data.estimatedHours;
+      }
+    }
+
+    // Record activity - use task_status_changed if status changed, otherwise task_updated
+    const activityType = statusChanged ? 'task_status_changed' : 'task_updated';
+
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType,
+      entityType: 'task',
+      entityId: task.id,
+      actorId,
+      projectId: task.projectId,
+      metadata: {
+        taskTitle: task.title,
+        taskType: task.type,
+        taskStatus: task.status,
+      },
+      changes: {
+        before,
+        after,
+        fields: changedFields,
+      },
+    });
+
     return task;
   }
 
@@ -80,12 +177,31 @@ export class TaskService {
     });
   }
 
-  async delete(id: string, orgId: string) {
+  async delete(id: string, orgId: string, actorId?: string) {
     const allowed = await hasTaskAccess(id, orgId);
     if (!allowed) {
       return null;
     }
     const [task] = await db.delete(tasks).where(eq(tasks.id, id)).returning();
+
+    // Record activity
+    if (task) {
+      await activityService.recordActivity({
+        organizationId: orgId,
+        activityType: 'task_updated', // Use task_updated for deletion (there's no task_deleted in the enum)
+        entityType: 'task',
+        entityId: task.id,
+        actorId,
+        projectId: task.projectId,
+        metadata: {
+          taskTitle: task.title,
+          taskType: task.type,
+          taskStatus: task.status,
+          deleted: true,
+        },
+      });
+    }
+
     return task;
   }
 

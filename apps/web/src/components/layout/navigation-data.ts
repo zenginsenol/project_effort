@@ -7,6 +7,7 @@ import {
   FolderKanban,
   GitCompareArrows,
   Home,
+  Key,
   Plug,
   Settings,
   type LucideIcon,
@@ -105,12 +106,20 @@ export const dashboardNavItems: DashboardNavItem[] = [
     order: 9,
   },
   {
+    name: 'API Keys',
+    href: '/dashboard/api-keys',
+    icon: Key,
+    description: 'Public API anahtarlarini yonet',
+    phase: 'Operate',
+    order: 10,
+  },
+  {
     name: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
     description: 'AI provider key/model ve genel ayarlar',
     phase: 'Operate',
-    order: 10,
+    order: 11,
   },
 ];
 

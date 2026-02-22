@@ -9,7 +9,9 @@ import { MethodStatsCard } from '@/components/analytics/method-stats-card';
 import { trpc } from '@/lib/trpc';
 
 export default function MethodComparisonPage(): React.ReactElement {
+  const utils = trpc.useUtils();
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [exportingFormat, setExportingFormat] = useState<'csv' | 'xlsx' | null>(null);
 
   const orgsQuery = trpc.organization.list.useQuery(undefined, { retry: false });
   const orgId = orgsQuery.data?.[0]?.id ?? '';
@@ -33,6 +35,53 @@ export default function MethodComparisonPage(): React.ReactElement {
   const loading = methodComparisonQuery.isLoading;
   const error = methodComparisonQuery.error;
   const data = methodComparisonQuery.data;
+
+  async function handleExportCsv(): Promise<void> {
+    if (!selectedProjectId || exportingFormat) {
+      return;
+    }
+
+    try {
+      setExportingFormat('csv');
+      const response = await utils.analytics.exportMethodComparisonCsv.fetch({ projectId: selectedProjectId });
+      const blob = new Blob([response.content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = response.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingFormat(null);
+    }
+  }
+
+  async function handleExportXlsx(): Promise<void> {
+    if (!selectedProjectId || exportingFormat) {
+      return;
+    }
+
+    try {
+      setExportingFormat('xlsx');
+      const response = await utils.analytics.exportMethodComparisonXlsx.fetch({ projectId: selectedProjectId });
+      const binary = Uint8Array.from(atob(response.contentBase64), (char) => char.charCodeAt(0));
+      const blob = new Blob([binary], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = response.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingFormat(null);
+    }
+  }
 
   return (
     <div>
@@ -83,6 +132,27 @@ export default function MethodComparisonPage(): React.ReactElement {
 
       {selectedProjectId && data && !error && (
         <>
+          {/* Export Section */}
+          <div className="mt-6 rounded-lg border bg-card p-4">
+            <h3 className="font-semibold mb-3">Export Data</h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleExportCsv}
+                disabled={exportingFormat !== null}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportingFormat === 'csv' ? 'Exporting CSV...' : 'Export CSV'}
+              </button>
+              <button
+                onClick={handleExportXlsx}
+                disabled={exportingFormat !== null}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportingFormat === 'xlsx' ? 'Exporting XLSX...' : 'Export XLSX'}
+              </button>
+            </div>
+          </div>
+
           {/* Agreement Score Section */}
           <div className="mt-6">
             <AgreementScore

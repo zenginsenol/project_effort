@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Eye, EyeOff, RotateCcw, Users } from 'lucide-react';
+import { Check, Eye, EyeOff, Loader2, RotateCcw, Users, WifiOff } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -92,7 +92,7 @@ export default function SessionDetailPage(): React.ReactElement {
     { enabled: Boolean(sessionQuery.data), retry: false },
   );
 
-  const { socket, error: socketError } = useSocket({
+  const { socket, error: socketError, isConnected, isConnecting, reconnectAttempt } = useSocket({
     url: getApiBaseUrl(),
     path: '/ws',
     auth:
@@ -273,9 +273,30 @@ export default function SessionDetailPage(): React.ReactElement {
         </div>
       </div>
 
+      {isConnecting && (
+        <div className="rounded-md border border-blue-300 bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>
+              Reconnecting...
+              {reconnectAttempt > 0 && ` (attempt ${reconnectAttempt})`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!isConnected && !isConnecting && currentUserId && orgId && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-700 dark:bg-red-950 dark:text-red-300">
+          <div className="flex items-center gap-2">
+            <WifiOff className="h-4 w-4" />
+            <span>Disconnected from real-time updates</span>
+          </div>
+        </div>
+      )}
+
       {socketError && (
         <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-          Realtime disconnected: {socketError}
+          Connection error: {socketError}
         </div>
       )}
 

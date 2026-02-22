@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 import { InviteMemberDialog } from '@/components/invitations/invite-member-dialog';
+import { PendingInvitationsList } from '@/components/invitations/pending-invitations-list';
 
 type Provider = 'openai' | 'anthropic' | 'openrouter';
 type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
@@ -1351,6 +1352,9 @@ export default function SettingsPage(): React.ReactElement {
             </div>
           </div>
         </div>
+
+        {/* Pending Invitations */}
+        <PendingInvitationsList />
 
         {/* Default Estimation Method */}
         <div className="rounded-lg border bg-card p-6">

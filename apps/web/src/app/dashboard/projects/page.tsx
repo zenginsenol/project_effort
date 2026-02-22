@@ -82,6 +82,47 @@ export default function ProjectsPage(): React.ReactElement {
   ] as const;
 
   const createProject = trpc.project.create.useMutation({
+    onMutate: async (input) => {
+      const queryInput = { organizationId: '' };
+      await utils.project.list.cancel(queryInput);
+
+      const previous = utils.project.list.getData(queryInput);
+
+      // Optimistically add the new project to the cache
+      utils.project.list.setData(queryInput, (old) => {
+        if (!old) {
+          return old;
+        }
+
+        // Create optimistic project with temporary data
+        const optimisticProject = {
+          id: `temp-${Date.now()}`,
+          organizationId: input.organizationId,
+          name: input.name,
+          key: input.key,
+          description: input.description ?? '',
+          status: 'active' as const,
+          defaultEstimationMethod: input.defaultEstimationMethod,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tasks: [],
+        };
+
+        // Handle paginated response (has data property)
+        if (old && typeof old === 'object' && 'data' in old && Array.isArray((old as { data: unknown }).data)) {
+          return { ...old, data: [optimisticProject, ...(old as { data: typeof optimisticProject[] }).data] } as typeof old;
+        }
+
+        return old;
+      });
+
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) {
+        utils.project.list.setData({ organizationId: '' }, context.previous);
+      }
+    },
     onSuccess: async () => {
       setName('');
       setKey('');
@@ -91,6 +132,41 @@ export default function ProjectsPage(): React.ReactElement {
   });
 
   const updateProject = trpc.project.update.useMutation({
+    onMutate: async (input) => {
+      const queryInput = { organizationId: '' };
+      await utils.project.list.cancel(queryInput);
+
+      const previous = utils.project.list.getData(queryInput);
+
+      // Optimistically update the project in the cache
+      utils.project.list.setData(queryInput, (old) => {
+        if (!old) {
+          return old;
+        }
+
+        const { id, ...changes } = input;
+
+        // Handle paginated response (has data property)
+        if (old && typeof old === 'object' && 'data' in old && Array.isArray((old as { data: unknown[] }).data)) {
+          const oldTyped = old as { data: Array<{ id: string; [key: string]: unknown }> };
+          return {
+            ...old,
+            data: oldTyped.data.map((project) =>
+              project.id === id ? { ...project, ...changes, updatedAt: new Date() } : project
+            ),
+          } as typeof old;
+        }
+
+        return old;
+      });
+
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous) {
+        utils.project.list.setData({ organizationId: '' }, context.previous);
+      }
+    },
     onSuccess: async () => {
       setEditing(null);
       await utils.project.list.invalidate();

@@ -4,6 +4,7 @@ import { apiKeys } from './api-keys';
 import { costAnalyses } from './cost-analyses';
 import { estimates } from './estimates';
 import { integrations } from './integrations';
+import { notificationPreferences, notifications } from './notifications';
 import { organizationMembers, users } from './users';
 import { organizations } from './organizations';
 import { projects } from './projects';
@@ -16,6 +17,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   projects: many(projects),
   integrations: many(integrations),
   costAnalyses: many(costAnalyses),
+  notifications: many(notifications),
+  notificationPreferences: many(notificationPreferences),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -24,6 +27,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   estimates: many(estimates),
   apiKeys: many(apiKeys),
   createdCostAnalyses: many(costAnalyses),
+  notifications: many(notifications),
+  notificationPreferences: many(notificationPreferences),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
@@ -161,6 +166,28 @@ export const taskEmbeddingsRelations = relations(taskEmbeddings, ({ one }) => ({
 export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   user: one(users, {
     fields: [apiKeys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [notifications.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [notificationPreferences.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(users, {
+    fields: [notificationPreferences.userId],
     references: [users.id],
   }),
 }));

@@ -5,6 +5,7 @@ import { db } from '@estimate-pro/db';
 import { notificationPreferences, notifications } from '@estimate-pro/db/schema';
 
 import { hasNotificationAccess } from '../../services/security/tenant-access';
+import { emitNotificationToUser } from '../../websocket';
 import { createNotificationInput, updatePreferenceInput } from './schema';
 
 export class NotificationService {
@@ -13,6 +14,30 @@ export class NotificationService {
       organizationId: orgId,
       ...data,
     }).returning();
+    return notification;
+  }
+
+  /**
+   * Create a notification and emit it via WebSocket to the user in real-time
+   */
+  async createAndEmit(orgId: string, data: z.infer<typeof createNotificationInput>) {
+    const notification = await this.create(orgId, data);
+
+    // Emit notification to user via WebSocket
+    emitNotificationToUser(data.userId, {
+      notificationId: notification.id,
+      userId: notification.userId,
+      type: notification.type,
+      data: {
+        title: notification.title,
+        message: notification.message,
+        link: notification.link,
+        metadata: notification.metadata,
+        isRead: notification.isRead,
+        createdAt: notification.createdAt,
+      },
+    });
+
     return notification;
   }
 

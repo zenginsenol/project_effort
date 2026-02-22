@@ -4,11 +4,13 @@ import { Check, Eye, EyeOff, RotateCcw, Users } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { PresenceIndicator } from '@/components/presence-indicator';
+import { useSocket } from '@/hooks/use-socket';
 import { getApiBaseUrl } from '@/lib/api-url';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
-import type { Socket } from 'socket.io-client';
+import type { PresenceStatus } from '@/components/presence-indicator';
 
 const FIBONACCI_CARDS = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
 const TSHIRT_CARDS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -69,11 +71,9 @@ export default function SessionDetailPage(): React.ReactElement {
   const params = useParams<{ sessionId: string }>();
   const sessionId = Array.isArray(params.sessionId) ? params.sessionId[0] : params.sessionId;
 
-  const socketRef = useRef<Socket | null>(null);
   const hasJoinedRef = useRef(false);
 
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [socketError, setSocketError] = useState<string>('');
   const [finalEstimate, setFinalEstimate] = useState('');
 
   const sessionQuery = trpc.session.getById.useQuery({ id: sessionId }, { retry: false });
@@ -91,6 +91,20 @@ export default function SessionDetailPage(): React.ReactElement {
     { id: sessionId, round: currentRound },
     { enabled: Boolean(sessionQuery.data), retry: false },
   );
+
+  const { socket, error: socketError } = useSocket({
+    url: getApiBaseUrl(),
+    path: '/ws',
+    auth:
+      currentUserId && orgId
+        ? {
+            userId: currentUserId,
+            orgId,
+          }
+        : undefined,
+    autoConnect: Boolean(currentUserId && orgId),
+    reconnection: true,
+  });
 
   const joinMutation = trpc.session.join.useMutation({
     onSuccess: async () => {
@@ -141,66 +155,38 @@ export default function SessionDetailPage(): React.ReactElement {
   }, [currentUserId, joinMutation, sessionId]);
 
   useEffect(() => {
-    if (!currentUserId || !orgId) {
+    if (!socket || !currentUserId) {
       return;
     }
 
-    let cancelled = false;
+    const refreshSessionState = (): void => {
+      void Promise.all([
+        utils.session.getById.invalidate({ id: sessionId }),
+        utils.session.getVotes.invalidate(),
+      ]);
+    };
 
-    async function connectSocket(): Promise<void> {
-      const { io } = await import('socket.io-client');
-      if (cancelled) {
-        return;
-      }
+    socket.emit('join-session', { sessionId, userId: currentUserId });
 
-      const socket = io(getApiBaseUrl(), {
-        path: '/ws',
-        transports: ['websocket'],
-        auth: {
-          userId: currentUserId,
-          orgId,
-        },
-      });
-
-      socketRef.current = socket;
-
-      const refreshSessionState = (): void => {
-        void Promise.all([
-          utils.session.getById.invalidate({ id: sessionId }),
-          utils.session.getVotes.invalidate(),
-        ]);
-      };
-
-      socket.on('connect', () => {
-        setSocketError('');
-        socket.emit('join-session', { sessionId, userId: currentUserId });
-      });
-      socket.on('connect_error', (error) => {
-        setSocketError(error.message);
-      });
-      socket.on('session-error', (error: { message?: string }) => {
-        setSocketError(error.message ?? 'Session socket error');
-      });
-      socket.on('participant-joined', refreshSessionState);
-      socket.on('participant-left', refreshSessionState);
-      socket.on('vote-submitted', refreshSessionState);
-      socket.on('votes-revealed', refreshSessionState);
-      socket.on('new-round-started', refreshSessionState);
-    }
-
-    void connectSocket();
+    socket.on('session-error', (error: { message?: string }) => {
+      // Session-specific errors are handled through the error state
+    });
+    socket.on('participant-joined', refreshSessionState);
+    socket.on('participant-left', refreshSessionState);
+    socket.on('vote-submitted', refreshSessionState);
+    socket.on('votes-revealed', refreshSessionState);
+    socket.on('new-round-started', refreshSessionState);
 
     return () => {
-      cancelled = true;
-      const socket = socketRef.current;
-      if (!socket) {
-        return;
-      }
       socket.emit('leave-session', { sessionId, userId: currentUserId });
-      socket.disconnect();
-      socketRef.current = null;
+      socket.off('session-error');
+      socket.off('participant-joined');
+      socket.off('participant-left');
+      socket.off('vote-submitted');
+      socket.off('votes-revealed');
+      socket.off('new-round-started');
     };
-  }, [currentUserId, orgId, sessionId, utils.session.getById, utils.session.getVotes]);
+  }, [socket, currentUserId, sessionId, utils.session.getById, utils.session.getVotes]);
 
   const cards = useMemo(() => {
     if (sessionQuery.data?.method === 'planning_poker') {
@@ -246,18 +232,18 @@ export default function SessionDetailPage(): React.ReactElement {
       value: nextCard,
     });
 
-    socketRef.current?.emit('submit-vote', { sessionId, userId: currentUserId, value: nextCard });
+    socket?.emit('submit-vote', { sessionId, userId: currentUserId, value: nextCard });
   }
 
   async function handleReveal(): Promise<void> {
     await revealMutation.mutateAsync({ sessionId });
-    socketRef.current?.emit('reveal-votes', { sessionId });
+    socket?.emit('reveal-votes', { sessionId });
   }
 
   async function handleNewRound(): Promise<void> {
     const nextRound = (sessionQuery.data?.currentRound ?? 1) + 1;
     await newRoundMutation.mutateAsync({ sessionId });
-    socketRef.current?.emit('start-new-round', { sessionId, round: nextRound });
+    socket?.emit('start-new-round', { sessionId, round: nextRound });
   }
 
   async function handleComplete(): Promise<void> {
@@ -288,7 +274,7 @@ export default function SessionDetailPage(): React.ReactElement {
       </div>
 
       {socketError && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
           Realtime disconnected: {socketError}
         </div>
       )}
@@ -304,9 +290,10 @@ export default function SessionDetailPage(): React.ReactElement {
       <div className="rounded-lg border bg-card p-4">
         <h3 className="mb-3 text-sm font-semibold">Participants</h3>
         <div className="flex flex-wrap gap-3">
-          {participants.map((participant) => {
+          {participants.map((participant: typeof participants[number]) => {
             const vote = voteByUserId.get(participant.userId) ?? null;
             const hasVoted = Boolean(vote);
+            const presenceStatus: PresenceStatus = hasVoted && !isRevealed ? 'voting' : 'online';
             return (
               <div key={participant.id} className="flex flex-col items-center gap-2">
                 <div
@@ -321,9 +308,12 @@ export default function SessionDetailPage(): React.ReactElement {
                 >
                   {isRevealed ? (vote ?? '-') : hasVoted ? <Check className="h-4 w-4 text-green-500" /> : '?'}
                 </div>
-                <span className="max-w-20 truncate text-xs text-muted-foreground">
-                  {getDisplayName(participant)}
-                </span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="max-w-20 truncate text-xs text-muted-foreground">
+                    {getDisplayName(participant)}
+                  </span>
+                  <PresenceIndicator status={presenceStatus} size="sm" />
+                </div>
               </div>
             );
           })}

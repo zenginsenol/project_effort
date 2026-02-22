@@ -184,6 +184,68 @@ export class SessionService {
       .returning();
     return session;
   }
+
+  async leaveSession(sessionId: string, userId: string, orgId: string) {
+    const allowed = await hasSessionAccess(sessionId, orgId);
+    if (!allowed) {
+      return null;
+    }
+    const existing = await db.query.sessionParticipants.findFirst({
+      where: and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId),
+      ),
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    const [updated] = await db
+      .update(sessionParticipants)
+      .set({ isOnline: false })
+      .where(eq(sessionParticipants.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  async updateParticipantPresence(sessionId: string, userId: string, isOnline: boolean, orgId: string) {
+    const allowed = await hasSessionAccess(sessionId, orgId);
+    if (!allowed) {
+      return null;
+    }
+    const existing = await db.query.sessionParticipants.findFirst({
+      where: and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId),
+      ),
+    });
+
+    if (!existing) {
+      return null;
+    }
+
+    const [updated] = await db
+      .update(sessionParticipants)
+      .set({ isOnline })
+      .where(eq(sessionParticipants.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  async getOnlineParticipants(sessionId: string, orgId: string) {
+    const allowed = await hasSessionAccess(sessionId, orgId);
+    if (!allowed) {
+      return [];
+    }
+    return db.query.sessionParticipants.findMany({
+      where: and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.isOnline, true),
+      ),
+      with: { user: true },
+    });
+  }
 }
 
 export const sessionService = new SessionService();

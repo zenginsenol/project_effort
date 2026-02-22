@@ -7,6 +7,7 @@ export * from './estimates';
 export * from './cost-analyses';
 export * from './sessions';
 export * from './sprints';
+export * from './activities';
 export * from './integrations';
 export * from './api-keys';
 export * from './relations';

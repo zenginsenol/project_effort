@@ -8,6 +8,7 @@ import { effortRouter } from './effort/router';
 import { integrationRouter } from './integration/router';
 import { organizationRouter } from './organization/router';
 import { projectRouter } from './project/router';
+import { publicApiRouter } from './public-api/router';
 import { sessionRouter } from './session/router';
 import { sprintRouter } from './sprint/router';
 import { taskRouter } from './task/router';
@@ -29,6 +30,7 @@ export const appRouter = router({
   document: documentRouter,
   effort: effortRouter,
   integration: integrationRouter,
+  publicApi: publicApiRouter,
 });
 
 export type AppRouter = typeof appRouter;

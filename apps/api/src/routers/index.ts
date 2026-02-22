@@ -13,6 +13,7 @@ import { sessionRouter } from './session/router';
 import { sprintRouter } from './sprint/router';
 import { taskRouter } from './task/router';
 import { teamRouter } from './team/router';
+import { webhooksRouter } from './webhooks/router';
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -31,6 +32,7 @@ export const appRouter = router({
   effort: effortRouter,
   integration: integrationRouter,
   publicApi: publicApiRouter,
+  webhooks: webhooksRouter,
 });
 
 export type AppRouter = typeof appRouter;

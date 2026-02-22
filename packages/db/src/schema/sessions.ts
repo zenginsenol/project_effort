@@ -1,9 +1,16 @@
-import { boolean, integer, pgTable, text, timestamp, uuid, index, real, jsonb } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, text, timestamp, uuid, index, real, jsonb, customType } from 'drizzle-orm/pg-core';
 
 import { estimationMethodEnum, sessionStatusEnum } from './enums';
 import { projects } from './projects';
 import { tasks } from './tasks';
 import { users } from './users';
+
+// Custom type for PostgreSQL tsvector (full-text search)
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
 
 export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -17,9 +24,11 @@ export const sessions = pgTable('sessions', {
   finalEstimate: real('final_estimate'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  searchVector: tsvector('search_vector'),
 }, (table) => [
   index('idx_sessions_project_id').on(table.projectId),
   index('idx_sessions_status').on(table.status),
+  index('idx_sessions_search_vector').on(table.searchVector),
 ]);
 
 export const sessionParticipants = pgTable('session_participants', {

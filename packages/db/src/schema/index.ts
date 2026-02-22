@@ -9,5 +9,7 @@ export * from './sessions';
 export * from './sprints';
 export * from './integrations';
 export * from './api-keys';
+export * from './public-api-keys';
+export * from './webhooks';
 export * from './relations';
 export * from './embeddings';

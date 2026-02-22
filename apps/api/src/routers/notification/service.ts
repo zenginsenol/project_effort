@@ -1,19 +1,14 @@
 import { and, desc, eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { db } from '@estimate-pro/db';
 import { notificationPreferences, notifications } from '@estimate-pro/db/schema';
 
 import { hasNotificationAccess } from '../../services/security/tenant-access';
+import { createNotificationInput, updatePreferenceInput } from './schema';
 
 export class NotificationService {
-  async create(orgId: string, data: {
-    userId: string;
-    type: 'session_invitation' | 'vote_reminder' | 'session_complete' | 'task_assigned' | 'task_status_change' | 'sync_complete' | 'mention_in_comment';
-    title: string;
-    message: string;
-    link?: string;
-    metadata?: Record<string, unknown>;
-  }) {
+  async create(orgId: string, data: z.infer<typeof createNotificationInput>) {
     const [notification] = await db.insert(notifications).values({
       organizationId: orgId,
       ...data,
@@ -114,10 +109,7 @@ export class NotificationService {
     });
   }
 
-  async updatePreference(orgId: string, userId: string, data: {
-    notificationType: 'session_invitation' | 'vote_reminder' | 'session_complete' | 'task_assigned' | 'task_status_change' | 'sync_complete' | 'mention_in_comment';
-    enabled: boolean;
-  }) {
+  async updatePreference(orgId: string, userId: string, data: z.infer<typeof updatePreferenceInput>) {
     const existing = await db.query.notificationPreferences.findFirst({
       where: and(
         eq(notificationPreferences.organizationId, orgId),

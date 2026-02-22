@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { paginationInputSchema } from '../../lib/pagination';
+
 export const createProjectInput = z.object({
   organizationId: z.string().uuid(),
   name: z.string().min(2).max(200),
@@ -22,4 +24,4 @@ export const getProjectInput = z.object({
 
 export const listProjectsInput = z.object({
   organizationId: z.string().default(''),
-});
+}).merge(paginationInputSchema);

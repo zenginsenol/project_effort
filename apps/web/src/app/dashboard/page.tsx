@@ -6,14 +6,13 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
-  CircleDashed,
   FolderKanban,
   ListTodo,
-  Loader2,
   Plug,
   Users,
 } from 'lucide-react';
 
+import { ActivityFeedWidget } from '@/components/activity/activity-feed-widget';
 import { dashboardNavItems, workflowPhases } from '@/components/layout/navigation-data';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
@@ -87,16 +86,6 @@ export default function DashboardPage(): React.ReactElement {
     },
   ];
 
-  const recentTasks = useMemo(() => {
-    return [...allTasks]
-      .sort((a, b) => {
-        const aDate = new Date(a.updatedAt).getTime();
-        const bDate = new Date(b.updatedAt).getTime();
-        return bDate - aDate;
-      })
-      .slice(0, 5);
-  }, [allTasks]);
-
   const activeProviders = useMemo(
     () => (apiKeysQuery.data ?? []).filter((key) => key.isActive).length,
     [apiKeysQuery.data],
@@ -126,7 +115,6 @@ export default function DashboardPage(): React.ReactElement {
     return count;
   }, [activeProviders, allTasks.length, analysesQuery.data, doneTasks, estimatedTasks, projectList.length]);
 
-  const hasError = projectsQuery.isError || teamQuery.isError || analysesQuery.isError || apiKeysQuery.isError;
   const isLoading = projectsQuery.isLoading
     || (Boolean(orgId) && teamQuery.isLoading)
     || (Boolean(firstProjectId) && analysesQuery.isLoading)
@@ -258,42 +246,7 @@ export default function DashboardPage(): React.ReactElement {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_360px]">
-        <section className="dashboard-panel soft-surface rounded-xl p-6">
-          <h2 className="text-lg font-semibold">Recent Activity</h2>
-          <div className="mt-4">
-            {hasError && (
-              <p className="text-sm text-red-600">
-                Failed to load dashboard data. Check authentication and organization context.
-              </p>
-            )}
-            {!hasError && isLoading && (
-              <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading recent activity...
-              </p>
-            )}
-            {!hasError && !isLoading && recentTasks.length === 0 && (
-              <div className="rounded-md border border-dashed bg-background/70 p-6 text-sm text-muted-foreground">
-                <p className="inline-flex items-center gap-2">
-                  <CircleDashed className="h-4 w-4" />
-                  No recent activity. Create a project to get started.
-                </p>
-              </div>
-            )}
-            {!hasError && !isLoading && recentTasks.length > 0 && (
-              <div className="space-y-3">
-                {recentTasks.map((task) => (
-                  <div key={task.id} className="rounded-md border bg-background/70 p-3">
-                    <p className="text-sm font-medium">{task.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Status: {task.status} | Updated: {new Date(task.updatedAt).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+        <ActivityFeedWidget />
 
         <section className="dashboard-panel soft-surface rounded-xl p-6">
           <h2 className="text-lg font-semibold">Execution Pulse</h2>

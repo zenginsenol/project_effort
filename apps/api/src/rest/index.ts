@@ -30,9 +30,11 @@ export async function registerRestApi(fastify: FastifyInstance): Promise<void> {
       return { status: 'ok', timestamp: new Date().toISOString() };
     });
 
-    // TODO: Register route modules here in phase-3
-    // Example:
-    // await api.register(projectsRoutes, { prefix: '/projects' });
+    // Register REST API route modules
+    const { projectsRoutes } = await import('./routes/v1/projects');
+    await api.register(projectsRoutes, { prefix: '/projects' });
+
+    // TODO: Register additional route modules here in phase-3
     // await api.register(tasksRoutes, { prefix: '/tasks' });
     // await api.register(estimatesRoutes, { prefix: '/estimates' });
     // await api.register(costAnalysesRoutes, { prefix: '/cost-analyses' });

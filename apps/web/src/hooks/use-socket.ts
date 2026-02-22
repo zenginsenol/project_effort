@@ -29,6 +29,7 @@ export interface UseSocketReturn {
 const DEFAULT_RECONNECTION_DELAY = 1000; // 1 second
 const DEFAULT_RECONNECTION_DELAY_MAX = 30000; // 30 seconds
 const DEFAULT_RECONNECTION_ATTEMPTS = 10;
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
 
 /**
  * Custom hook for managing Socket.io connections with exponential backoff reconnection.
@@ -64,6 +65,7 @@ export function useSocket(options: UseSocketOptions): UseSocketReturn {
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasConnectedOnceRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -129,6 +131,17 @@ export function useSocket(options: UseSocketOptions): UseSocketReturn {
             clearTimeout(reconnectTimeoutRef.current);
             reconnectTimeoutRef.current = null;
           }
+
+          // Start heartbeat ping to keep connection alive
+          if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+          }
+
+          heartbeatIntervalRef.current = setInterval(() => {
+            if (socketInstance.connected) {
+              socketInstance.emit('ping');
+            }
+          }, HEARTBEAT_INTERVAL);
         });
 
         socketInstance.on('connect_error', (connectError) => {
@@ -154,6 +167,12 @@ export function useSocket(options: UseSocketOptions): UseSocketReturn {
 
           setIsConnected(false);
           setIsConnecting(false);
+
+          // Clear heartbeat interval on disconnect
+          if (heartbeatIntervalRef.current) {
+            clearInterval(heartbeatIntervalRef.current);
+            heartbeatIntervalRef.current = null;
+          }
 
           // Only attempt reconnection if disconnect was not initiated by the client
           if (
@@ -226,6 +245,11 @@ export function useSocket(options: UseSocketOptions): UseSocketReturn {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
+      }
+
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
       }
 
       if (socket) {

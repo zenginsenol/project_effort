@@ -20,6 +20,20 @@ export interface ExportData {
     totalPoints: number;
     totalHours: number;
   };
+  analytics?: {
+    accuracyTrends: Array<{
+      period: string;
+      accuracy: number;
+      meanAbsoluteError: number;
+      sampleSize: number;
+    }>;
+    biasAnalysis: {
+      overallBias: number;
+      optimismRate: number;
+      pessimismRate: number;
+      averageDeviation: number;
+    };
+  };
 }
 
 export function generateCSV(data: ExportData): string {

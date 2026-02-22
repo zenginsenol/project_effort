@@ -11,6 +11,7 @@ import { hasProjectAccess } from '../../services/security/tenant-access';
 import { decryptToken, describeStoredToken, encryptToken } from '../../services/security/token-crypto';
 import { orgProcedure, router } from '../../trpc/trpc';
 import type { BaseIntegration } from '../../services/integrations/base';
+import { activityService } from '../activity/service';
 
 import {
   callbackInput,
@@ -824,6 +825,22 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
+        // Record activity
+        await activityService.recordActivity({
+          organizationId: ctx.orgId,
+          activityType: 'integration_sync_completed',
+          entityType: 'integration',
+          entityId: integration.id,
+          actorId: ctx.userId,
+          projectId: input.projectId,
+          metadata: {
+            integrationType: integration.type,
+            repository: projectLink.externalProjectId,
+            importedCount: scopedItems.length,
+            syncedCount,
+          },
+        });
+
         return {
           integrationId: integration.id,
           projectId: input.projectId,
@@ -865,6 +882,24 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
+        // Record activity if items were synced to project
+        if (input.syncToProject && syncedCount > 0) {
+          await activityService.recordActivity({
+            organizationId: ctx.orgId,
+            activityType: 'integration_sync_completed',
+            entityType: 'integration',
+            entityId: integration.id,
+            actorId: ctx.userId,
+            projectId: input.projectId,
+            metadata: {
+              integrationType: integration.type,
+              externalProjectId: input.externalProjectId,
+              importedCount: importedItems.length,
+              syncedCount,
+            },
+          });
+        }
+
         return {
           importedCount: importedItems.length,
           syncedCount,
@@ -901,6 +936,22 @@ export const integrationRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(integrations.id, integration.id));
+
+        // Record activity
+        await activityService.recordActivity({
+          organizationId: ctx.orgId,
+          activityType: 'integration_sync_completed',
+          entityType: 'integration',
+          entityId: integration.id,
+          actorId: ctx.userId,
+          projectId: input.projectId,
+          metadata: {
+            integrationType: integration.type,
+            externalProjectId: input.externalProjectId,
+            importedCount: scopedItems.length,
+            syncedCount,
+          },
+        });
 
         return {
           importedCount: scopedItems.length,

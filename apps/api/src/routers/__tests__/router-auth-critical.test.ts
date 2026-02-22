@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type Redis from 'ioredis';
 
 import { appRouter } from '../index';
 import { sessionService } from '../session/service';
@@ -11,12 +12,20 @@ const TASK_ID = '33333333-3333-4333-8333-333333333333';
 const SESSION_ID = '44444444-4444-4444-8444-444444444444';
 const USER_ID = '55555555-5555-4555-8555-555555555555';
 
+const mockRedis = {
+  get: vi.fn(),
+  set: vi.fn(),
+  del: vi.fn(),
+  expire: vi.fn(),
+} as unknown as Redis;
+
 function createCaller(orgId: string = ORG_ID) {
   return appRouter.createCaller({
     req: {} as never,
     res: {} as never,
     userId: 'clerk_user_1',
     orgId,
+    redis: mockRedis,
   });
 }
 

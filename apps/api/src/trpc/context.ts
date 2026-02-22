@@ -1,13 +1,16 @@
 import type { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
 import { verifyToken } from '@clerk/backend';
+import type Redis from 'ioredis';
 
 import { db } from '@estimate-pro/db';
+import { getRedis } from '../lib/cache';
 
 export interface Context {
   req: CreateFastifyContextOptions['req'];
   res: CreateFastifyContextOptions['res'];
   userId: string | null;
   orgId: string | null;
+  redis: Redis;
 }
 
 function getBearerToken(authHeader: string | string[] | undefined): string | null {
@@ -163,6 +166,7 @@ export async function createContext({ req, res }: CreateFastifyContextOptions): 
     res,
     userId,
     orgId,
+    redis: getRedis(),
   };
 }
 

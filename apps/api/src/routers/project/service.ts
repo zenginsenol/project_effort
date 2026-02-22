@@ -3,6 +3,8 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@estimate-pro/db';
 import { projects } from '@estimate-pro/db/schema';
 
+import { cacheHelpers, withCache } from '../../middleware/cache-middleware';
+
 export class ProjectService {
   async create(organizationId: string, data: {
     name: string;
@@ -11,6 +13,8 @@ export class ProjectService {
     defaultEstimationMethod?: 'planning_poker' | 'tshirt_sizing' | 'pert' | 'wideband_delphi';
   }) {
     const [project] = await db.insert(projects).values({ ...data, organizationId }).returning();
+    // Invalidate project list cache for this organization
+    await cacheHelpers.invalidateByTag(`org:${organizationId}`);
     return project;
   }
 
@@ -32,14 +36,24 @@ export class ProjectService {
       .set({ ...data, updatedAt: new Date() })
       .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
       .returning();
+    // Invalidate project list cache for this organization
+    await cacheHelpers.invalidateByTag(`org:${organizationId}`);
     return project;
   }
 
   async listByOrganization(organizationId: string) {
-    return db.query.projects.findMany({
-      where: eq(projects.organizationId, organizationId),
-      with: { tasks: true },
-      orderBy: (p, { desc }) => [desc(p.createdAt)],
+    return withCache({
+      key: 'project:list',
+      input: { organizationId },
+      ttl: 300, // 5 minutes
+      tags: ['projects', `org:${organizationId}`],
+      fn: async () => {
+        return db.query.projects.findMany({
+          where: eq(projects.organizationId, organizationId),
+          with: { tasks: true },
+          orderBy: (p, { desc }) => [desc(p.createdAt)],
+        });
+      },
     });
   }
 
@@ -48,6 +62,8 @@ export class ProjectService {
       .delete(projects)
       .where(and(eq(projects.id, id), eq(projects.organizationId, organizationId)))
       .returning();
+    // Invalidate project list cache for this organization
+    await cacheHelpers.invalidateByTag(`org:${organizationId}`);
     return project;
   }
 }

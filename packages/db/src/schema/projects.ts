@@ -16,4 +16,6 @@ export const projects = pgTable('projects', {
 }, (table) => [
   index('idx_projects_organization_id').on(table.organizationId),
   index('idx_projects_key').on(table.key),
+  index('idx_projects_org_created').on(table.organizationId, table.createdAt),
+  index('idx_projects_org_status').on(table.organizationId, table.status),
 ]);

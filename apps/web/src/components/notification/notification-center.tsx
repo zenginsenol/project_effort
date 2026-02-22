@@ -159,6 +159,7 @@ export function NotificationCenter({
         'absolute right-0 top-full z-50 mt-2 w-96 rounded-lg border bg-card shadow-lg',
         'animate-in fade-in slide-in-from-top-2 duration-200'
       )}
+      data-testid="notification-center"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b px-4 py-3">
@@ -176,6 +177,7 @@ export function NotificationCenter({
             onClick={handleMarkAllAsRead}
             disabled={markAllAsReadMutation.isPending}
             className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+            data-testid="mark-all-read-button"
           >
             {markAllAsReadMutation.isPending ? (
               <Loader2 className="h-3 w-3 animate-spin" />

@@ -111,6 +111,7 @@ export function NotificationItem({
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      data-testid="notification-item"
     >
       {/* Unread indicator dot */}
       {!notification.isRead && (
@@ -141,6 +142,7 @@ export function NotificationItem({
               onClick={handleMarkAsRead}
               className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
               title="Mark as read"
+              data-testid="mark-as-read-button"
             >
               <Mail className="h-4 w-4" />
             </button>

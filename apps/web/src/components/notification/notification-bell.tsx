@@ -19,6 +19,7 @@ export function NotificationBell({ onClick }: NotificationBellProps): React.Reac
       onClick={onClick}
       className="relative rounded-md border bg-background/80 p-2 hover:bg-muted"
       aria-label={`Notifications${hasUnread ? ` (${unreadCount} unread)` : ''}`}
+      data-testid="notification-bell"
     >
       <Bell className="h-5 w-5" />
       {hasUnread && (
@@ -26,6 +27,7 @@ export function NotificationBell({ onClick }: NotificationBellProps): React.Reac
           className={cn(
             'absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground',
           )}
+          data-testid="notification-badge"
         >
           {displayCount}
         </span>

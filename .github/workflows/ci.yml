@@ -63,6 +63,32 @@ jobs:
   e2e:
     name: E2E
     runs-on: ubuntu-latest
+    needs: [lint-and-typecheck]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: estimate_pro_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
     steps:
       - uses: actions/checkout@v4
 
@@ -75,13 +101,48 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - run: pnpm install --frozen-lockfile
+
+      - name: Run database migrations
+        run: pnpm db:push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/estimate_pro_test
 
       - name: Install Playwright browsers
         run: pnpm --filter @estimate-pro/web exec playwright install --with-deps chromium
 
       - name: Run web E2E
         run: pnpm --filter @estimate-pro/web test:e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/estimate_pro_test
+          REDIS_URL: redis://localhost:6379
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3200
+          NEXT_PUBLIC_API_URL: http://localhost:8080
 
       - name: Upload Playwright report
         if: always()

@@ -2,6 +2,7 @@ import { integer, pgTable, text, timestamp, uuid, index, real, customType } from
 
 import { taskPriorityEnum, taskStatusEnum, taskTypeEnum } from './enums';
 import { projects } from './projects';
+import { sprints } from './sprints';
 import { users } from './users';
 
 // Custom type for PostgreSQL tsvector (full-text search)
@@ -20,6 +21,7 @@ export const tasks = pgTable('tasks', {
   type: taskTypeEnum('type').notNull().default('task'),
   status: taskStatusEnum('status').notNull().default('backlog'),
   priority: taskPriorityEnum('priority').notNull().default('medium'),
+  sprintId: uuid('sprint_id').references(() => sprints.id, { onDelete: 'set null' }),
   assigneeId: uuid('assignee_id').references(() => users.id, { onDelete: 'set null' }),
   estimatedPoints: real('estimated_points'),
   estimatedHours: real('estimated_hours'),
@@ -31,6 +33,7 @@ export const tasks = pgTable('tasks', {
 }, (table) => [
   index('idx_tasks_project_id').on(table.projectId),
   index('idx_tasks_parent_id').on(table.parentId),
+  index('idx_tasks_sprint_id').on(table.sprintId),
   index('idx_tasks_assignee_id').on(table.assigneeId),
   index('idx_tasks_status').on(table.status),
   index('idx_tasks_project_status').on(table.projectId, table.status),

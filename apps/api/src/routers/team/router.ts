@@ -53,4 +53,8 @@ export const teamRouter = router({
       }
       return teamService.listMembers(ctx.orgId);
     }),
+
+  me: orgProcedure.query(async ({ ctx }) => {
+    return teamService.getCurrentMember(ctx.orgId, ctx.userId);
+  }),
 });

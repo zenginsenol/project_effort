@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, Link as LinkIcon, Minus, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -50,8 +50,15 @@ export default function SprintsPage(): React.ReactElement {
     { enabled: Boolean(selectedProjectId), retry: false },
   );
 
-  const tasksQuery = trpc.task.list.useQuery(
-    { projectId: selectedProjectId },
+  // Tasks assigned to the selected sprint
+  const sprintTasksQuery = trpc.task.list.useQuery(
+    { projectId: selectedProjectId, sprintId: selectedSprintId ?? undefined },
+    { enabled: Boolean(selectedProjectId) && Boolean(selectedSprintId), retry: false },
+  );
+
+  // Tasks not yet assigned to any sprint (backlog candidates)
+  const unassignedTasksQuery = trpc.task.list.useQuery(
+    { projectId: selectedProjectId, sprintId: null },
     { enabled: Boolean(selectedProjectId), retry: false },
   );
 
@@ -78,19 +85,19 @@ export default function SprintsPage(): React.ReactElement {
     },
   });
 
+  const assignTaskMutation = trpc.task.update.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        sprintTasksQuery.refetch(),
+        unassignedTasksQuery.refetch(),
+      ]);
+    },
+  });
+
   const selectedSprint = useMemo(
     () => (sprintsQuery.data ?? []).find((sprint) => sprint.id === selectedSprintId) ?? null,
     [selectedSprintId, sprintsQuery.data],
   );
-
-  const groupedTasks = useMemo(() => {
-    const map = new Map<string, typeof tasksQuery.data>();
-    for (const task of tasksQuery.data ?? []) {
-      const list = map.get(task.status) ?? [];
-      map.set(task.status, [...list, task]);
-    }
-    return map;
-  }, [tasksQuery.data]);
 
   function handleCreate(): void {
     if (!selectedProjectId || !draft.name.trim()) {
@@ -117,12 +124,21 @@ export default function SprintsPage(): React.ReactElement {
     deleteMutation.mutate({ id: sprintId });
   }
 
+  function handleAssignTask(taskId: string): void {
+    if (!selectedSprintId) return;
+    assignTaskMutation.mutate({ id: taskId, sprintId: selectedSprintId });
+  }
+
+  function handleRemoveTask(taskId: string): void {
+    assignTaskMutation.mutate({ id: taskId, sprintId: null });
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Sprints</h1>
-          <p className="mt-1 text-muted-foreground">Plan sprint cycles and link them with project task board.</p>
+          <p className="mt-1 text-muted-foreground">Plan sprint cycles and assign tasks from the project backlog.</p>
         </div>
       </div>
 
@@ -179,7 +195,8 @@ export default function SprintsPage(): React.ReactElement {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+        {/* Sprint List */}
         <div>
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Sprint List</h2>
 
@@ -195,8 +212,8 @@ export default function SprintsPage(): React.ReactElement {
               <button
                 key={sprint.id}
                 type="button"
-                onClick={() => setSelectedSprintId(sprint.id)}
-                className={`w-full rounded-lg border bg-card p-4 text-left ${selectedSprintId === sprint.id ? 'border-primary bg-primary/5' : ''}`}
+                onClick={() => setSelectedSprintId(sprint.id === selectedSprintId ? null : sprint.id)}
+                className={`w-full rounded-lg border bg-card p-4 text-left transition-colors ${selectedSprintId === sprint.id ? 'border-primary bg-primary/5' : 'hover:bg-muted/30'}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -209,7 +226,11 @@ export default function SprintsPage(): React.ReactElement {
                   <div className="flex items-center gap-2">
                     <select
                       value={sprint.status}
-                      onChange={(event) => handleUpdateStatus(sprint.id, event.target.value as SprintStatus)}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        event.stopPropagation();
+                        handleUpdateStatus(sprint.id, event.target.value as SprintStatus);
+                      }}
                       className="rounded-md border px-2 py-1 text-xs"
                     >
                       {sprintStatusOptions.map((status) => (
@@ -233,38 +254,100 @@ export default function SprintsPage(): React.ReactElement {
           </div>
         </div>
 
+        {/* Task Assignment Panel */}
         <div>
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Board Linkage</h2>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+            {selectedSprint ? `Tasks in "${selectedSprint.name}"` : 'Board Linkage'}
+          </h2>
 
           {!selectedSprint && (
             <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-              Select a sprint to view task board linkage.
+              <p>Select a sprint to manage its tasks.</p>
+              {selectedProjectId && (
+                <Link
+                  href={`/dashboard/projects/${selectedProjectId}?view=board`}
+                  className="mt-3 inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                >
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  Open Project Board
+                </Link>
+              )}
             </div>
           )}
 
           {selectedSprint && (
             <div className="space-y-4">
+              {/* Sprint tasks */}
               <div className="rounded-lg border bg-card p-4">
-                <h3 className="font-semibold">{selectedSprint.name}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sprint status: {selectedSprint.status}
-                </p>
-                <Link
-                  href={`/dashboard/projects/${selectedProjectId}?view=board`}
-                  className="mt-3 inline-flex rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
-                >
-                  Open Project Board
-                </Link>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Sprint Tasks ({sprintTasksQuery.data?.length ?? 0})
+                  </p>
+                  <Link
+                    href={`/dashboard/projects/${selectedProjectId}?view=board`}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <LinkIcon className="h-3 w-3" />
+                    Open Board
+                  </Link>
+                </div>
+
+                {(sprintTasksQuery.data?.length ?? 0) === 0 && (
+                  <p className="mt-3 rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+                    No tasks in this sprint yet. Add from the backlog below.
+                  </p>
+                )}
+
+                <div className="mt-2 space-y-1">
+                  {(sprintTasksQuery.data ?? []).map((task) => (
+                    <div key={task.id} className="flex items-center justify-between gap-2 rounded-md border bg-background/60 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{task.title}</p>
+                        <p className="text-xs text-muted-foreground">{task.status} · {task.priority}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTask(task.id)}
+                        disabled={assignTaskMutation.isPending}
+                        title="Remove from sprint"
+                        className="shrink-0 rounded border border-red-200 p-1 text-red-500 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                {['backlog', 'todo', 'in_progress', 'in_review', 'done'].map((status) => (
-                  <div key={status} className="rounded-lg border bg-card p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{status}</p>
-                    <p className="mt-2 text-2xl font-bold">{groupedTasks.get(status)?.length ?? 0}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">tasks in selected project</p>
-                  </div>
-                ))}
+              {/* Unassigned tasks (backlog) */}
+              <div className="rounded-lg border bg-card p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Unassigned Tasks ({unassignedTasksQuery.data?.length ?? 0})
+                </p>
+
+                {(unassignedTasksQuery.data?.length ?? 0) === 0 && (
+                  <p className="mt-3 text-xs text-muted-foreground">All tasks are assigned to sprints.</p>
+                )}
+
+                <div className="mt-2 space-y-1">
+                  {(unassignedTasksQuery.data ?? []).map((task) => (
+                    <div key={task.id} className="flex items-center justify-between gap-2 rounded-md border bg-background/60 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{task.title}</p>
+                        <p className="text-xs text-muted-foreground">{task.status} · {task.priority}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAssignTask(task.id)}
+                        disabled={assignTaskMutation.isPending}
+                        title="Add to sprint"
+                        className="shrink-0 rounded border border-emerald-200 p-1 text-emerald-600 hover:bg-emerald-50 disabled:opacity-50"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

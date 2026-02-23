@@ -79,12 +79,12 @@ export default function SessionDetailPage(): React.ReactElement {
   const sessionQuery = trpc.session.getById.useQuery({ id: sessionId }, { retry: false });
 
   const orgId = sessionQuery.data?.project?.organizationId ?? '';
-  const teamQuery = trpc.team.list.useQuery(
-    { organizationId: orgId },
+  const meQuery = trpc.team.me.useQuery(
+    undefined,
     { enabled: Boolean(orgId), retry: false },
   );
 
-  const currentUserId = teamQuery.data?.[0]?.userId ?? null;
+  const currentUserId = meQuery.data?.userId ?? null;
   const currentRound = sessionQuery.data?.currentRound ?? 1;
 
   const votesQuery = trpc.session.getVotes.useQuery(

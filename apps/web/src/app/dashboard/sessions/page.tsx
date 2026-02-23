@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Plus, Users } from 'lucide-react';
+import { Check, Clock, Copy, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -22,6 +22,7 @@ export default function SessionsPage(): React.ReactElement {
   const [sessionName, setSessionName] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<SessionMethod>('planning_poker');
   const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
 
   const orgsQuery = trpc.organization.list.useQuery(undefined, { retry: false });
   const orgId = orgsQuery.data?.[0]?.id ?? '';
@@ -47,18 +48,12 @@ export default function SessionsPage(): React.ReactElement {
     { enabled: Boolean(selectedProjectId), retry: false },
   );
 
-  const teamQuery = trpc.team.list.useQuery(
-    { organizationId: orgId },
+  const meQuery = trpc.team.me.useQuery(
+    undefined,
     { enabled: Boolean(orgId), retry: false },
   );
 
-  const currentUserId = (() => {
-    const members = teamQuery.data ?? [];
-    if (members.length === 0) {
-      return null;
-    }
-    return members[0]?.userId ?? null;
-  })();
+  const currentUserId = meQuery.data?.userId ?? null;
 
   const createSessionMutation = trpc.session.create.useMutation({
     onSuccess: async () => {
@@ -85,6 +80,14 @@ export default function SessionsPage(): React.ReactElement {
       method: selectedMethod,
       moderatorId: currentUserId,
       taskId: selectedTaskId || undefined,
+    });
+  }
+
+  function handleCopyLink(sessionId: string): void {
+    const url = `${window.location.origin}/dashboard/sessions/${sessionId}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopiedSessionId(sessionId);
+      setTimeout(() => setCopiedSessionId(null), 2000);
     });
   }
 
@@ -216,6 +219,17 @@ export default function SessionsPage(): React.ReactElement {
                     className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                   >
                     Join
+                  </button>
+                  <button
+                    onClick={() => handleCopyLink(session.id)}
+                    title="Copy invite link"
+                    className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs font-medium hover:bg-muted"
+                  >
+                    {copiedSessionId === session.id ? (
+                      <Check className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </button>
                 </div>
               </div>

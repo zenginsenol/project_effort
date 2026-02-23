@@ -151,6 +151,7 @@ export class TaskService {
     status?: string;
     type?: string;
     parentId?: string | null;
+    sprintId?: string | null;
   }) {
     const allowed = await hasProjectAccess(projectId, orgId);
     if (!allowed) {
@@ -168,6 +169,11 @@ export class TaskService {
       conditions.push(isNull(tasks.parentId));
     } else if (filters?.parentId) {
       conditions.push(eq(tasks.parentId, filters.parentId));
+    }
+    if (filters?.sprintId === null) {
+      conditions.push(isNull(tasks.sprintId));
+    } else if (filters?.sprintId) {
+      conditions.push(eq(tasks.sprintId, filters.sprintId));
     }
 
     return db.query.tasks.findMany({

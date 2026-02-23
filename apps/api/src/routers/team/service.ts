@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@estimate-pro/db';
-import { organizationMembers } from '@estimate-pro/db/schema';
+import { organizationMembers, users } from '@estimate-pro/db/schema';
 
 import { activityService } from '../activity/service';
 
@@ -80,6 +80,25 @@ export class TeamService {
       where: eq(organizationMembers.organizationId, organizationId),
       with: { user: true },
       orderBy: (m, { asc }) => [asc(m.createdAt)],
+    });
+  }
+
+  async getCurrentMember(organizationId: string, clerkId: string) {
+    const user = await db.query.users.findFirst({
+      where: eq(users.clerkId, clerkId),
+      columns: { id: true },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return db.query.organizationMembers.findFirst({
+      where: and(
+        eq(organizationMembers.organizationId, organizationId),
+        eq(organizationMembers.userId, user.id),
+      ),
+      with: { user: true },
     });
   }
 }

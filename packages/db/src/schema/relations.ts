@@ -80,6 +80,10 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
     relationName: 'parentChild',
   }),
   children: many(tasks, { relationName: 'parentChild' }),
+  sprint: one(sprints, {
+    fields: [tasks.sprintId],
+    references: [sprints.id],
+  }),
   assignee: one(users, {
     fields: [tasks.assigneeId],
     references: [users.id],
@@ -137,11 +141,12 @@ export const sessionVotesRelations = relations(sessionVotes, ({ one }) => ({
   }),
 }));
 
-export const sprintsRelations = relations(sprints, ({ one }) => ({
+export const sprintsRelations = relations(sprints, ({ one, many }) => ({
   project: one(projects, {
     fields: [sprints.projectId],
     references: [projects.id],
   }),
+  tasks: many(tasks),
 }));
 
 export const integrationsRelations = relations(integrations, ({ one }) => ({

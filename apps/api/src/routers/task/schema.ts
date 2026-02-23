@@ -23,6 +23,7 @@ export const updateTaskInput = z.object({
   status: z.enum(['backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
   priority: z.enum(['critical', 'high', 'medium', 'low', 'none']).optional(),
   assigneeId: z.string().uuid().nullable().optional(),
+  sprintId: z.string().uuid().nullable().optional(),
   estimatedPoints: z.number().min(0).nullable().optional(),
   estimatedHours: z.number().min(0).nullable().optional(),
   sortOrder: z.number().int().optional(),
@@ -37,4 +38,5 @@ export const listTasksInput = z.object({
   status: z.enum(['backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
   type: z.enum(['epic', 'feature', 'story', 'task', 'subtask', 'bug']).optional(),
   parentId: z.string().uuid().nullable().optional(),
+  sprintId: z.string().uuid().nullable().optional(),
 }).merge(paginationInputSchema);

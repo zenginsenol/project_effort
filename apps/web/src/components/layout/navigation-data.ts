@@ -8,6 +8,7 @@ import {
   GitCompareArrows,
   Home,
   Plug,
+  Scale,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
@@ -73,12 +74,20 @@ export const dashboardNavItems: DashboardNavItem[] = [
     order: 5,
   },
   {
+    name: 'Method Comparison',
+    href: '/dashboard/method-comparison',
+    icon: Scale,
+    description: 'Estimation yontemlerini karsilastir ve analiz et',
+    phase: 'Estimate',
+    order: 6,
+  },
+  {
     name: 'Sessions',
     href: '/dashboard/sessions',
     icon: Clock,
     description: 'Canli estimation oturumlarini yonet',
     phase: 'Operate',
-    order: 6,
+    order: 7,
   },
   {
     name: 'Sprints',
@@ -86,7 +95,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: CalendarDays,
     description: 'Sprint planlama ve ilerleme takibi',
     phase: 'Operate',
-    order: 7,
+    order: 8,
   },
   {
     name: 'Analytics',
@@ -94,7 +103,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: BarChart3,
     description: 'KPI, velocity ve raporlama',
     phase: 'Operate',
-    order: 8,
+    order: 9,
   },
   {
     name: 'Integrations',
@@ -102,7 +111,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: Plug,
     description: 'GitHub ve diger baglantilar',
     phase: 'Operate',
-    order: 9,
+    order: 10,
   },
   {
     name: 'Settings',
@@ -110,7 +119,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: Settings,
     description: 'AI provider key/model ve genel ayarlar',
     phase: 'Operate',
-    order: 10,
+    order: 11,
   },
 ];
 

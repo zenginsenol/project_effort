@@ -1,10 +1,71 @@
 'use client';
 
 import { BarChart3, Target, TrendingUp, Users } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
+
+const TaskDistributionChart = dynamic(
+  () => import('./components/task-distribution-chart').then((mod) => ({ default: mod.TaskDistributionChart })),
+  {
+    loading: () => (
+      <div className="rounded-lg border bg-card p-6">
+        <div className="h-64 animate-pulse bg-muted" />
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
+const VelocityChart = dynamic(
+  () => import('./components/velocity-chart').then((mod) => ({ default: mod.VelocityChart })),
+  {
+    loading: () => (
+      <div className="rounded-lg border bg-card p-6">
+        <div className="h-64 animate-pulse bg-muted" />
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
+const EstimationAccuracyList = dynamic(
+  () => import('./components/estimation-accuracy-list').then((mod) => ({ default: mod.EstimationAccuracyList })),
+  {
+    loading: () => (
+      <div className="rounded-lg border bg-card p-6">
+        <div className="h-64 animate-pulse bg-muted" />
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
+const TeamBiasList = dynamic(
+  () => import('./components/team-bias-list').then((mod) => ({ default: mod.TeamBiasList })),
+  {
+    loading: () => (
+      <div className="rounded-lg border bg-card p-6">
+        <div className="h-64 animate-pulse bg-muted" />
+      </div>
+    ),
+    ssr: false,
+  },
+);
+
+const BurndownChart = dynamic(
+  () => import('./components/burndown-chart').then((mod) => ({ default: mod.BurndownChart })),
+  {
+    loading: () => (
+      <div className="rounded-lg border bg-card p-6">
+        <div className="h-64 animate-pulse bg-muted" />
+      </div>
+    ),
+    ssr: false,
+  },
+);
 
 export default function AnalyticsPage(): React.ReactElement {
   const utils = trpc.useUtils();
@@ -215,151 +276,16 @@ export default function AnalyticsPage(): React.ReactElement {
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-lg font-semibold">Task Distribution</h2>
-              <div className="mt-4 space-y-3">
-                {taskStatuses.map(({ status, count }) => {
-                  const colors: Record<string, string> = {
-                    backlog: 'bg-gray-400',
-                    todo: 'bg-blue-400',
-                    in_progress: 'bg-yellow-400',
-                    in_review: 'bg-purple-400',
-                    done: 'bg-green-400',
-                    cancelled: 'bg-red-400',
-                  };
-                  const percentage = overview.totalTasks > 0 ? (count / overview.totalTasks) * 100 : 0;
-                  return (
-                    <div key={status}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="capitalize">{status.replace('_', ' ')}</span>
-                        <span className="font-medium">{count}</span>
-                      </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={cn('h-full rounded-full', colors[status] ?? 'bg-gray-400')}
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                {taskStatuses.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No task data available.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-lg font-semibold">Sprint Velocity</h2>
-              <div className="mt-4 flex items-end gap-2" style={{ height: '200px' }}>
-                {velocity.map((sprint) => (
-                  <div key={sprint.sprintId} className="flex flex-1 flex-col items-center gap-1">
-                    <div className="flex w-full gap-0.5" style={{ height: '160px', alignItems: 'flex-end' }}>
-                      <div
-                        className="flex-1 rounded-t bg-blue-300 dark:bg-blue-700"
-                        style={{ height: `${(sprint.plannedPoints / maxVelocity) * 100}%` }}
-                        title={`Planned: ${sprint.plannedPoints}`}
-                      />
-                      <div
-                        className="flex-1 rounded-t bg-green-400 dark:bg-green-600"
-                        style={{ height: `${(sprint.completedPoints / maxVelocity) * 100}%` }}
-                        title={`Completed: ${sprint.completedPoints}`}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">{sprint.sprintName.slice(0, 8)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-blue-300" /> Planned</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-green-400" /> Completed</span>
-              </div>
-              {velocity.length === 0 && (
-                <p className="mt-3 text-sm text-muted-foreground">No sprint velocity data yet.</p>
-              )}
-            </div>
+            <TaskDistributionChart taskStatuses={taskStatuses} totalTasks={overview.totalTasks} />
+            <VelocityChart velocity={velocity} maxVelocity={maxVelocity} />
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-lg font-semibold">Estimation Accuracy</h2>
-              <div className="mt-4 space-y-2">
-                {(accuracyQuery.data ?? []).slice(0, 8).map((item) => (
-                  <div key={item.taskId} className="rounded-md border p-3 text-sm">
-                    <p className="font-medium">{item.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Est: {item.estimated ?? '-'}h • Actual: {item.actual ?? '-'}h • Variance: {item.variance ?? '-'}%
-                    </p>
-                  </div>
-                ))}
-                {(accuracyQuery.data?.length ?? 0) === 0 && (
-                  <p className="text-sm text-muted-foreground">No completed tasks with actual hours yet.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-lg font-semibold">Team Bias</h2>
-              <div className="mt-4 space-y-2">
-                {(teamBiasQuery.data ?? []).map((item) => (
-                  <div key={item.userId} className="rounded-md border p-3 text-sm">
-                    <p className="font-medium">User: {item.userId}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Avg estimate: {item.averageEstimate.toFixed(2)} • Entries: {item.totalEstimates}
-                    </p>
-                  </div>
-                ))}
-                {(teamBiasQuery.data?.length ?? 0) === 0 && (
-                  <p className="text-sm text-muted-foreground">No estimation vote data available.</p>
-                )}
-              </div>
-            </div>
+            <EstimationAccuracyList accuracyData={accuracyQuery.data ?? []} />
+            <TeamBiasList teamBiasData={teamBiasQuery.data ?? []} />
           </div>
 
-          <div className="mt-6 rounded-lg border bg-card p-6">
-            <h2 className="text-lg font-semibold">Burndown / Burnup (30 days)</h2>
-            <div className="mt-4">
-              {(burndownQuery.data ?? []).length > 0 ? (
-                <div className="flex items-end gap-1 overflow-x-auto pb-2" style={{ height: '220px' }}>
-                  {(burndownQuery.data ?? []).map((point) => {
-                    const maxScope = Math.max(...(burndownQuery.data ?? []).map((item) => item.scope), 1);
-                    const remainingHeight = (point.remaining / maxScope) * 100;
-                    const completedHeight = (point.completed / maxScope) * 100;
-                    const idealHeight = (point.idealRemaining / maxScope) * 100;
-                    return (
-                      <div key={point.date} className="flex min-w-[20px] flex-col items-center gap-1">
-                        <div className="relative flex w-5 flex-col justify-end rounded bg-muted/40" style={{ height: '180px' }}>
-                          <div
-                            className="w-full rounded-t bg-green-400/80"
-                            style={{ height: `${completedHeight}%` }}
-                            title={`Completed: ${point.completed}`}
-                          />
-                          <div
-                            className="w-full bg-red-400/80"
-                            style={{ height: `${remainingHeight}%` }}
-                            title={`Remaining: ${point.remaining}`}
-                          />
-                          <div
-                            className="absolute left-0 right-0 border-t-2 border-blue-500"
-                            style={{ bottom: `${idealHeight}%` }}
-                            title={`Ideal Remaining: ${point.idealRemaining}`}
-                          />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">{point.date.slice(5)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Not enough task history for burndown data.</p>
-              )}
-              <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-green-400" /> Burnup (completed)</span>
-                <span className="flex items-center gap-1"><span className="h-2 w-2 rounded bg-red-400" /> Burndown (remaining)</span>
-                <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-blue-500" /> Ideal line</span>
-              </div>
-            </div>
-          </div>
+          <BurndownChart burndownData={burndownQuery.data ?? []} />
 
           <div className="mt-6 rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold">Export Report</h2>

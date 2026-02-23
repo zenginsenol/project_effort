@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type Redis from 'ioredis';
 
 import { encrypt } from '../../../services/crypto';
 import { documentRouter } from '../router';
@@ -28,12 +29,20 @@ vi.mock('../../../services/document/task-extractor', () => ({
   extractWithMultipleProviders: extractWithMultipleProvidersMock,
 }));
 
+const mockRedis = {
+  get: vi.fn(),
+  set: vi.fn(),
+  del: vi.fn(),
+  expire: vi.fn(),
+} as unknown as Redis;
+
 function createCaller() {
   return documentRouter.createCaller({
     req: {} as never,
     res: {} as never,
     userId: 'clerk_user_tenant',
     orgId: 'org_tenant',
+    redis: mockRedis,
   });
 }
 

@@ -82,38 +82,42 @@ export class EffortService {
     project: ProjectRow;
     taskList: TaskRow[];
   }> {
-    const project = await db.query.projects.findFirst({
+    const result = await db.query.projects.findFirst({
       columns: {
         id: true,
         name: true,
         key: true,
       },
       where: and(eq(projects.id, projectId), eq(projects.organizationId, orgId)),
+      with: {
+        tasks: {
+          columns: {
+            id: true,
+            title: true,
+            type: true,
+            status: true,
+            priority: true,
+            estimatedHours: true,
+            estimatedPoints: true,
+            actualHours: true,
+            createdAt: true,
+            sortOrder: true,
+          },
+        },
+      },
     });
 
-    if (!project) {
+    if (!result) {
       throw new Error('Project not found');
     }
 
-    const taskList = await db
-      .select({
-        id: tasks.id,
-        title: tasks.title,
-        type: tasks.type,
-        status: tasks.status,
-        priority: tasks.priority,
-        estimatedHours: tasks.estimatedHours,
-        estimatedPoints: tasks.estimatedPoints,
-        actualHours: tasks.actualHours,
-        createdAt: tasks.createdAt,
-        sortOrder: tasks.sortOrder,
-      })
-      .from(tasks)
-      .where(eq(tasks.projectId, projectId));
-
     return {
-      project,
-      taskList,
+      project: {
+        id: result.id,
+        name: result.name,
+        key: result.key,
+      },
+      taskList: result.tasks,
     };
   }
 

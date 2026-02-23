@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { paginationInputSchema } from '../../lib/pagination';
+
 export const createTaskInput = z.object({
   projectId: z.string().uuid(),
   title: z.string().min(1).max(500),
@@ -35,4 +37,4 @@ export const listTasksInput = z.object({
   status: z.enum(['backlog', 'todo', 'in_progress', 'in_review', 'done', 'cancelled']).optional(),
   type: z.enum(['epic', 'feature', 'story', 'task', 'subtask', 'bug']).optional(),
   parentId: z.string().uuid().nullable().optional(),
-});
+}).merge(paginationInputSchema);

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type Redis from 'ioredis';
 
 import { encrypt } from '../../../services/crypto';
 import { apiKeysRouter } from '../router';
@@ -23,12 +24,20 @@ vi.mock('@estimate-pro/db', () => ({
   db: mockDb,
 }));
 
+const mockRedis = {
+  get: vi.fn(),
+  set: vi.fn(),
+  del: vi.fn(),
+  expire: vi.fn(),
+} as unknown as Redis;
+
 function createCaller() {
   return apiKeysRouter.createCaller({
     req: {} as never,
     res: {} as never,
     userId: 'clerk_user_openrouter',
     orgId: 'org-openrouter',
+    redis: mockRedis,
   });
 }
 

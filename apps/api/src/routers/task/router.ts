@@ -40,8 +40,8 @@ export const taskRouter = router({
   list: orgProcedure
     .input(listTasksInput)
     .query(async ({ ctx, input }) => {
-      const { projectId, ...filters } = input;
-      return taskService.listByProject(projectId, ctx.orgId, filters);
+      const { projectId, limit, cursor, direction, ...filters } = input;
+      return taskService.listByProject(projectId, ctx.orgId, filters, { limit, cursor, direction });
     }),
 
   delete: orgProcedure

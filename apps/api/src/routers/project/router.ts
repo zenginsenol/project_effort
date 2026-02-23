@@ -51,7 +51,8 @@ export const projectRouter = router({
       if (input.organizationId && input.organizationId !== ctx.orgId) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Organization mismatch' });
       }
-      return projectService.listByOrganization(ctx.orgId);
+      const { organizationId, ...pagination } = input;
+      return projectService.listByOrganization(ctx.orgId, pagination);
     }),
 
   delete: orgProcedure

@@ -11,5 +11,6 @@ export * from './notifications';
 export * from './sprints';
 export * from './integrations';
 export * from './api-keys';
+export * from './invitations';
 export * from './relations';
 export * from './embeddings';

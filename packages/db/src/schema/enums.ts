@@ -12,3 +12,4 @@ export const integrationTypeEnum = pgEnum('integration_type', ['jira', 'azure_de
 export const aiProviderEnum = pgEnum('ai_provider', ['openai', 'anthropic', 'openrouter']);
 export const onboardingStepEnum = pgEnum('onboarding_step', ['organization_created', 'project_setup', 'tasks_created', 'first_estimation']);
 export const notificationTypeEnum = pgEnum('notification_type', ['session_invitation', 'vote_reminder', 'session_complete', 'task_assigned', 'task_status_change', 'sync_complete', 'mention_in_comment']);
+export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired', 'cancelled']);

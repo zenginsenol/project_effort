@@ -6,6 +6,7 @@ import { estimates } from './estimates';
 import { integrations } from './integrations';
 import { onboardingState } from './onboarding';
 import { notificationPreferences, notifications } from './notifications';
+import { organizationInvitations } from './invitations';
 import { organizationMembers, users } from './users';
 import { organizations } from './organizations';
 import { projects } from './projects';
@@ -20,6 +21,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   costAnalyses: many(costAnalyses),
   notifications: many(notifications),
   notificationPreferences: many(notificationPreferences),
+  invitations: many(organizationInvitations),
 }));
 
 export const usersRelations = relations(users, ({ many, one }) => ({
@@ -31,6 +33,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   onboardingState: one(onboardingState),
   notifications: many(notifications),
   notificationPreferences: many(notificationPreferences),
+  sentInvitations: many(organizationInvitations),
 }));
 
 export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
@@ -201,6 +204,17 @@ export const notificationPreferencesRelations = relations(notificationPreference
   }),
   user: one(users, {
     fields: [notificationPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+export const organizationInvitationsRelations = relations(organizationInvitations, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [organizationInvitations.organizationId],
+    references: [organizations.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [organizationInvitations.invitedBy],
     references: [users.id],
   }),
 }));

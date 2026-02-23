@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
+import { InviteMemberDialog } from '@/components/invitations/invite-member-dialog';
+import { PendingInvitationsList } from '@/components/invitations/pending-invitations-list';
 
 type Provider = 'openai' | 'anthropic' | 'openrouter';
 type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
@@ -1332,8 +1334,13 @@ export default function SettingsPage(): React.ReactElement {
 
         {/* Organization Settings */}
         <div className="rounded-lg border bg-card p-6">
-          <h2 className="text-lg font-semibold">Organization</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your organization details and preferences.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Organization</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Manage your organization details and preferences.</p>
+            </div>
+            <InviteMemberDialog />
+          </div>
           <div className="mt-4 space-y-4">
             <div>
               <label className="text-sm font-medium">Organization Name</label>
@@ -1345,6 +1352,9 @@ export default function SettingsPage(): React.ReactElement {
             </div>
           </div>
         </div>
+
+        {/* Pending Invitations */}
+        <PendingInvitationsList />
 
         {/* Default Estimation Method */}
         <div className="rounded-lg border bg-card p-6">

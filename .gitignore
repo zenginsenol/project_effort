@@ -43,3 +43,4 @@ redis_data/
 # Misc
 *.log
 *.tsbuildinfo
+node_modules

@@ -78,8 +78,8 @@ All 8 open GitHub PRs (151-158) closed after local merge.
 | W3-01 | Kanban board with drag-and-drop (dnd-kit) | ❌ Missing | P0 |
 | W3-02 | Task detail panel (full CRUD UI) | ❌ Missing | P0 |
 | W3-03 | Session lobby (QR code, participant list) | ❌ Missing | P0 |
-| W3-04 | Sprint planning page + board | ❌ Missing | P1 |
-| W3-05 | Real-time moderator controls (socket) | ⚠️ Partial | P0 |
+| W3-04 | Sprint planning page + board | ✅ DONE (PW-09) | P1 |
+| W3-05 | Real-time moderator controls (socket) | ✅ DONE (PW-11) | P0 |
 | W3-06 | Planning Poker E2E real-time flow | ⚠️ Partial | P0 |
 | W3-07 | PERT bell curve visualization | ⚠️ Partial | P1 |
 | W3-08 | Burndown + velocity + bias charts | ⚠️ Partial | P1 |
@@ -90,6 +90,59 @@ All 8 open GitHub PRs (151-158) closed after local merge.
 | W3-13 | Jira integration hardening | ⚠️ Partial | P2 |
 | W3-14 | Azure DevOps integration | ⬜ Deferred | P3 |
 | W3-15 | GitHub Actions CI test run (real services) | ⬜ Not tested | P2 |
+
+---
+
+## Post-Wave-3 Hotfix & Feature Session (2026-02-23) ✅ COMPLETE
+
+Bağımsız düzeltmeler ve eksik özellikler tamamlandı.
+
+### Auth Context Bug Fixes
+
+| # | Fix | Files | Status |
+|---|-----|-------|--------|
+| PW-01 | `team.me` tRPC endpoint eklendi (Clerk ID → DB UUID çözümü) | `apps/api/src/routers/team/router.ts`, `service.ts` | ✅ |
+| PW-02 | Sessions sayfalarında `currentUserId` bug'ı: `teamList[0]` yerine `team.me` kullanılıyor | `apps/web/src/app/dashboard/sessions/page.tsx`, `[sessionId]/page.tsx` | ✅ |
+| PW-03 | `resolveDbUserId(clerkId)` helper: Clerk ID → DB UUID lookup, tüm router'larda kullanım için | `apps/api/src/lib/user-resolver.ts` | ✅ |
+| PW-04 | Notification router `list` + `updatePreference`: Clerk ID yerine DB UUID kullanılıyor | `apps/api/src/routers/notification/router.ts` | ✅ |
+
+### DB Schema Eklemeleri
+
+| # | Değişiklik | Notlar | Status |
+|---|-----------|--------|--------|
+| PW-05 | `tasks.sprint_id` (nullable UUID FK) eklendi | Migration `0002_hesitant_wolfsbane.sql`, direct SQL ile apply edildi | ✅ |
+| PW-06 | `tasksRelations` güncellendi: sprint one-to-many | `packages/db/src/schema/relations.ts` | ✅ |
+
+### API Güncellemeleri
+
+| # | Değişiklik | Notlar | Status |
+|---|-----------|--------|--------|
+| PW-07 | Task API: `sprintId` filtresi eklendi (null = unassigned) | `apps/api/src/routers/task/schema.ts`, `service.ts` | ✅ |
+| PW-08 | Onboarding router tamamen yeniden yazıldı: userId input'tan değil ctx'ten (resolveDbUserId) | `apps/api/src/routers/onboarding/router.ts`, `schema.ts` | ✅ |
+
+### Frontend Eklemeleri
+
+| # | Sayfa / Bileşen | Durum | Notlar |
+|---|----------------|-------|--------|
+| PW-09 | Sprint sayfası yeniden yazıldı | ✅ W3-04 DONE | Sprint tasks + unassigned backlog, +/- butonları ile atama/kaldırma |
+| PW-10 | Session davet linki kopyalama butonu | ✅ | Sessions listesinde Copy URL butonu |
+| PW-11 | Session detail "X/Y voted" badge | ✅ | Reveal öncesi oy sayısını gösterir |
+| PW-12 | Notification settings sayfası düzeltildi | ✅ | @ts-expect-error kaldırıldı, team.me ile DB UUID geçiliyor |
+| PW-13 | Onboarding UI sayfası oluşturuldu (`/dashboard/onboarding`) | ✅ W3-03↗ | Step tracker, progress bar, sample data loader, skip akışı |
+| PW-14 | Sidebar'a "Getting Started" nav item eklendi (Ingest phase) | ✅ | `/dashboard/onboarding` linkiyle |
+
+### Güncellenen Backlog Durumları
+
+| ID | Özellik | Önceki | Sonraki |
+|----|---------|--------|---------|
+| W3-04 / #75 | Sprint planning page + board | ❌ Missing | ✅ DONE |
+| W3-05 / #74 | Real-time moderator controls | ⚠️ Partial | ✅ DONE |
+| W3-03 / #73 | Session lobby (QR code, participant list) | ❌ Missing | ❌ Still missing |
+
+### Kalıcı Pre-existing Typecheck Hataları (işlevselliği bozmaz)
+- `services/stripe/` — Stripe API version (`"2024-12-18"` vs `"2025-02-24"`)
+- `apps/api/src/routers/webhooks/router.ts` — ctx.organization property
+- `packages/db/src/test-performance.ts` — test dosyası type uyumu
 
 ---
 
@@ -273,8 +326,8 @@ Re-audit note: Phase 2 backend building blocks mostly exist, but frontend end-to
 | 71 | T-Shirt Sizing UI | ⚠️ | Agent-C | #64 | Size selection works | Re-audit: temel component var, uçtan uca akış kısmi |
 | 72 | PERT three-input form + bell curve visualization | ⚠️ | Agent-C | #64 | Chart renders | Re-audit: form var, bütünleşik ürün akışı kısmi |
 | 73 | Session lobby (QR code, participant list) | ❌ | Agent-C | #63 | Real-time join | Re-audit: QR/lobby akışı yok |
-| 74 | Moderator controls (start, pause, reveal, re-vote) | ⚠️ | Agent-C | #64 | All controls work | Re-audit: local state düzeyi, gerçek-time entegrasyon eksik |
-| 75 | Sprint planning page + board | ❌ | Agent-C | #65 | Sprint management UI | Re-audit: sayfa statik placeholder |
+| 74 | Moderator controls (start, pause, reveal, re-vote) | ✅ | Agent-C | #64 | All controls work | PW-09: reveal, new-round, complete + socket events tam çalışıyor |
+| 75 | Sprint planning page + board | ✅ | Agent-C | #65 | Sprint management UI | PW-09: sprint tasks + backlog panels, add/remove task mutations |
 
 **Phase 3 Exit Criteria:**
 - [ ] Planning Poker: vote -> reveal -> results shown

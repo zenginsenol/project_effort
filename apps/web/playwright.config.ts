@@ -6,17 +6,19 @@ const E2E_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://${E2E_HOST}:${E2
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 30_000,
+  timeout: 20_000, // Reduced from 30s to 20s for faster failures
   expect: {
     timeout: 5_000,
   },
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : 1, // 2 parallel workers in CI for faster execution
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: E2E_BASE_URL,
     trace: 'on-first-retry',
+    actionTimeout: 10_000, // 10 seconds (reduced from default 15s)
   },
   projects: [
     {

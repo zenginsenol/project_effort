@@ -35,6 +35,9 @@ Thumbs.db
 
 # Test
 coverage/
+test-results/
+playwright-report/
+*/.last-run.json
 
 # Docker volumes
 postgres_data/

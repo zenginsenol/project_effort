@@ -7,6 +7,8 @@ import { estimates, projects, sessions, sprints, tasks } from '@estimate-pro/db/
 import { withCache } from '../../middleware/cache-middleware';
 import { generateCSV } from '../../services/export';
 import { hasProjectAccess } from '../../services/security/tenant-access';
+import { generateCalibrationRecommendations } from '../../services/ai/openai-client';
+import { findSimilarTasks } from '../../services/ai/similarity';
 import type { ExportData } from '../../services/export';
 
 function taskWeight(task: { estimatedPoints: number | null }): number {
@@ -281,6 +283,436 @@ export class AnalyticsService {
     }));
   }
 
+  async getAccuracyTrends(projectId: string, orgId: string) {
+    const allowed = await hasProjectAccess(projectId, orgId);
+    if (!allowed) {
+      return [];
+    }
+
+    const tasksWithBoth = await db
+      .select({
+        estimatedHours: tasks.estimatedHours,
+        actualHours: tasks.actualHours,
+        updatedAt: tasks.updatedAt,
+      })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.projectId, projectId),
+          sql`${tasks.estimatedHours} IS NOT NULL`,
+          sql`${tasks.actualHours} IS NOT NULL`,
+          sql`${tasks.estimatedHours} > 0`,
+        ),
+      )
+      .orderBy(tasks.updatedAt);
+
+    if (tasksWithBoth.length === 0) {
+      return [];
+    }
+
+    const windows = [
+      { weeks: 4, label: '4 weeks' },
+      { weeks: 8, label: '8 weeks' },
+      { weeks: 12, label: '12 weeks' },
+    ];
+
+    const now = new Date();
+
+    return windows.map((window) => {
+      const windowStart = new Date(now);
+      windowStart.setUTCDate(windowStart.getUTCDate() - (window.weeks * 7));
+
+      const windowTasks = tasksWithBoth.filter(
+        (task) => task.updatedAt >= windowStart && task.updatedAt <= now,
+      );
+
+      if (windowTasks.length === 0) {
+        return {
+          window: window.label,
+          weeks: window.weeks,
+          accuracyScore: 0,
+          taskCount: 0,
+          averageVariance: 0,
+        };
+      }
+
+      let totalAccuracy = 0;
+      let totalVariance = 0;
+
+      for (const task of windowTasks) {
+        const estimated = task.estimatedHours ?? 0;
+        const actual = task.actualHours ?? 0;
+
+        if (estimated > 0 && actual > 0) {
+          const accuracy = Math.min((estimated / actual) * 100, 200);
+          totalAccuracy += accuracy;
+
+          const variance = ((actual - estimated) / estimated) * 100;
+          totalVariance += variance;
+        }
+      }
+
+      const avgAccuracy = totalAccuracy / windowTasks.length;
+      const avgVariance = totalVariance / windowTasks.length;
+
+      return {
+        window: window.label,
+        weeks: window.weeks,
+        accuracyScore: roundTo2(avgAccuracy),
+        taskCount: windowTasks.length,
+        averageVariance: roundTo2(avgVariance),
+      };
+    });
+  }
+
+  async getEnhancedTeamBias(
+    projectId: string,
+    groupBy: 'type' | 'priority' | 'method' | 'user' | 'all',
+    orgId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const allowed = await hasProjectAccess(projectId, orgId);
+    if (!allowed) {
+      return [];
+    }
+
+    const dateConditions = [];
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      dateConditions.push(sql`${tasks.updatedAt} >= ${fromDate}`);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      dateConditions.push(sql`${tasks.updatedAt} <= ${toDate}`);
+    }
+
+    const baseConditions = [
+      eq(tasks.projectId, projectId),
+      sql`${tasks.estimatedHours} IS NOT NULL`,
+      sql`${tasks.actualHours} IS NOT NULL`,
+      sql`${tasks.estimatedHours} > 0`,
+      sql`${tasks.actualHours} > 0`,
+      ...dateConditions,
+    ];
+
+    if (groupBy === 'type' || groupBy === 'all') {
+      const tasksByType = await db
+        .select({
+          type: tasks.type,
+          estimatedHours: tasks.estimatedHours,
+          actualHours: tasks.actualHours,
+        })
+        .from(tasks)
+        .where(and(...baseConditions));
+
+      const typeGroups = new Map<string, Array<{ estimated: number; actual: number }>>();
+
+      for (const task of tasksByType) {
+        const key = task.type;
+        if (!typeGroups.has(key)) {
+          typeGroups.set(key, []);
+        }
+        typeGroups.get(key)!.push({
+          estimated: task.estimatedHours ?? 0,
+          actual: task.actualHours ?? 0,
+        });
+      }
+
+      const typeResults = Array.from(typeGroups.entries()).map(([type, taskList]) => {
+        const { avgAccuracy, avgVariance, bias } = this.calculateGroupMetrics(taskList);
+        return {
+          dimension: 'type' as const,
+          value: type,
+          taskCount: taskList.length,
+          averageAccuracy: avgAccuracy,
+          averageVariance: avgVariance,
+          bias,
+        };
+      });
+
+      if (groupBy === 'type') {
+        return typeResults;
+      }
+    }
+
+    if (groupBy === 'priority' || groupBy === 'all') {
+      const tasksByPriority = await db
+        .select({
+          priority: tasks.priority,
+          estimatedHours: tasks.estimatedHours,
+          actualHours: tasks.actualHours,
+        })
+        .from(tasks)
+        .where(and(...baseConditions));
+
+      const priorityGroups = new Map<string, Array<{ estimated: number; actual: number }>>();
+
+      for (const task of tasksByPriority) {
+        const key = task.priority;
+        if (!priorityGroups.has(key)) {
+          priorityGroups.set(key, []);
+        }
+        priorityGroups.get(key)!.push({
+          estimated: task.estimatedHours ?? 0,
+          actual: task.actualHours ?? 0,
+        });
+      }
+
+      const priorityResults = Array.from(priorityGroups.entries()).map(([priority, taskList]) => {
+        const { avgAccuracy, avgVariance, bias } = this.calculateGroupMetrics(taskList);
+        return {
+          dimension: 'priority' as const,
+          value: priority,
+          taskCount: taskList.length,
+          averageAccuracy: avgAccuracy,
+          averageVariance: avgVariance,
+          bias,
+        };
+      });
+
+      if (groupBy === 'priority') {
+        return priorityResults;
+      }
+    }
+
+    if (groupBy === 'method' || groupBy === 'all') {
+      const tasksByMethod = await db
+        .select({
+          method: estimates.method,
+          estimatedHours: tasks.estimatedHours,
+          actualHours: tasks.actualHours,
+        })
+        .from(tasks)
+        .innerJoin(estimates, eq(estimates.taskId, tasks.id))
+        .where(and(...baseConditions));
+
+      const methodGroups = new Map<string, Array<{ estimated: number; actual: number }>>();
+
+      for (const task of tasksByMethod) {
+        const key = task.method;
+        if (!methodGroups.has(key)) {
+          methodGroups.set(key, []);
+        }
+        methodGroups.get(key)!.push({
+          estimated: task.estimatedHours ?? 0,
+          actual: task.actualHours ?? 0,
+        });
+      }
+
+      const methodResults = Array.from(methodGroups.entries()).map(([method, taskList]) => {
+        const { avgAccuracy, avgVariance, bias } = this.calculateGroupMetrics(taskList);
+        return {
+          dimension: 'method' as const,
+          value: method,
+          taskCount: taskList.length,
+          averageAccuracy: avgAccuracy,
+          averageVariance: avgVariance,
+          bias,
+        };
+      });
+
+      if (groupBy === 'method') {
+        return methodResults;
+      }
+    }
+
+    if (groupBy === 'user' || groupBy === 'all') {
+      const tasksByUser = await db
+        .select({
+          userId: estimates.userId,
+          estimatedHours: tasks.estimatedHours,
+          actualHours: tasks.actualHours,
+        })
+        .from(tasks)
+        .innerJoin(estimates, eq(estimates.taskId, tasks.id))
+        .where(and(...baseConditions));
+
+      const userGroups = new Map<string, Array<{ estimated: number; actual: number }>>();
+
+      for (const task of tasksByUser) {
+        const key = task.userId;
+        if (!userGroups.has(key)) {
+          userGroups.set(key, []);
+        }
+        userGroups.get(key)!.push({
+          estimated: task.estimatedHours ?? 0,
+          actual: task.actualHours ?? 0,
+        });
+      }
+
+      const userResults = Array.from(userGroups.entries()).map(([userId, taskList]) => {
+        const { avgAccuracy, avgVariance, bias } = this.calculateGroupMetrics(taskList);
+        return {
+          dimension: 'user' as const,
+          value: userId,
+          taskCount: taskList.length,
+          averageAccuracy: avgAccuracy,
+          averageVariance: avgVariance,
+          bias,
+        };
+      });
+
+      if (groupBy === 'user') {
+        return userResults;
+      }
+    }
+
+    return [];
+  }
+
+  private calculateGroupMetrics(taskList: Array<{ estimated: number; actual: number }>) {
+    let totalAccuracy = 0;
+    let totalVariance = 0;
+
+    for (const task of taskList) {
+      if (task.estimated > 0 && task.actual > 0) {
+        const accuracy = Math.min((task.estimated / task.actual) * 100, 200);
+        totalAccuracy += accuracy;
+
+        const variance = ((task.actual - task.estimated) / task.estimated) * 100;
+        totalVariance += variance;
+      }
+    }
+
+    const avgAccuracy = roundTo2(totalAccuracy / taskList.length);
+    const avgVariance = roundTo2(totalVariance / taskList.length);
+
+    let bias: 'over-estimating' | 'under-estimating' | 'neutral' = 'neutral';
+    if (avgVariance > 10) {
+      bias = 'under-estimating';
+    } else if (avgVariance < -10) {
+      bias = 'over-estimating';
+    }
+
+    return { avgAccuracy, avgVariance, bias };
+  }
+
+  async getCalibrationRecommendations(
+    projectId: string,
+    orgId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
+    const allowed = await hasProjectAccess(projectId, orgId);
+    if (!allowed) {
+      return {
+        recommendations: [],
+        overallInsight: 'Access denied or insufficient data.',
+      };
+    }
+
+    const dateConditions = [];
+    if (dateFrom) {
+      const fromDate = new Date(dateFrom);
+      dateConditions.push(sql`${tasks.updatedAt} >= ${fromDate}`);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      dateConditions.push(sql`${tasks.updatedAt} <= ${toDate}`);
+    }
+
+    const baseConditions = [
+      eq(tasks.projectId, projectId),
+      sql`${tasks.estimatedHours} IS NOT NULL`,
+      sql`${tasks.actualHours} IS NOT NULL`,
+      sql`${tasks.estimatedHours} > 0`,
+      sql`${tasks.actualHours} > 0`,
+      ...dateConditions,
+    ];
+
+    const tasksWithBoth = await db
+      .select({
+        id: tasks.id,
+        type: tasks.type,
+        priority: tasks.priority,
+        estimatedHours: tasks.estimatedHours,
+        actualHours: tasks.actualHours,
+        estimatedPoints: tasks.estimatedPoints,
+      })
+      .from(tasks)
+      .where(and(...baseConditions));
+
+    if (tasksWithBoth.length === 0) {
+      return {
+        recommendations: [],
+        overallInsight: 'Insufficient historical data for calibration analysis.',
+      };
+    }
+
+    let totalAccuracy = 0;
+    for (const task of tasksWithBoth) {
+      const estimated = task.estimatedHours ?? 0;
+      const actual = task.actualHours ?? 0;
+      if (estimated > 0 && actual > 0) {
+        const accuracy = Math.min(estimated / actual, 2);
+        totalAccuracy += accuracy;
+      }
+    }
+    const overallAccuracy = totalAccuracy / tasksWithBoth.length;
+
+    const [taskTypeBias, priorityBias] = await Promise.all([
+      this.getEnhancedTeamBias(projectId, 'type', orgId, dateFrom, dateTo),
+      this.getEnhancedTeamBias(projectId, 'priority', orgId, dateFrom, dateTo),
+    ]);
+
+    const taskTypeBreakdown = taskTypeBias.map((item) => ({
+      taskType: item.value,
+      averageAccuracy: item.averageAccuracy / 100,
+      count: item.taskCount,
+    }));
+
+    const complexityBreakdown = priorityBias.map((item) => ({
+      complexity: item.value,
+      averageAccuracy: item.averageAccuracy / 100,
+      count: item.taskCount,
+    }));
+
+    const taskData = tasksWithBoth.map((task) => ({
+      taskType: task.type,
+      complexity: task.priority,
+      estimatedHours: task.estimatedHours ?? 0,
+      actualHours: task.actualHours ?? 0,
+      estimatedPoints: task.estimatedPoints,
+      actualPoints: null,
+    }));
+
+    const recommendations = await generateCalibrationRecommendations({
+      tasks: taskData,
+      overallAccuracy,
+      taskTypeBreakdown,
+      complexityBreakdown,
+    });
+
+    return recommendations;
+  }
+
+  async getSimilarTasksWithOutcomes(taskId: string, limit: number, orgId: string) {
+    const task = await db.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+      columns: {
+        id: true,
+        title: true,
+        description: true,
+        projectId: true,
+      },
+    });
+
+    if (!task) {
+      return [];
+    }
+
+    const allowed = await hasProjectAccess(task.projectId, orgId);
+    if (!allowed) {
+      return [];
+    }
+
+    const textContent = task.description ? `${task.title}\n${task.description}` : task.title;
+    const similarTasks = await findSimilarTasks(textContent, task.projectId, limit);
+
+    return similarTasks;
+  }
+
   private async buildExportData(projectId: string, orgId: string): Promise<{
     safeProjectKey: string;
     dateStamp: string;
@@ -291,7 +723,7 @@ export class AnalyticsService {
       return null;
     }
 
-    const [project, projectTasks] = await Promise.all([
+    const [project, projectTasks, accuracyTrends, teamBias] = await Promise.all([
       db.query.projects.findFirst({
         where: and(eq(projects.id, projectId), eq(projects.organizationId, orgId)),
       }),
@@ -300,6 +732,8 @@ export class AnalyticsService {
         with: { assignee: true },
         orderBy: (task, { asc }) => [asc(task.createdAt)],
       }),
+      this.getAccuracyTrends(projectId, orgId),
+      this.getEnhancedTeamBias(projectId, 'all', orgId),
     ]);
 
     if (!project) {
@@ -309,6 +743,34 @@ export class AnalyticsService {
     const totalPoints = projectTasks.reduce((sum, task) => sum + (task.estimatedPoints ?? 0), 0);
     const totalHours = projectTasks.reduce((sum, task) => sum + (task.estimatedHours ?? 0), 0);
     const completedTasks = projectTasks.filter((task) => task.status === 'done').length;
+
+    const tasksWithBoth = projectTasks.filter(
+      (task) => task.estimatedHours !== null && task.actualHours !== null && task.estimatedHours > 0,
+    );
+
+    let overallBias = 0;
+    let optimismCount = 0;
+    let pessimismCount = 0;
+    let totalDeviation = 0;
+
+    for (const task of tasksWithBoth) {
+      const estimated = task.estimatedHours ?? 0;
+      const actual = task.actualHours ?? 0;
+
+      if (estimated > 0 && actual > 0) {
+        const variance = ((actual - estimated) / estimated) * 100;
+        totalDeviation += Math.abs(variance);
+        overallBias += variance;
+
+        if (variance > 10) {
+          pessimismCount += 1;
+        } else if (variance < -10) {
+          optimismCount += 1;
+        }
+      }
+    }
+
+    const taskCount = tasksWithBoth.length;
 
     const exportData: ExportData = {
       projectName: project.name,
@@ -328,6 +790,20 @@ export class AnalyticsService {
         completedTasks,
         totalPoints: roundTo2(totalPoints),
         totalHours: roundTo2(totalHours),
+      },
+      analytics: {
+        accuracyTrends: accuracyTrends.map((trend) => ({
+          period: trend.window,
+          accuracy: trend.accuracyScore,
+          meanAbsoluteError: Math.abs(trend.averageVariance),
+          sampleSize: trend.taskCount,
+        })),
+        biasAnalysis: {
+          overallBias: taskCount > 0 ? roundTo2(overallBias / taskCount) : 0,
+          optimismRate: taskCount > 0 ? roundTo2((optimismCount / taskCount) * 100) : 0,
+          pessimismRate: taskCount > 0 ? roundTo2((pessimismCount / taskCount) * 100) : 0,
+          averageDeviation: taskCount > 0 ? roundTo2(totalDeviation / taskCount) : 0,
+        },
       },
     };
 

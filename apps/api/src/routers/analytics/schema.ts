@@ -28,6 +28,26 @@ export const methodComparisonInput = z.object({
   dateTo: z.string().optional(),
 });
 
+export const accuracyTrendsInput = z.object({
+  projectId: z.string().uuid(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  timeWindow: z.enum(['4', '8', '12']).default('8'),
+});
+
+export const enhancedTeamBiasInput = z.object({
+  projectId: z.string().uuid(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  groupBy: z.enum(['type', 'priority', 'method', 'user', 'all']).default('all'),
+});
+
+export const calibrationRecommendationsInput = z.object({
+  projectId: z.string().uuid(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+});
+
 export const methodStatsOutput = z.object({
   method: z.enum(['planning_poker', 'tshirt_sizing', 'pert', 'wideband_delphi']),
   mean: z.number(),
@@ -55,4 +75,9 @@ export const methodComparisonOutput = z.object({
     reason: z.string(),
     confidenceLevel: z.enum(['high', 'medium', 'low']),
   }),
+});
+
+export const similarTasksWithOutcomesInput = z.object({
+  taskId: z.string().uuid(),
+  limit: z.number().int().min(1).max(50).default(10),
 });

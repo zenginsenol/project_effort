@@ -6,6 +6,9 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
+import { AccuracyTrendsChart } from './components/accuracy-trends-chart';
+import { CalibrationRecommendations } from './components/calibration-recommendations';
+import { TeamBiasAnalysis } from './components/team-bias-analysis';
 
 const TaskDistributionChart = dynamic(
   () => import('./components/task-distribution-chart').then((mod) => ({ default: mod.TaskDistributionChart })),
@@ -111,6 +114,21 @@ export default function AnalyticsPage(): React.ReactElement {
     { enabled: Boolean(selectedProjectId), retry: false },
   );
 
+  const accuracyTrendsQuery = trpc.analytics.accuracyTrends.useQuery(
+    { projectId: selectedProjectId },
+    { enabled: Boolean(selectedProjectId), retry: false },
+  );
+
+  const enhancedTeamBiasQuery = trpc.analytics.enhancedTeamBias.useQuery(
+    { projectId: selectedProjectId, groupBy: 'taskType' },
+    { enabled: Boolean(selectedProjectId), retry: false },
+  );
+
+  const calibrationRecommendationsQuery = trpc.analytics.calibrationRecommendations.useQuery(
+    { projectId: selectedProjectId },
+    { enabled: Boolean(selectedProjectId), retry: false },
+  );
+
   const overview = overviewQuery.data;
   const velocity = velocityQuery.data ?? [];
   const maxVelocity = Math.max(1, ...velocity.flatMap((item) => [item.plannedPoints, item.completedPoints]));
@@ -129,7 +147,10 @@ export default function AnalyticsPage(): React.ReactElement {
     || velocityQuery.isLoading
     || accuracyQuery.isLoading
     || teamBiasQuery.isLoading
-    || burndownQuery.isLoading;
+    || burndownQuery.isLoading
+    || accuracyTrendsQuery.isLoading
+    || enhancedTeamBiasQuery.isLoading
+    || calibrationRecommendationsQuery.isLoading;
 
   async function handleExportCsv(): Promise<void> {
     if (!selectedProjectId || exportingFormat) {
@@ -286,6 +307,27 @@ export default function AnalyticsPage(): React.ReactElement {
           </div>
 
           <BurndownChart burndownData={burndownQuery.data ?? []} />
+
+          <div className="mt-6">
+            <AccuracyTrendsChart
+              data={accuracyTrendsQuery.data ?? []}
+              isLoading={accuracyTrendsQuery.isLoading}
+            />
+          </div>
+
+          <div className="mt-6">
+            <TeamBiasAnalysis
+              data={enhancedTeamBiasQuery.data ?? []}
+              isLoading={enhancedTeamBiasQuery.isLoading}
+            />
+          </div>
+
+          <div className="mt-6">
+            <CalibrationRecommendations
+              data={calibrationRecommendationsQuery.data}
+              isLoading={calibrationRecommendationsQuery.isLoading}
+            />
+          </div>
 
           <div className="mt-6 rounded-lg border bg-card p-6">
             <h2 className="text-lg font-semibold">Export Report</h2>

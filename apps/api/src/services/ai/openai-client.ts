@@ -95,3 +95,113 @@ export async function generateEstimationSuggestion(
     return { suggestedPoints: 5, suggestedHours: 8, confidence: 0.3, reasoning: 'Failed to parse AI response.' };
   }
 }
+
+export async function generateCalibrationRecommendations(historicalData: {
+  tasks: Array<{
+    taskType: string;
+    complexity: string;
+    estimatedHours: number;
+    actualHours: number;
+    estimatedPoints: number | null;
+    actualPoints: number | null;
+  }>;
+  overallAccuracy: number;
+  taskTypeBreakdown: Array<{ taskType: string; averageAccuracy: number; count: number }>;
+  complexityBreakdown: Array<{ complexity: string; averageAccuracy: number; count: number }>;
+}): Promise<{
+  recommendations: Array<{
+    category: string;
+    adjustmentFactor: number;
+    description: string;
+    confidence: number;
+  }>;
+  overallInsight: string;
+}> {
+  const openai = getClient();
+
+  const tasksSummary = historicalData.tasks
+    .slice(0, 20)
+    .map(
+      (t, i) =>
+        `${i + 1}. Type: ${t.taskType}, Complexity: ${t.complexity}, Est: ${t.estimatedHours}h, Actual: ${t.actualHours}h (Ratio: ${(t.actualHours / t.estimatedHours).toFixed(2)})`,
+    )
+    .join('\n');
+
+  const taskTypeContext = historicalData.taskTypeBreakdown
+    .map((tb) => `${tb.taskType}: ${(tb.averageAccuracy * 100).toFixed(1)}% accuracy (${tb.count} tasks)`)
+    .join('\n');
+
+  const complexityContext = historicalData.complexityBreakdown
+    .map((cb) => `${cb.complexity}: ${(cb.averageAccuracy * 100).toFixed(1)}% accuracy (${cb.count} tasks)`)
+    .join('\n');
+
+  const response = await withRetry(() =>
+    openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert in agile estimation calibration. Analyze historical estimation data and provide actionable calibration recommendations. Respond in JSON format with:
+- recommendations: array of objects with category (string), adjustmentFactor (number, e.g., 1.3 means apply 30% buffer), description (string explaining the pattern), confidence (number 0-1)
+- overallInsight: string summarizing the team's estimation tendencies
+
+Focus on identifying systematic biases (over/under-estimation) by task type and complexity. Provide specific, actionable adjustment factors.`,
+        },
+        {
+          role: 'user',
+          content: `Overall team accuracy: ${(historicalData.overallAccuracy * 100).toFixed(1)}%
+
+Task Type Breakdown:
+${taskTypeContext || 'No task type data available.'}
+
+Complexity Breakdown:
+${complexityContext || 'No complexity data available.'}
+
+Sample Recent Tasks (Estimated vs Actual):
+${tasksSummary || 'No historical tasks available.'}
+
+Provide calibration recommendations to improve future estimation accuracy.`,
+        },
+      ],
+    }),
+  );
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    return {
+      recommendations: [],
+      overallInsight: 'Unable to generate calibration recommendations due to insufficient data.',
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(content) as {
+      recommendations?: Array<{
+        category?: string;
+        adjustmentFactor?: number;
+        description?: string;
+        confidence?: number;
+      }>;
+      overallInsight?: string;
+    };
+
+    const recommendations = (parsed.recommendations ?? []).map((rec) => ({
+      category: rec.category ?? 'General',
+      adjustmentFactor: rec.adjustmentFactor ?? 1.0,
+      description: rec.description ?? 'No specific recommendation available.',
+      confidence: Math.min(1, Math.max(0, rec.confidence ?? 0.5)),
+    }));
+
+    return {
+      recommendations,
+      overallInsight: parsed.overallInsight ?? 'Analysis completed based on available historical data.',
+    };
+  } catch {
+    return {
+      recommendations: [],
+      overallInsight: 'Failed to parse AI calibration recommendations.',
+    };
+  }
+}

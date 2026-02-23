@@ -69,6 +69,20 @@ project_effort/
 // - Discriminated unions over optional properties
 ```
 
+### Auth Context
+```typescript
+// ctx.userId = Clerk ID string (e.g. "user_demo_001"), NOT a DB UUID
+// ctx.orgId  = DB UUID (from organizations table)
+
+// To get the DB UUID for the current user inside a router:
+import { resolveDbUserId } from '../../lib/user-resolver';
+const dbUserId = await resolveDbUserId(ctx.userId);
+
+// In web UI, use team.me to get the DB UUID:
+const meQuery = trpc.team.me.useQuery();
+const dbUserId = meQuery.data?.userId; // DB UUID
+```
+
 ### tRPC Router Conventions
 ```typescript
 // Procedure hierarchy (most restrictive to least):

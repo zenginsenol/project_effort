@@ -13,5 +13,8 @@ export * from './activities';
 export * from './integrations';
 export * from './api-keys';
 export * from './invitations';
+export * from './subscriptions';
+export * from './invoices';
+export * from './usage-tracking';
 export * from './relations';
 export * from './embeddings';

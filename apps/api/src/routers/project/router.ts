@@ -1,12 +1,13 @@
 import { TRPCError } from '@trpc/server';
 
 import { orgProcedure, router } from '../../trpc/trpc';
+import { projectProcedure } from '../../middleware/plan-limits';
 
 import { createProjectInput, getProjectInput, listProjectsInput, updateProjectInput } from './schema';
 import { projectService } from './service';
 
 export const projectRouter = router({
-  create: orgProcedure
+  create: projectProcedure
     .input(createProjectInput)
     .mutation(async ({ ctx, input }) => {
       if (input.organizationId !== ctx.orgId) {

@@ -28,3 +28,6 @@ export const activityTypeEnum = pgEnum('activity_type', [
   'project_updated',
   'project_deleted',
 ]);
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'pro', 'enterprise']);
+export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'cancelled', 'past_due', 'trialing']);
+export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'open', 'paid', 'void', 'uncollectible']);

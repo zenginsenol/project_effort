@@ -18,6 +18,7 @@ import { refreshClaudeAccessToken, CLAUDE_OAUTH_BETA_HEADER } from '../../servic
 
 import { analyzeTextInput, comparativeAnalyzeInput, bulkCreateTasksInput } from './schema';
 import { documentService } from './service';
+import { usageTracker } from '../../services/usage/usage-tracker';
 
 const ANTHROPIC_OAUTH_BETA_HEADER = CLAUDE_OAUTH_BETA_HEADER;
 
@@ -242,6 +243,12 @@ export const documentRouter = router({
           input.hourlyRate,
           aiConfig,
         );
+
+        // Track AI analysis usage if organization context is available
+        if (ctx.orgId) {
+          await usageTracker.incrementAiAnalysis(ctx.orgId);
+        }
+
         return result;
       } catch (err) {
         throw new TRPCError({
@@ -295,6 +302,11 @@ export const documentRouter = router({
           ...error,
           code: 'provider_error',
         }));
+
+        // Track AI analysis usage if organization context is available
+        if (ctx.orgId) {
+          await usageTracker.incrementAiAnalysis(ctx.orgId);
+        }
 
         return buildComparativeAnalyzeResponse({
           requestedProviders: input.providers.length,

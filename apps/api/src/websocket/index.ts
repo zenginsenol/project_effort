@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Socket } from 'socket.io';
 
 import { hasSessionAccess } from '../services/security/tenant-access';
+import { sessionService } from '../routers/session/service';
 
 export interface SessionEvent {
   sessionId: string;
@@ -21,6 +22,11 @@ interface SocketClaims {
 
 const DEMO_MODE = !process.env.CLERK_SECRET_KEY || process.env.CLERK_SECRET_KEY.includes('xxxxx');
 const DEMO_ORG_ID = '00000000-0000-0000-0000-000000000000';
+const HEARTBEAT_INTERVAL = 30000; // 30 seconds
+const HEARTBEAT_TIMEOUT = 60000; // 60 seconds
+const DISCONNECT_CLEANUP_TIMEOUT = 300000; // 5 minutes
+
+const disconnectCleanupTimers = new Map<string, NodeJS.Timeout>();
 
 function getAuthToken(socket: Socket): string | null {
   const authToken = socket.handshake.auth?.token;
@@ -150,6 +156,8 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
     const identity = getSocketIdentity(socket);
     console.log(`Client connected: ${socket.id} user=${identity?.userId ?? 'unknown'}`);
 
+    socket.data.lastActivity = Date.now();
+
     socket.on('join-session', async (data: { sessionId: string; userId: string }) => {
       const authorized = await authorizeSessionEvent(socket, data.sessionId);
       if (!authorized) {
@@ -160,6 +168,15 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
         return;
       }
 
+      const cleanupKey = `${data.sessionId}:${currentIdentity.userId}`;
+      const existingTimer = disconnectCleanupTimers.get(cleanupKey);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+        disconnectCleanupTimers.delete(cleanupKey);
+        console.log(`Cancelled cleanup timer for user ${currentIdentity.userId} in session ${data.sessionId}`);
+      }
+
+      socket.data.sessionId = data.sessionId;
       socket.join(`session:${data.sessionId}`);
       socket.to(`session:${data.sessionId}`).emit('participant-joined', {
         userId: currentIdentity.userId,
@@ -219,9 +236,94 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
       });
     });
 
-    socket.on('disconnect', () => {
-      console.log(`Client disconnected: ${socket.id}`);
+    socket.on('user-status-changed', async (data: { sessionId: string; status: string }) => {
+      const authorized = await authorizeSessionEvent(socket, data.sessionId);
+      if (!authorized) {
+        return;
+      }
+      const currentIdentity = getSocketIdentity(socket);
+      if (!currentIdentity) {
+        return;
+      }
+
+      socket.to(`session:${data.sessionId}`).emit('user-status-changed', {
+        userId: currentIdentity.userId,
+        status: data.status,
+      });
     });
+
+    socket.on('heartbeat', () => {
+      socket.data.lastActivity = Date.now();
+      socket.emit('heartbeat-ack');
+    });
+
+    socket.on('disconnect', async () => {
+      const currentIdentity = getSocketIdentity(socket);
+      if (!currentIdentity) {
+        console.log(`Client disconnected: ${socket.id}`);
+        return;
+      }
+
+      const sessionId = socket.data.sessionId;
+      if (sessionId) {
+        await sessionService.updateParticipantPresence(
+          sessionId,
+          currentIdentity.userId,
+          false,
+          currentIdentity.orgId,
+        );
+
+        socket.to(`session:${sessionId}`).emit('participant-left', {
+          userId: currentIdentity.userId,
+        });
+
+        const cleanupKey = `${sessionId}:${currentIdentity.userId}`;
+        const timer = setTimeout(() => {
+          void (async () => {
+            await sessionService.removeParticipant(sessionId, currentIdentity.userId, currentIdentity.orgId);
+            disconnectCleanupTimers.delete(cleanupKey);
+            console.log(`Cleaned up participant ${currentIdentity.userId} from session ${sessionId} after timeout`);
+          })();
+        }, DISCONNECT_CLEANUP_TIMEOUT);
+
+        disconnectCleanupTimers.set(cleanupKey, timer);
+        console.log(`Client disconnected: ${socket.id} user=${currentIdentity.userId}, cleanup scheduled in 5 minutes`);
+      } else {
+        console.log(`Client disconnected: ${socket.id} user=${currentIdentity.userId}`);
+      }
+    });
+  });
+
+  const heartbeatCheck = setInterval(() => {
+    const now = Date.now();
+    const sockets = io.sockets.sockets;
+
+    for (const [socketId, socket] of sockets) {
+      const lastActivity = socket.data.lastActivity;
+      if (typeof lastActivity === 'number' && now - lastActivity > HEARTBEAT_TIMEOUT) {
+        const identity = getSocketIdentity(socket);
+        console.log(`Disconnecting idle socket: ${socketId} user=${identity?.userId ?? 'unknown'}`);
+
+        const rooms = Array.from(socket.rooms);
+        for (const room of rooms) {
+          if (room.startsWith('session:')) {
+            socket.to(room).emit('participant-idle', {
+              userId: identity?.userId ?? 'unknown',
+            });
+          }
+        }
+
+        socket.disconnect(true);
+      }
+    }
+  }, HEARTBEAT_INTERVAL);
+
+  io.engine.on('close', () => {
+    clearInterval(heartbeatCheck);
+    for (const timer of disconnectCleanupTimers.values()) {
+      clearTimeout(timer);
+    }
+    disconnectCleanupTimers.clear();
   });
 
   return io;

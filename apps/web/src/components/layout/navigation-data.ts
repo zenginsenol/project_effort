@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   Brain,
   Calculator,
@@ -40,6 +41,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: 'Go-live durumunu ve akisin sagligini takip et',
     phase: 'Operate',
     order: 1,
+  },
+  {
+    name: 'Activity',
+    href: '/dashboard/activity',
+    icon: Activity,
+    description: 'Proje degisikliklerini ve aktiviteleri izle',
+    phase: 'Operate',
+    order: 1.5,
   },
   {
     name: 'Task Analyzer',

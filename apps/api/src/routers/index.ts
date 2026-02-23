@@ -1,5 +1,6 @@
 import { router, publicProcedure } from '../trpc/trpc';
 
+import { activityRouter } from './activity/router';
 import { aiRouter } from './ai/router';
 import { analyticsRouter } from './analytics/router';
 import { apiKeysRouter } from './api-keys/router';
@@ -21,6 +22,7 @@ export const appRouter = router({
   health: publicProcedure.query(() => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }),
+  activity: activityRouter,
   onboarding: onboardingRouter,
   notification: notificationRouter,
   organization: organizationRouter,

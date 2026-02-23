@@ -4,6 +4,7 @@ import { db } from '@estimate-pro/db';
 import { sessions, sessionParticipants, sessionVotes } from '@estimate-pro/db/schema';
 
 import { hasProjectAccess, hasSessionAccess } from '../../services/security/tenant-access';
+import { activityService } from '../activity/service';
 
 export class SessionService {
   async create(orgId: string, data: {
@@ -12,12 +13,27 @@ export class SessionService {
     name: string;
     method: 'planning_poker' | 'tshirt_sizing' | 'pert' | 'wideband_delphi';
     moderatorId: string;
-  }) {
+  }, actorId?: string) {
     const allowed = await hasProjectAccess(data.projectId, orgId);
     if (!allowed) {
       return null;
     }
     const [session] = await db.insert(sessions).values(data).returning();
+
+    // Record activity
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType: 'session_created',
+      entityType: 'session',
+      entityId: session.id,
+      actorId,
+      projectId: data.projectId,
+      metadata: {
+        sessionName: session.name,
+        sessionMethod: session.method,
+      },
+    });
+
     return session;
   }
 
@@ -151,7 +167,7 @@ export class SessionService {
     return updated;
   }
 
-  async completeSession(sessionId: string, finalEstimate: number, orgId: string) {
+  async completeSession(sessionId: string, finalEstimate: number, orgId: string, actorId?: string) {
     const allowed = await hasSessionAccess(sessionId, orgId);
     if (!allowed) {
       return null;
@@ -165,6 +181,22 @@ export class SessionService {
       })
       .where(eq(sessions.id, sessionId))
       .returning();
+
+    // Record activity
+    await activityService.recordActivity({
+      organizationId: orgId,
+      activityType: 'session_completed',
+      entityType: 'session',
+      entityId: session.id,
+      actorId,
+      projectId: session.projectId,
+      metadata: {
+        sessionName: session.name,
+        sessionMethod: session.method,
+        finalEstimate,
+      },
+    });
+
     return session;
   }
 

@@ -17,7 +17,7 @@ export const projectRouter = router({
         key: input.key,
         description: input.description,
         defaultEstimationMethod: input.defaultEstimationMethod,
-      });
+      }, ctx.userId ?? undefined);
       if (!project) {
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create project' });
       }
@@ -38,7 +38,7 @@ export const projectRouter = router({
     .input(updateProjectInput)
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const project = await projectService.update(id, ctx.orgId, data);
+      const project = await projectService.update(id, ctx.orgId, data, ctx.userId ?? undefined);
       if (!project) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
       }
@@ -58,7 +58,7 @@ export const projectRouter = router({
   delete: orgProcedure
     .input(getProjectInput)
     .mutation(async ({ ctx, input }) => {
-      const project = await projectService.delete(input.id, ctx.orgId);
+      const project = await projectService.delete(input.id, ctx.orgId, ctx.userId ?? undefined);
       if (!project) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
       }

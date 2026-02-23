@@ -13,3 +13,18 @@ export const aiProviderEnum = pgEnum('ai_provider', ['openai', 'anthropic', 'ope
 export const onboardingStepEnum = pgEnum('onboarding_step', ['organization_created', 'project_setup', 'tasks_created', 'first_estimation']);
 export const notificationTypeEnum = pgEnum('notification_type', ['session_invitation', 'vote_reminder', 'session_complete', 'task_assigned', 'task_status_change', 'sync_complete', 'mention_in_comment']);
 export const invitationStatusEnum = pgEnum('invitation_status', ['pending', 'accepted', 'expired', 'cancelled']);
+export const activityTypeEnum = pgEnum('activity_type', [
+  'task_created',
+  'task_updated',
+  'task_status_changed',
+  'session_created',
+  'session_completed',
+  'cost_analysis_created',
+  'cost_analysis_exported',
+  'integration_sync_completed',
+  'member_joined',
+  'member_left',
+  'project_created',
+  'project_updated',
+  'project_deleted',
+]);

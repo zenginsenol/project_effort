@@ -3,16 +3,32 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@estimate-pro/db';
 import { organizationMembers } from '@estimate-pro/db/schema';
 
+import { activityService } from '../activity/service';
+
 export class TeamService {
   async addMember(data: {
     organizationId: string;
     userId: string;
     role: 'admin' | 'member' | 'viewer';
-  }) {
+  }, actorId?: string) {
     const [member] = await db
       .insert(organizationMembers)
       .values(data)
       .returning();
+
+    // Record activity
+    await activityService.recordActivity({
+      organizationId: data.organizationId,
+      activityType: 'member_joined',
+      entityType: 'member',
+      entityId: member.userId,
+      actorId,
+      metadata: {
+        memberUserId: member.userId,
+        memberRole: member.role,
+      },
+    });
+
     return member;
   }
 
@@ -30,7 +46,7 @@ export class TeamService {
     return member;
   }
 
-  async removeMember(organizationId: string, userId: string) {
+  async removeMember(organizationId: string, userId: string, actorId?: string) {
     const [member] = await db
       .delete(organizationMembers)
       .where(
@@ -40,6 +56,22 @@ export class TeamService {
         ),
       )
       .returning();
+
+    // Record activity
+    if (member) {
+      await activityService.recordActivity({
+        organizationId,
+        activityType: 'member_left',
+        entityType: 'member',
+        entityId: member.userId,
+        actorId,
+        metadata: {
+          memberUserId: member.userId,
+          memberRole: member.role,
+        },
+      });
+    }
+
     return member;
   }
 

@@ -9,7 +9,7 @@ export const taskRouter = router({
   create: orgProcedure
     .input(createTaskInput)
     .mutation(async ({ ctx, input }) => {
-      const task = await taskService.create(ctx.orgId, input);
+      const task = await taskService.create(ctx.orgId, input, ctx.userId);
       if (!task) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Project access denied' });
       }
@@ -30,7 +30,7 @@ export const taskRouter = router({
     .input(updateTaskInput)
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
-      const task = await taskService.update(id, ctx.orgId, data);
+      const task = await taskService.update(id, ctx.orgId, data, ctx.userId);
       if (!task) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Task not found' });
       }
@@ -47,7 +47,7 @@ export const taskRouter = router({
   delete: orgProcedure
     .input(getTaskInput)
     .mutation(async ({ ctx, input }) => {
-      const task = await taskService.delete(input.id, ctx.orgId);
+      const task = await taskService.delete(input.id, ctx.orgId, ctx.userId);
       if (!task) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Task not found' });
       }

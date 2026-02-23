@@ -7,6 +7,7 @@ import { documentRouter } from './document/router';
 import { effortRouter } from './effort/router';
 import { integrationRouter } from './integration/router';
 import { onboardingRouter } from './onboarding/router';
+import { notificationRouter } from './notification/router';
 import { organizationRouter } from './organization/router';
 import { projectRouter } from './project/router';
 import { sessionRouter } from './session/router';
@@ -19,6 +20,7 @@ export const appRouter = router({
     return { status: 'ok', timestamp: new Date().toISOString() };
   }),
   onboarding: onboardingRouter,
+  notification: notificationRouter,
   organization: organizationRouter,
   project: projectRouter,
   task: taskRouter,

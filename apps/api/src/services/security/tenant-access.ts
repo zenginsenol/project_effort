@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@estimate-pro/db';
-import { integrations, projects, sessions, sprints, tasks } from '@estimate-pro/db/schema';
+import { integrations, notifications, projects, sessions, sprints, tasks } from '@estimate-pro/db/schema';
 
 export async function hasProjectAccess(projectId: string, orgId: string): Promise<boolean> {
   const project = await db.query.projects.findFirst({
@@ -47,4 +47,12 @@ export async function hasIntegrationAccess(integrationId: string, orgId: string)
     columns: { id: true },
   });
   return Boolean(integration);
+}
+
+export async function hasNotificationAccess(notificationId: string, orgId: string): Promise<boolean> {
+  const notification = await db.query.notifications.findFirst({
+    where: and(eq(notifications.id, notificationId), eq(notifications.organizationId, orgId)),
+    columns: { id: true },
+  });
+  return Boolean(notification);
 }

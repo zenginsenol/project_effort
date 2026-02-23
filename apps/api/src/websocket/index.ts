@@ -13,6 +13,13 @@ export interface SessionEvent {
   data?: unknown;
 }
 
+export interface NotificationEvent {
+  notificationId: string;
+  userId: string;
+  type: string;
+  data?: unknown;
+}
+
 interface SocketClaims {
   org_id?: string;
   orgId?: string;
@@ -97,6 +104,20 @@ async function authorizeSessionEvent(socket: Socket, sessionId: string): Promise
   return true;
 }
 
+let ioInstance: SocketIOServer | null = null;
+
+export function getIO(): SocketIOServer | null {
+  return ioInstance;
+}
+
+export function emitNotificationToUser(userId: string, notification: NotificationEvent): void {
+  if (!ioInstance) {
+    console.warn('WebSocket server not initialized, cannot emit notification');
+    return;
+  }
+  ioInstance.to(`user:${userId}`).emit('notification', notification);
+}
+
 export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
   const io = new SocketIOServer(fastify.server, {
     cors: {
@@ -105,6 +126,8 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
     },
     path: '/ws',
   });
+
+  ioInstance = io;
 
   io.use((socket, next) => {
     void (async () => {
@@ -157,6 +180,12 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
     console.log(`Client connected: ${socket.id} user=${identity?.userId ?? 'unknown'}`);
 
     socket.data.lastActivity = Date.now();
+
+    // Auto-join user-specific room for notifications
+    if (identity) {
+      socket.join(`user:${identity.userId}`);
+      console.log(`User ${identity.userId} joined notification room`);
+    }
 
     socket.on('join-session', async (data: { sessionId: string; userId: string }) => {
       const authorized = await authorizeSessionEvent(socket, data.sessionId);
@@ -250,6 +279,26 @@ export function setupWebSocket(fastify: FastifyInstance): SocketIOServer {
         userId: currentIdentity.userId,
         status: data.status,
       });
+    });
+
+    socket.on('notification-read', (data: { notificationId: string }) => {
+      const currentIdentity = getSocketIdentity(socket);
+      if (!currentIdentity) {
+        socket.emit('notification-error', { code: 'UNAUTHORIZED', message: 'Socket is not authenticated' });
+        return;
+      }
+      // Acknowledge the read status (actual DB update happens via tRPC)
+      socket.emit('notification-read-ack', { notificationId: data.notificationId });
+    });
+
+    socket.on('notifications-mark-all-read', () => {
+      const currentIdentity = getSocketIdentity(socket);
+      if (!currentIdentity) {
+        socket.emit('notification-error', { code: 'UNAUTHORIZED', message: 'Socket is not authenticated' });
+        return;
+      }
+      // Acknowledge the mark all read (actual DB update happens via tRPC)
+      socket.emit('notifications-mark-all-read-ack', { userId: currentIdentity.userId });
     });
 
     socket.on('heartbeat', () => {

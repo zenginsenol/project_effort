@@ -6,6 +6,7 @@ import { apiKeysRouter } from './api-keys/router';
 import { documentRouter } from './document/router';
 import { effortRouter } from './effort/router';
 import { integrationRouter } from './integration/router';
+import { onboardingRouter } from './onboarding/router';
 import { organizationRouter } from './organization/router';
 import { projectRouter } from './project/router';
 import { sessionRouter } from './session/router';
@@ -17,6 +18,7 @@ export const appRouter = router({
   health: publicProcedure.query(() => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }),
+  onboarding: onboardingRouter,
   organization: organizationRouter,
   project: projectRouter,
   task: taskRouter,

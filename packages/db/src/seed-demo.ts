@@ -142,6 +142,76 @@ async function seedDemo(): Promise<void> {
   process.exit(0);
 }
 
+export async function seedOnboarding(organizationId: string): Promise<{ projectId: string; taskCount: number }> {
+  console.log('Creating onboarding sample project...');
+
+  // Check for existing onboarding project
+  const existingProject = await db.query.projects.findFirst({
+    where: eq(projects.key, 'ONBOARD'),
+  });
+
+  if (existingProject) {
+    console.log('Onboarding project already exists, returning existing.');
+    const existingTasks = await db.query.tasks.findMany({
+      where: eq(tasks.projectId, existingProject.id),
+    });
+    return { projectId: existingProject.id, taskCount: existingTasks.length };
+  }
+
+  // Create a simple "Getting Started" project for onboarding
+  const [project] = await db.insert(projects).values({
+    organizationId,
+    name: 'Getting Started with EstimatePro',
+    key: 'ONBOARD',
+    description: 'A sample project to help you learn the basics of task estimation and project planning.',
+    defaultEstimationMethod: 'planning_poker',
+  }).returning();
+
+  if (!project) {
+    throw new Error('Failed to create onboarding project.');
+  }
+
+  console.log('Created onboarding project:', project.name);
+
+  // Simple task set for first-time users
+  const taskData: Array<{
+    title: string;
+    description: string;
+    type: 'epic' | 'feature' | 'story' | 'task' | 'subtask' | 'bug';
+    status: 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done';
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    estimatedHours: number;
+    estimatedPoints: number;
+    actualHours: number | null;
+  }> = [
+    { title: 'User Authentication', description: 'Implement login and registration functionality', type: 'epic', status: 'in_progress', priority: 'high', estimatedHours: 40, estimatedPoints: 21, actualHours: null },
+    { title: 'Create Login Page', description: 'Design and build the login page with email/password fields', type: 'story', status: 'done', priority: 'high', estimatedHours: 8, estimatedPoints: 5, actualHours: 9 },
+    { title: 'Add Password Reset', description: 'Allow users to reset their password via email', type: 'task', status: 'in_progress', priority: 'medium', estimatedHours: 6, estimatedPoints: 3, actualHours: null },
+    { title: 'Dashboard Overview', description: 'Create main dashboard with key metrics', type: 'feature', status: 'todo', priority: 'high', estimatedHours: 16, estimatedPoints: 8, actualHours: null },
+    { title: 'User Profile Settings', description: 'Allow users to update their profile information', type: 'story', status: 'backlog', priority: 'medium', estimatedHours: 12, estimatedPoints: 5, actualHours: null },
+    { title: 'Fix: Login button not responsive', description: 'Login button doesn\'t work on mobile devices', type: 'bug', status: 'todo', priority: 'high', estimatedHours: 3, estimatedPoints: 2, actualHours: null },
+    { title: 'API Integration', description: 'Connect frontend to backend API', type: 'task', status: 'in_review', priority: 'critical', estimatedHours: 10, estimatedPoints: 5, actualHours: 12 },
+    { title: 'Write Unit Tests', description: 'Add test coverage for authentication module', type: 'task', status: 'backlog', priority: 'low', estimatedHours: 8, estimatedPoints: 3, actualHours: null },
+  ];
+
+  for (const t of taskData) {
+    await db.insert(tasks).values({
+      projectId: project.id,
+      title: t.title,
+      description: t.description,
+      type: t.type,
+      status: t.status,
+      priority: t.priority,
+      estimatedHours: t.estimatedHours,
+      estimatedPoints: t.estimatedPoints,
+      actualHours: t.actualHours,
+    });
+  }
+
+  console.log(`Created ${taskData.length} sample tasks for onboarding project`);
+  return { projectId: project.id, taskCount: taskData.length };
+}
+
 seedDemo().catch((err: unknown) => {
   console.error('Seed demo failed:', err);
   process.exit(1);

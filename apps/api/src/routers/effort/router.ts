@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 
 import { orgProcedure, router } from '../../trpc/trpc';
+import { webhookEventEmitter } from '../../services/webhooks/events';
 
 import { costAnalysisService } from './cost-analysis-service';
 import {
@@ -201,7 +202,23 @@ export const effortRouter = router({
     .input(effortExportAnalysisInput)
     .query(async ({ ctx, input }) => {
       try {
-        return await costAnalysisService.exportAnalysis(input.analysisId, ctx.orgId, input.format, ctx.userId ?? undefined);
+        const result = await costAnalysisService.exportAnalysis(input.analysisId, ctx.orgId, input.format);
+
+        // Get analysis metadata for webhook
+        const analysis = await costAnalysisService.getAnalysisById(input.analysisId, ctx.orgId);
+
+        // Emit webhook event (non-blocking)
+        void webhookEventEmitter.emitAnalysisExported(ctx.orgId, {
+          analysisId: input.analysisId,
+          projectId: analysis.project?.id ?? null,
+          type: analysis.source === 'ai_text' ? 'ai_text' : 'project_tasks',
+          format: input.format as 'pdf' | 'csv' | 'json',
+          exportedBy: ctx.userId,
+        }).catch((error) => {
+          console.error('Failed to emit analysis.exported webhook:', error);
+        });
+
+        return result;
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Analysis not found' });

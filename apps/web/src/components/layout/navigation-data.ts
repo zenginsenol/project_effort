@@ -9,9 +9,11 @@ import {
   FolderKanban,
   GitCompareArrows,
   Home,
+  Key,
   Plug,
   Scale,
   Settings,
+  Webhook,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -132,12 +134,28 @@ export const dashboardNavItems: DashboardNavItem[] = [
     order: 10,
   },
   {
+    name: 'API Keys',
+    href: '/dashboard/api-keys',
+    icon: Key,
+    description: 'Public API anahtarlarini yonet',
+    phase: 'Operate',
+    order: 10,
+  },
+  {
+    name: 'Webhooks',
+    href: '/dashboard/webhooks',
+    icon: Webhook,
+    description: 'Event bildirimlerini yapilandir',
+    phase: 'Operate',
+    order: 11,
+  },
+  {
     name: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
     description: 'AI provider key/model ve genel ayarlar',
     phase: 'Operate',
-    order: 11,
+    order: 12,
   },
 ];
 

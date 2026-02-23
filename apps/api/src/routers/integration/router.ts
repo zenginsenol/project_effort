@@ -9,9 +9,9 @@ import { IntegrationHttpError } from '../../services/integrations/base';
 import { jiraIntegration } from '../../services/integrations/jira';
 import { hasProjectAccess } from '../../services/security/tenant-access';
 import { decryptToken, describeStoredToken, encryptToken } from '../../services/security/token-crypto';
+import { webhookEventEmitter } from '../../services/webhooks/events';
 import { orgProcedure, router } from '../../trpc/trpc';
 import type { BaseIntegration } from '../../services/integrations/base';
-import { activityService } from '../activity/service';
 
 import {
   callbackInput,
@@ -825,20 +825,16 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
-        // Record activity
-        await activityService.recordActivity({
-          organizationId: ctx.orgId,
-          activityType: 'integration_sync_completed',
-          entityType: 'integration',
-          entityId: integration.id,
-          actorId: ctx.userId,
+        // Emit webhook event (non-blocking)
+        void webhookEventEmitter.emitSyncCompleted(ctx.orgId, {
+          integrationId: integration.id,
           projectId: input.projectId,
-          metadata: {
-            integrationType: integration.type,
-            repository: projectLink.externalProjectId,
-            importedCount: scopedItems.length,
-            syncedCount,
-          },
+          provider: 'github',
+          itemsImported: scopedItems.length,
+          itemsExported: 0,
+          errors: [],
+        }).catch((error) => {
+          console.error('Failed to emit sync.completed webhook:', error);
         });
 
         return {
@@ -882,21 +878,17 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
-        // Record activity if items were synced to project
+        // Emit webhook event if items were synced (non-blocking)
         if (input.syncToProject && syncedCount > 0) {
-          await activityService.recordActivity({
-            organizationId: ctx.orgId,
-            activityType: 'integration_sync_completed',
-            entityType: 'integration',
-            entityId: integration.id,
-            actorId: ctx.userId,
+          void webhookEventEmitter.emitSyncCompleted(ctx.orgId, {
+            integrationId: integration.id,
             projectId: input.projectId,
-            metadata: {
-              integrationType: integration.type,
-              externalProjectId: input.externalProjectId,
-              importedCount: importedItems.length,
-              syncedCount,
-            },
+            provider: integration.type as 'jira' | 'azure_devops' | 'github' | 'gitlab',
+            itemsImported: importedItems.length,
+            itemsExported: 0,
+            errors: [],
+          }).catch((error) => {
+            console.error('Failed to emit sync.completed webhook:', error);
           });
         }
 
@@ -937,20 +929,16 @@ export const integrationRouter = router({
           })
           .where(eq(integrations.id, integration.id));
 
-        // Record activity
-        await activityService.recordActivity({
-          organizationId: ctx.orgId,
-          activityType: 'integration_sync_completed',
-          entityType: 'integration',
-          entityId: integration.id,
-          actorId: ctx.userId,
+        // Emit webhook event (non-blocking)
+        void webhookEventEmitter.emitSyncCompleted(ctx.orgId, {
+          integrationId: integration.id,
           projectId: input.projectId,
-          metadata: {
-            integrationType: integration.type,
-            externalProjectId: input.externalProjectId,
-            importedCount: scopedItems.length,
-            syncedCount,
-          },
+          provider: integration.type as 'jira' | 'azure_devops' | 'github' | 'gitlab',
+          itemsImported: scopedItems.length,
+          itemsExported: 0,
+          errors: [],
+        }).catch((error) => {
+          console.error('Failed to emit sync.completed webhook:', error);
         });
 
         return {

@@ -14,10 +14,12 @@ import { invitationRouter } from './invitation/router';
 import { organizationRouter } from './organization/router';
 import { projectRouter } from './project/router';
 import { searchRouter } from './search/router';
+import { publicApiRouter } from './public-api/router';
 import { sessionRouter } from './session/router';
 import { sprintRouter } from './sprint/router';
 import { taskRouter } from './task/router';
 import { teamRouter } from './team/router';
+import { webhooksRouter } from './webhooks/router';
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -41,6 +43,8 @@ export const appRouter = router({
   integration: integrationRouter,
   invitation: invitationRouter,
   search: searchRouter,
+  publicApi: publicApiRouter,
+  webhooks: webhooksRouter,
 });
 
 export type AppRouter = typeof appRouter;

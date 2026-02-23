@@ -3,11 +3,15 @@ import 'dotenv/config';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify from 'fastify';
 
 import { createContext, validateAuthRuntimeConfig } from './trpc/context';
 import { appRouter } from './routers/index';
+import { swaggerConfig, swaggerUiConfig } from './rest/openapi';
+import { registerRestApi } from './rest/index';
 import { parseDocument } from './services/document/parser';
 import { upsertOpenAIOAuthCredential } from './services/oauth/oauth-credential-store';
 import { exchangeCodeForTokens } from './services/oauth/openai-oauth';
@@ -47,6 +51,13 @@ async function start(): Promise<void> {
   await fastify.register(multipart, {
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   });
+
+  // Register OpenAPI/Swagger documentation
+  await fastify.register(swagger, swaggerConfig);
+  await fastify.register(swaggerUi, swaggerUiConfig);
+
+  // Register public REST API with authentication and rate limiting
+  await registerRestApi(fastify);
 
   fastify.get('/health', async () => {
     return { status: 'ok', timestamp: new Date().toISOString() };

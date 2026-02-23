@@ -16,5 +16,7 @@ export * from './invitations';
 export * from './subscriptions';
 export * from './invoices';
 export * from './usage-tracking';
+export * from './public-api-keys';
+export * from './webhooks';
 export * from './relations';
 export * from './embeddings';

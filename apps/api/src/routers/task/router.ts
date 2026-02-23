@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 
 import { orgProcedure, router } from '../../trpc/trpc';
+import { webhookEventEmitter } from '../../services/webhooks/events';
 
 import { createTaskInput, getTaskInput, listTasksInput, updateTaskInput } from './schema';
 import { taskService } from './service';
@@ -13,6 +14,21 @@ export const taskRouter = router({
       if (!task) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Project access denied' });
       }
+
+      // Emit webhook event (non-blocking)
+      void webhookEventEmitter.emitTaskCreated(ctx.orgId, {
+        taskId: task.id,
+        projectId: task.projectId,
+        title: task.title,
+        description: task.description,
+        type: task.type,
+        status: task.status,
+        priority: task.priority,
+        createdBy: ctx.userId,
+      }).catch((error) => {
+        console.error('Failed to emit task.created webhook:', error);
+      });
+
       return task;
     }),
 
@@ -34,6 +50,22 @@ export const taskRouter = router({
       if (!task) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Task not found' });
       }
+
+      // Emit webhook event (non-blocking)
+      void webhookEventEmitter.emitTaskUpdated(ctx.orgId, {
+        taskId: task.id,
+        projectId: task.projectId,
+        title: task.title,
+        description: task.description,
+        type: task.type,
+        status: task.status,
+        priority: task.priority,
+        changes: data,
+        updatedBy: ctx.userId,
+      }).catch((error) => {
+        console.error('Failed to emit task.updated webhook:', error);
+      });
+
       return task;
     }),
 

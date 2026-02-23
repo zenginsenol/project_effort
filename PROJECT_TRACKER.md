@@ -1,9 +1,97 @@
 # EstimatePro - Project Tracker
 
-> Last Updated: 2026-02-20 23:33
-> Current Phase: Wave-2 Closure + Post-Cutover Stabilization
-> Overall Progress: Wave-2 gates closed; focus is production hardening for multi-connection GitHub sync and effort/cost workflow reliability
-> Agent Backlog Progress: `64/64` done (`todo=0`, `in_progress=0`, `blocked=0`)
+> Last Updated: 2026-02-23
+> Current Phase: Wave-3 - Feature Branch Integration Complete
+> Overall Progress: 18 auto-claude feature branches merged into main; Wave-2 complete; Wave-3 new features active
+> Agent Backlog Progress: `64/64` Wave-2 done; Wave-3 features merged and active
+
+---
+
+## Wave-3 Branch Merge Summary (2026-02-23) ✅ COMPLETE
+
+All 18 auto-claude feature branches merged into main via sequential merge strategy.
+All 8 open GitHub PRs (151-158) closed after local merge.
+
+| Branch | Feature | Commits | Status |
+|--------|---------|---------|--------|
+| 001 | Real-time WebSocket collaborative sessions | 4 | ✅ Merged |
+| 002 | Multi-method estimation session integration | 1 | ✅ Merged |
+| 003 | Guided user onboarding zero-config setup | 5 | ✅ Merged |
+| 004 | In-app notification system | 14 | ✅ Merged |
+| 005 | Team invitation via email (email service) | 21 | ✅ Merged |
+| 006 | Performance optimization (sub-second targets) | 21 | ✅ Merged |
+| 007 | E2E test coverage (Playwright, 8 new spec files) | 15 | ✅ Merged |
+| 008 | Estimation method comparison dashboard | 11 | ✅ Merged |
+| 009 | Enhanced estimation accuracy analytics + AI | 18 | ✅ Merged |
+| 011 | Full-text search across platform | 20 | ✅ Merged |
+| 014 | Activity feed + change tracking | 22 | ✅ Merged |
+| 015 | Billing + subscription management (Stripe) | 34 | ✅ Merged |
+| 018 | Public API documentation + webhook support | 23 | ✅ Merged |
+| 019 | Audit logging for enterprise compliance | 2 | ✅ Merged |
+| 020 | Mobile responsive optimization (hook) | 1 | ✅ Merged |
+| 021 | Internationalization (i18n) framework | 5 | ✅ Merged |
+| 022 | AI-powered predictive project analytics | - | ✅ Already in main |
+| 023 | Historical ML estimation calibration loop | - | ✅ Already in main |
+
+### New DB Tables Added (Wave-3)
+
+| Table | Branch | Purpose |
+|-------|--------|---------|
+| `session_results` | 002 | Multi-method session outcome tracking |
+| `onboarding_state` | 003 | User onboarding progress |
+| `notifications` | 004 | In-app notification records |
+| `notification_preferences` | 004 | Per-user notification settings |
+| `organization_invitations` | 005 | Team invitation tracking |
+| `activities` | 014 | Activity feed events |
+| `subscriptions` | 015 | Billing subscription records |
+| `invoices` | 015 | Invoice management |
+| `usage_tracking` | 015 | Feature usage for billing |
+| `public_api_keys` | 018 | Public API key management |
+| `webhooks` | 018 | Webhook endpoint configuration |
+| `audit_logs` | 019 | Enterprise compliance audit trail |
+
+### New API Routers Added (Wave-3)
+
+| Router | Endpoint | Branch |
+|--------|---------|--------|
+| `notificationRouter` | `notification.*` | 004 |
+| `invitationRouter` | `invitation.*` | 005 |
+| `searchRouter` | `search.*` | 011 |
+| `activityRouter` | `activity.*` | 014 |
+| `billingRouter` | `billing.*` | 015 |
+| `publicApiRouter` | `publicApi.*` | 018 |
+| `webhooksRouter` | `webhooks.*` | 018 |
+
+### Post-Merge Issues Found & Fixed
+
+| Issue | Fix |
+|-------|-----|
+| `@stripe/react-stripe-js@^2.10.0` version doesn't exist | Updated to `^5.6.0` |
+| `@stripe/stripe-js@^5.3.0` incompatible with react-stripe-js v5 | Updated to `^8.8.0` |
+| node_modules symlinks accidentally committed in branch 001 | Removed and updated .gitignore |
+| `pnpm db:migrate` fails (types already exist in DB) | Use `pnpm db:push` for schema sync |
+
+### Wave-3 Backlog (Incomplete Features)
+
+| # | Feature | Status | Priority |
+|---|---------|--------|---------|
+| W3-01 | Kanban board with drag-and-drop (dnd-kit) | ❌ Missing | P0 |
+| W3-02 | Task detail panel (full CRUD UI) | ❌ Missing | P0 |
+| W3-03 | Session lobby (QR code, participant list) | ❌ Missing | P0 |
+| W3-04 | Sprint planning page + board | ❌ Missing | P1 |
+| W3-05 | Real-time moderator controls (socket) | ⚠️ Partial | P0 |
+| W3-06 | Planning Poker E2E real-time flow | ⚠️ Partial | P0 |
+| W3-07 | PERT bell curve visualization | ⚠️ Partial | P1 |
+| W3-08 | Burndown + velocity + bias charts | ⚠️ Partial | P1 |
+| W3-09 | Export: PDF + XLSX | ⚠️ Partial | P2 |
+| W3-10 | Rate limiting middleware (Redis) | ⬜ Deferred | P2 |
+| W3-11 | AI query caching (Redis) | ⬜ Deferred | P2 |
+| W3-12 | BullMQ embedding pipeline | ⬜ Deferred | P3 |
+| W3-13 | Jira integration hardening | ⚠️ Partial | P2 |
+| W3-14 | Azure DevOps integration | ⬜ Deferred | P3 |
+| W3-15 | GitHub Actions CI test run (real services) | ⬜ Not tested | P2 |
+
+---
 
 ## Status Icons
 - ⬜ Pending

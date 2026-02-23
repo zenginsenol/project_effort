@@ -8,6 +8,13 @@
       "when": 1771786616603,
       "tag": "0000_high_firedrake",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771847174052,
+      "tag": "0001_nostalgic_guardsmen",
+      "breakpoints": true
     }
   ]
 }

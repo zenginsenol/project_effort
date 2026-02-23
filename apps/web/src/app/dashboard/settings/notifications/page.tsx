@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
@@ -101,10 +102,17 @@ export default function NotificationSettingsPage(): React.ReactElement {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // @ts-expect-error - notification router will be available after build
-  const preferencesQuery = trpc.notification.getPreferences.useQuery();
+  const orgsQuery = trpc.organization.list.useQuery(undefined, { retry: false });
+  const orgId = orgsQuery.data?.[0]?.id ?? '';
 
-  // @ts-expect-error - notification router will be available after build
+  const meQuery = trpc.team.me.useQuery(undefined, { enabled: Boolean(orgId), retry: false });
+  const currentUserId = meQuery.data?.userId ?? null;
+
+  const preferencesQuery = trpc.notification.getPreferences.useQuery(
+    { userId: currentUserId! },
+    { enabled: Boolean(currentUserId), retry: false },
+  );
+
   const updatePreferenceMutation = trpc.notification.updatePreference.useMutation({
     onSuccess: () => {
       void preferencesQuery.refetch();
@@ -125,7 +133,7 @@ export default function NotificationSettingsPage(): React.ReactElement {
   };
 
   const preferences = preferencesQuery.data ?? [];
-  const isLoading = preferencesQuery.isLoading;
+  const isLoading = preferencesQuery.isLoading || orgsQuery.isLoading || meQuery.isLoading;
 
   // Create a map of preferences for quick lookup
   const preferenceMap = new Map(

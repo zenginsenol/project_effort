@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 
+import { resolveDbUserId } from '../../lib/user-resolver';
 import { orgProcedure, router } from '../../trpc/trpc';
 
 import {
@@ -34,7 +35,8 @@ export const notificationRouter = router({
   list: orgProcedure
     .input(listNotificationsInput)
     .query(async ({ ctx, input }) => {
-      return notificationService.list(ctx.orgId, ctx.userId, input);
+      const dbUserId = await resolveDbUserId(ctx.userId);
+      return notificationService.list(ctx.orgId, dbUserId, input);
     }),
 
   markAsRead: orgProcedure
@@ -62,7 +64,8 @@ export const notificationRouter = router({
   updatePreference: orgProcedure
     .input(updatePreferenceInput)
     .mutation(async ({ ctx, input }) => {
-      return notificationService.updatePreference(ctx.orgId, ctx.userId, input);
+      const dbUserId = await resolveDbUserId(ctx.userId);
+      return notificationService.updatePreference(ctx.orgId, dbUserId, input);
     }),
 
   delete: orgProcedure

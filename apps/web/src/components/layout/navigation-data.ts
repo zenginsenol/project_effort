@@ -13,6 +13,7 @@ import {
   Plug,
   Scale,
   Settings,
+  Sparkles,
   Webhook,
   type LucideIcon,
 } from 'lucide-react';
@@ -51,6 +52,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     icon: Activity,
     description: 'Proje degisikliklerini ve aktiviteleri izle',
     phase: 'Operate',
+    order: 1.5,
+  },
+  {
+    name: 'Getting Started',
+    href: '/dashboard/onboarding',
+    icon: Sparkles,
+    description: 'Kurulum adimlari ve örnek veri',
+    phase: 'Ingest',
     order: 1.5,
   },
   {

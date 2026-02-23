@@ -267,6 +267,11 @@ export default function SessionDetailPage(): React.ReactElement {
             <Users className="h-3 w-3" />
             {participants.length} participants
           </span>
+          {!isRevealed && (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+              {voteByUserId.size}/{participants.length} voted
+            </span>
+          )}
           <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">
             Round {currentRound}
           </span>

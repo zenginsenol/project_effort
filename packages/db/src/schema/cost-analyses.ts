@@ -1,9 +1,16 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { customType, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { integrations } from './integrations';
 import { organizations } from './organizations';
 import { projects } from './projects';
 import { users } from './users';
+
+// Custom type for PostgreSQL tsvector (full-text search)
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
 
 export const costAnalyses = pgTable('cost_analyses', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -29,6 +36,7 @@ export const costAnalyses = pgTable('cost_analyses', {
   githubIssueNumber: integer('github_issue_number'),
   githubIssueUrl: text('github_issue_url'),
   githubSyncedAt: timestamp('github_synced_at', { withTimezone: true }),
+  searchVector: tsvector('search_vector'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
@@ -36,4 +44,5 @@ export const costAnalyses = pgTable('cost_analyses', {
   index('idx_cost_analyses_project_id').on(table.projectId),
   index('idx_cost_analyses_created_by').on(table.createdByUserId),
   index('idx_cost_analyses_github_integration').on(table.githubIntegrationId),
+  index('idx_cost_analyses_search_vector').on(table.searchVector),
 ]);

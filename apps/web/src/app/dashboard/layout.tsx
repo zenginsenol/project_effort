@@ -1,3 +1,4 @@
+import { CommandPalette } from '@/components/search/command-palette';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 
@@ -13,6 +14,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

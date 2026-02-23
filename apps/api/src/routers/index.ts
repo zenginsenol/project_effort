@@ -11,6 +11,7 @@ import { notificationRouter } from './notification/router';
 import { invitationRouter } from './invitation/router';
 import { organizationRouter } from './organization/router';
 import { projectRouter } from './project/router';
+import { searchRouter } from './search/router';
 import { sessionRouter } from './session/router';
 import { sprintRouter } from './sprint/router';
 import { taskRouter } from './task/router';
@@ -35,6 +36,7 @@ export const appRouter = router({
   effort: effortRouter,
   integration: integrationRouter,
   invitation: invitationRouter,
+  search: searchRouter,
 });
 
 export type AppRouter = typeof appRouter;

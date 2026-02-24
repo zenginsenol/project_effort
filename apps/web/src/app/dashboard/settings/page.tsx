@@ -450,10 +450,6 @@ function ApiKeyCard({
     return () => window.clearTimeout(timer);
   }, [apiKey, existingKey?.isActive, isEditing, provider, showModelSettings]);
 
-  // If this key is managed via subscription (OAuth or setup key), don't show manual card
-  // It's already shown in the "Sign in with Subscription" section above
-  if (isSubscriptionManaged) return null;
-
   const providerColor = getProviderColor(provider);
   const models = getModelsForProvider(provider);
   const openRouterModelsQuery = trpc.apiKeys.listOpenRouterModels.useQuery(
@@ -495,6 +491,12 @@ function ApiKeyCard({
     model !== (existingKey.model || defaultModel) ||
     effort !== ((existingKey.reasoningEffort as ReasoningEffort) || 'medium')
   );
+
+  // If this key is managed via subscription (OAuth or setup key), don't show manual card.
+  // Keep this check after all hooks to avoid hook order mismatches between renders.
+  if (isSubscriptionManaged) {
+    return null;
+  }
 
   return (
     <div className={cn(

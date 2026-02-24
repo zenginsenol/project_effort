@@ -40,13 +40,15 @@ test.describe('Usage tracking and limit enforcement', () => {
     await expect(page.getByRole('heading', { name: 'Usage Statistics' })).toBeVisible();
 
     // Verify all usage metrics are displayed
-    await expect(page.getByText('AI Analyses')).toBeVisible();
-    await expect(page.getByText('Projects')).toBeVisible();
-    await expect(page.getByText('Team Members')).toBeVisible();
+    await expect(page.getByText('AI Analyses', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Projects', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Team Members', { exact: true }).first()).toBeVisible();
 
     // Usage bars should be visible (even if at 0)
     // Progress bars are typically rendered with specific roles or classes
-    const usageSection = page.locator('section', { has: page.getByText('AI Analyses') });
+    const usageSection = page.locator('div').filter({
+      has: page.getByRole('heading', { name: 'Usage Statistics', exact: true }),
+    }).first();
     await expect(usageSection).toBeVisible();
   });
 
@@ -60,11 +62,13 @@ test.describe('Usage tracking and limit enforcement', () => {
 
     // Check for limit indicators in the usage chart
     // The format is typically "X/Y" where Y is the limit
-    const usageSection = page.locator('section', { has: page.getByText('Usage Statistics') });
+    const usageSection = page.locator('div').filter({
+      has: page.getByRole('heading', { name: 'Usage Statistics', exact: true }),
+    }).first();
 
     // Verify AI Analyses limit is displayed (should show /10 for free plan)
     // Note: Current usage may vary, but limit should be consistent
-    await expect(usageSection.getByText(/\/\d+/)).toBeVisible();
+    await expect(usageSection.getByText(/\d+\s*\/\s*\d+/).first()).toBeVisible();
   });
 
   test.describe('Manual verification steps - Usage tracking', () => {

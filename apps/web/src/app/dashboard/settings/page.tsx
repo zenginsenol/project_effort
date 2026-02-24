@@ -5,76 +5,13 @@ import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 import { InviteMemberDialog } from '@/components/invitations/invite-member-dialog';
 import { PendingInvitationsList } from '@/components/invitations/pending-invitations-list';
-
-type Provider = 'openai' | 'anthropic' | 'openrouter';
-type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
-
-// ─── Model Definitions (Feb 2026 Latest) ────────────────────
-interface ModelDef {
-  id: string;
-  name: string;
-  description: string;
-  category: 'reasoning' | 'standard';
-  supportsReasoning: boolean;
-  contextWindow?: string;
-}
-
-const OPENAI_MODELS: ModelDef[] = [
-  // Codex-optimized models (recommended for ChatGPT subscription / Codex backend)
-  { id: 'gpt-5.3-codex', name: 'GPT-5.3 Codex', description: 'Most capable agentic coding model', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5.3-codex-spark', name: 'GPT-5.3 Codex Spark', description: 'Fast real-time coding, 1000+ tok/s', category: 'standard', supportsReasoning: false, contextWindow: '400K' },
-  { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex', description: 'Advanced agentic coding, strong reasoning', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5.1-codex', name: 'GPT-5.1 Codex', description: 'Previous codex flagship', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5.1-codex-max', name: 'GPT-5.1 Codex Max', description: 'Maximum capability codex', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini', description: 'Cost-effective codex', category: 'standard', supportsReasoning: false, contextWindow: '400K' },
-  { id: 'gpt-5-codex', name: 'GPT-5 Codex', description: 'Default cloud tasks & code review', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5-codex-mini', name: 'GPT-5 Codex Mini', description: 'Lightweight codex variant', category: 'standard', supportsReasoning: false, contextWindow: '400K' },
-  { id: 'codex-mini-latest', name: 'Codex Mini', description: 'Default Codex CLI model', category: 'standard', supportsReasoning: false, contextWindow: '200K' },
-  // GPT-5 Reasoning Series
-  { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Flagship thinking model, 400K ctx', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5.1', name: 'GPT-5.1', description: 'Previous flagship with reasoning', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  { id: 'gpt-5', name: 'GPT-5', description: 'Advanced reasoning model', category: 'reasoning', supportsReasoning: true, contextWindow: '400K' },
-  // O-Series Reasoning
-  { id: 'o3', name: 'o3', description: 'Dedicated reasoning, 200K ctx', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'o3-pro', name: 'o3-pro', description: 'Extended thinking, highest accuracy', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'o4-mini', name: 'o4-mini', description: 'Fast reasoning, cost-efficient', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  // Standard / Legacy models (API key only, may not work with ChatGPT subscription)
-  { id: 'gpt-4.1', name: 'GPT-4.1', description: 'Smartest standard model, 1M ctx', category: 'standard', supportsReasoning: false, contextWindow: '1M' },
-  { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', description: 'Fast, cost-effective, 1M ctx', category: 'standard', supportsReasoning: false, contextWindow: '1M' },
-  { id: 'gpt-4.1-nano', name: 'GPT-4.1 Nano', description: 'Ultra-fast, cheapest', category: 'standard', supportsReasoning: false, contextWindow: '1M' },
-  { id: 'gpt-4o', name: 'GPT-4o', description: 'Multimodal, 128K ctx', category: 'standard', supportsReasoning: false, contextWindow: '128K' },
-];
-
-const ANTHROPIC_MODELS: ModelDef[] = [
-  // Thinking-capable models
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Most powerful, adaptive thinking', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced, adaptive thinking', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: 'Extended thinking, deep analysis', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', description: 'Extended thinking, balanced', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Extended thinking capable', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', description: 'First thinking model', category: 'reasoning', supportsReasoning: true, contextWindow: '200K' },
-  // Standard models
-  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', description: 'Fast, affordable, 200K ctx', category: 'standard', supportsReasoning: false, contextWindow: '200K' },
-];
-
-const OPENROUTER_MODELS: ModelDef[] = [
-  // OpenAI via OpenRouter
-  { id: 'openai/gpt-5.2', name: 'OpenAI GPT-5.2', description: 'Flagship via OpenRouter', category: 'reasoning', supportsReasoning: true },
-  { id: 'openai/gpt-5', name: 'OpenAI GPT-5', description: 'Advanced reasoning', category: 'reasoning', supportsReasoning: true },
-  { id: 'openai/o3', name: 'OpenAI o3', description: 'Dedicated reasoning', category: 'reasoning', supportsReasoning: true },
-  { id: 'openai/o4-mini', name: 'OpenAI o4-mini', description: 'Fast reasoning', category: 'reasoning', supportsReasoning: true },
-  // Anthropic via OpenRouter
-  { id: 'anthropic/claude-opus-4-6', name: 'Claude Opus 4.6', description: 'Most powerful Claude', category: 'reasoning', supportsReasoning: true },
-  { id: 'anthropic/claude-sonnet-4-6', name: 'Claude Sonnet 4.6', description: 'Balanced Claude', category: 'reasoning', supportsReasoning: true },
-  { id: 'anthropic/claude-sonnet-4-5', name: 'Claude Sonnet 4.5', description: 'Previous best Claude', category: 'reasoning', supportsReasoning: true },
-  // Google via OpenRouter
-  { id: 'google/gemini-2.5-pro-preview', name: 'Google Gemini 2.5 Pro', description: 'Google flagship', category: 'reasoning', supportsReasoning: true },
-  // DeepSeek via OpenRouter
-  { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1', description: 'Reasoning model', category: 'reasoning', supportsReasoning: true },
-  { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3', description: 'General purpose', category: 'standard', supportsReasoning: false },
-  // Meta via OpenRouter
-  { id: 'meta-llama/llama-3.3-70b', name: 'Llama 3.3 70B', description: 'Open source (free)', category: 'standard', supportsReasoning: false },
-];
+import { useIsAdmin } from '@/hooks/use-is-admin';
+import {
+  type AIProvider as Provider,
+  type AIReasoningEffort as ReasoningEffort,
+  getDefaultModel,
+  getModelsForProvider,
+} from '@/lib/ai-model-catalog';
 
 const REASONING_EFFORT_OPTIONS: { value: ReasoningEffort; label: string; description: string; color: string }[] = [
   { value: 'low', label: 'Low', description: 'Fast, less tokens', color: 'bg-blue-500' },
@@ -97,19 +34,46 @@ interface ExistingKeyData {
   lastUsedAt: Date | null;
 }
 
-function getModelsForProvider(provider: Provider): ModelDef[] {
-  switch (provider) {
-    case 'openai': return OPENAI_MODELS;
-    case 'anthropic': return ANTHROPIC_MODELS;
-    case 'openrouter': return OPENROUTER_MODELS;
-  }
+interface ProviderQuotaSnapshot {
+  status: 'available' | 'unavailable' | 'error';
+  remainingUsd: number | null;
+  limitUsd: number | null;
+  usageUsd: number | null;
+  totalCreditsUsd: number | null;
+  totalUsageUsd: number | null;
+  note: string | null;
 }
 
-function getDefaultModel(provider: Provider): string {
-  switch (provider) {
-    case 'openai': return 'gpt-5.2';
-    case 'anthropic': return 'claude-sonnet-4-6';
-    case 'openrouter': return 'openai/gpt-5.2';
+interface ProviderDiagnostic {
+  provider: Provider;
+  configured: boolean;
+  active: boolean;
+  status: 'ok' | 'error' | 'inactive' | 'not_configured';
+  model: string | null;
+  authMethod: 'api_key' | 'oauth' | null;
+  latencyMs: number | null;
+  message: string;
+  lastUsedAt: Date | null;
+  quota: ProviderQuotaSnapshot | null;
+}
+
+function formatUsd(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) {
+    return '-';
+  }
+  return `$${value.toFixed(2)}`;
+}
+
+function getDiagnosticBadgeClasses(status: ProviderDiagnostic['status']): string {
+  switch (status) {
+    case 'ok':
+      return 'bg-green-100 text-green-700';
+    case 'error':
+      return 'bg-red-100 text-red-700';
+    case 'inactive':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'not_configured':
+      return 'bg-gray-100 text-gray-600';
   }
 }
 
@@ -299,14 +263,15 @@ function OpenAIOAuthCard({
   saving: boolean;
 }) {
   const isOAuth = existingKey?.authMethod === 'oauth';
-  const [selectedModel, setSelectedModel] = useState(existingKey?.model || 'gpt-5.2');
+  const defaultOpenAIModel = getDefaultModel('openai');
+  const [selectedModel, setSelectedModel] = useState(existingKey?.model || defaultOpenAIModel);
   const [selectedEffort, setSelectedEffort] = useState<ReasoningEffort | null>(
     (existingKey?.reasoningEffort as ReasoningEffort) || 'medium'
   );
   const [showModelSelector, setShowModelSelector] = useState(false);
 
   const hasChanges = isOAuth && existingKey && (
-    selectedModel !== (existingKey.model || 'gpt-5.2') ||
+    selectedModel !== (existingKey.model || defaultOpenAIModel) ||
     selectedEffort !== ((existingKey.reasoningEffort as ReasoningEffort) || 'medium')
   );
 
@@ -331,7 +296,7 @@ function OpenAIOAuthCard({
         <div className="mt-3 flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Model:</span>
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-semibold">{existingKey.model || 'gpt-5.2'}</code>
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-semibold">{existingKey.model || defaultOpenAIModel}</code>
           </div>
           {existingKey.reasoningEffort && (
             <div className="flex items-center gap-2 text-sm">
@@ -377,7 +342,7 @@ function OpenAIOAuthCard({
                 </button>
                 <button
                   onClick={() => {
-                    setSelectedModel(existingKey.model || 'gpt-5.2');
+                    setSelectedModel(existingKey.model || defaultOpenAIModel);
                     setSelectedEffort((existingKey.reasoningEffort as ReasoningEffort) || 'medium');
                   }}
                   className="inline-flex h-9 items-center justify-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent"
@@ -854,7 +819,13 @@ export default function SettingsPage(): React.ReactElement {
   const [claudeManualCode, setClaudeManualCode] = useState('');
   const [claudeSubmitting, setClaudeSubmitting] = useState(false);
 
+  const isAdmin = useIsAdmin();
   const apiKeysQuery = trpc.apiKeys.list.useQuery();
+  const diagnosticsQuery = trpc.apiKeys.diagnostics.useQuery(undefined, {
+    enabled: false,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   // Derive provider keys early so state initializers can use them
   const keys = apiKeysQuery.data ?? [];
@@ -862,7 +833,8 @@ export default function SettingsPage(): React.ReactElement {
   const anthropicKey = keys.find((k) => k.provider === 'anthropic');
   const openrouterKey = keys.find((k) => k.provider === 'openrouter');
 
-  const [claudeModel, setClaudeModel] = useState(anthropicKey?.model || 'claude-sonnet-4-6');
+  const defaultAnthropicModel = getDefaultModel('anthropic');
+  const [claudeModel, setClaudeModel] = useState(anthropicKey?.model || defaultAnthropicModel);
   const [claudeEffort, setClaudeEffort] = useState<ReasoningEffort | null>(
     (anthropicKey?.reasoningEffort as ReasoningEffort) || 'medium'
   );
@@ -887,7 +859,7 @@ export default function SettingsPage(): React.ReactElement {
       setShowClaudeModelSelector(false);
       setClaudeOAuthPending(false);
       setClaudeManualCode('');
-      setClaudeModel('claude-sonnet-4-6');
+      setClaudeModel(defaultAnthropicModel);
       setClaudeEffort('medium');
       setSuccessMsg('Disconnected successfully!');
       setTimeout(() => setSuccessMsg(null), 3000);
@@ -1013,6 +985,10 @@ export default function SettingsPage(): React.ReactElement {
   };
 
   const connectedCount = keys.filter(k => k.isActive).length;
+  const diagnostics = diagnosticsQuery.data?.providers as ProviderDiagnostic[] | undefined;
+  const diagnosticsCheckedAt = diagnosticsQuery.data?.checkedAt;
+  const isDiagnosticsFetching = diagnosticsQuery.isFetching;
+  const refetchDiagnostics = diagnosticsQuery.refetch;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -1034,6 +1010,85 @@ export default function SettingsPage(): React.ReactElement {
           <span className="text-xs text-muted-foreground">
             ✨ Comparative analysis available!
           </span>
+        )}
+      </div>
+
+      <div className="mt-4 rounded-lg border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Model Health & Quota</h2>
+            <p className="text-xs text-muted-foreground">
+              Run provider checks to verify active model connectivity and visible quota information.
+            </p>
+          </div>
+          <button
+            onClick={() => void refetchDiagnostics()}
+            disabled={connectedCount === 0 || isDiagnosticsFetching}
+            className="inline-flex h-8 items-center justify-center rounded-md border border-input px-3 text-xs font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isDiagnosticsFetching ? 'Checking...' : 'Run checks'}
+          </button>
+        </div>
+
+        {diagnosticsQuery.error && (
+          <p className="mt-3 text-xs text-red-600">Diagnostics failed: {diagnosticsQuery.error.message}</p>
+        )}
+
+        {diagnostics && diagnostics.length > 0 ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {diagnostics.map((item) => (
+              <div key={item.provider} className="rounded-lg border bg-background p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span>{getProviderIcon(item.provider)}</span>
+                    <span className="text-sm font-medium">{getProviderLabel(item.provider)}</span>
+                  </div>
+                  <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', getDiagnosticBadgeClasses(item.status))}>
+                    {item.status === 'ok'
+                      ? 'Working'
+                      : item.status === 'error'
+                        ? 'Error'
+                        : item.status === 'inactive'
+                          ? 'Inactive'
+                          : 'Not configured'}
+                  </span>
+                </div>
+
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>
+                    Model:{' '}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground">
+                      {item.model || '-'}
+                    </code>
+                  </p>
+                  <p>Auth: {item.authMethod ?? '-'}</p>
+                  <p>Latency: {item.latencyMs ? `${item.latencyMs}ms` : '-'}</p>
+                  <p className={item.status === 'error' ? 'text-red-600' : ''}>{item.message}</p>
+                  {item.quota && (
+                    item.quota.status === 'available' ? (
+                      <p className="text-foreground">
+                        Quota: {formatUsd(item.quota.remainingUsd)} remaining / {formatUsd(item.quota.limitUsd)} limit
+                      </p>
+                    ) : (
+                      <p>{item.quota.note || 'Quota details unavailable.'}</p>
+                    )
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {connectedCount === 0
+              ? 'Connect at least one provider to run diagnostics.'
+              : 'No diagnostics run yet.'}
+          </p>
+        )}
+
+        {diagnosticsCheckedAt && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Last check: {new Date(diagnosticsCheckedAt).toLocaleString()}
+          </p>
         )}
       </div>
 
@@ -1092,7 +1147,7 @@ export default function SettingsPage(): React.ReactElement {
                 <div className="mt-3 flex items-center gap-3">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-muted-foreground">Model:</span>
-                    <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-semibold">{anthropicKey.model || 'claude-sonnet-4-6'}</code>
+                    <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono font-semibold">{anthropicKey.model || defaultAnthropicModel}</code>
                   </div>
                   {anthropicKey.reasoningEffort && (
                     <div className="flex items-center gap-2 text-sm">
@@ -1127,7 +1182,7 @@ export default function SettingsPage(): React.ReactElement {
                       onEffortChange={setClaudeEffort}
                       saving={savingModel}
                     />
-                    {(claudeModel !== (anthropicKey.model || 'claude-sonnet-4-6') ||
+                    {(claudeModel !== (anthropicKey.model || defaultAnthropicModel) ||
                       claudeEffort !== ((anthropicKey.reasoningEffort as ReasoningEffort) || 'medium')) && (
                       <div className="mt-4 flex gap-2">
                         <button
@@ -1139,7 +1194,7 @@ export default function SettingsPage(): React.ReactElement {
                         </button>
                         <button
                           onClick={() => {
-                            setClaudeModel(anthropicKey.model || 'claude-sonnet-4-6');
+                            setClaudeModel(anthropicKey.model || defaultAnthropicModel);
                             setClaudeEffort((anthropicKey.reasoningEffort as ReasoningEffort) || 'medium');
                           }}
                           className="inline-flex h-9 items-center justify-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent"
@@ -1332,29 +1387,31 @@ export default function SettingsPage(): React.ReactElement {
           </div>
         </div>
 
-        {/* Organization Settings */}
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Organization</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Manage your organization details and preferences.</p>
+        {/* Organization Settings — admin only */}
+        {isAdmin && (
+          <div className="rounded-lg border bg-card p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Organization</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Manage your organization details and preferences.</p>
+              </div>
+              <InviteMemberDialog />
             </div>
-            <InviteMemberDialog />
-          </div>
-          <div className="mt-4 space-y-4">
-            <div>
-              <label className="text-sm font-medium">Organization Name</label>
-              <input
-                type="text"
-                placeholder="Your organization"
-                className="mt-1 flex h-10 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium">Organization Name</label>
+                <input
+                  type="text"
+                  placeholder="Your organization"
+                  className="mt-1 flex h-10 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Pending Invitations */}
-        <PendingInvitationsList />
+        {/* Pending Invitations — admin only */}
+        {isAdmin && <PendingInvitationsList />}
 
         {/* Default Estimation Method */}
         <div className="rounded-lg border bg-card p-6">

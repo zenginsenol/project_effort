@@ -107,6 +107,332 @@ type OpenRouterModelSummary = {
   supportsReasoning: boolean;
 };
 
+type Provider = 'openai' | 'anthropic' | 'openrouter';
+type ProviderHealthStatus = 'ok' | 'error' | 'inactive' | 'not_configured';
+type ProviderAuthMethod = 'api_key' | 'oauth';
+
+type ProviderQuota = {
+  status: 'available' | 'unavailable' | 'error';
+  remainingUsd: number | null;
+  limitUsd: number | null;
+  usageUsd: number | null;
+  totalCreditsUsd: number | null;
+  totalUsageUsd: number | null;
+  note: string | null;
+};
+
+type ProviderDiagnostic = {
+  provider: Provider;
+  configured: boolean;
+  active: boolean;
+  status: ProviderHealthStatus;
+  model: string | null;
+  authMethod: ProviderAuthMethod | null;
+  latencyMs: number | null;
+  message: string;
+  lastUsedAt: Date | null;
+  quota: ProviderQuota | null;
+};
+
+const PROVIDERS: Provider[] = ['openai', 'anthropic', 'openrouter'];
+const DEFAULT_MODEL_BY_PROVIDER: Record<Provider, string> = {
+  openai: 'gpt-5.2-codex',
+  anthropic: 'claude-sonnet-4-6',
+  openrouter: 'openai/gpt-5.2',
+};
+
+function extractChatGPTAccountId(accessToken: string): string | null {
+  try {
+    const parts = accessToken.split('.');
+    if (parts.length !== 3 || !parts[1]) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    if (!payload || typeof payload !== 'object') return null;
+    const record = payload as Record<string, unknown>;
+    const authPayload = record['https://api.openai.com/auth'];
+    if (record.chatgpt_account_id && typeof record.chatgpt_account_id === 'string') {
+      return record.chatgpt_account_id;
+    }
+    if (record.account_id && typeof record.account_id === 'string') {
+      return record.account_id;
+    }
+    if (authPayload && typeof authPayload === 'object' && !Array.isArray(authPayload)) {
+      const maybeAccountId = (authPayload as Record<string, unknown>).account_id;
+      if (typeof maybeAccountId === 'string') {
+        return maybeAccountId;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function isLikelyOpenAIReasoningModel(model: string): boolean {
+  return model.includes('codex')
+    || model.startsWith('gpt-5')
+    || model.startsWith('o3')
+    || model.startsWith('o4');
+}
+
+async function readProviderError(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  if (!text) {
+    return fallback;
+  }
+  try {
+    const payload = JSON.parse(text) as Record<string, unknown>;
+    if (payload.error && typeof payload.error === 'object' && !Array.isArray(payload.error)) {
+      const error = payload.error as Record<string, unknown>;
+      if (typeof error.message === 'string' && error.message.trim().length > 0) {
+        return error.message.trim();
+      }
+    }
+    if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
+      return payload.message.trim();
+    }
+    return text.slice(0, 280);
+  } catch {
+    return text.slice(0, 280);
+  }
+}
+
+async function pingOpenAIModel(input: {
+  authMethod: ProviderAuthMethod;
+  token: string;
+  model: string;
+}): Promise<{ latencyMs: number; message: string }> {
+  const startedAt = Date.now();
+
+  if (input.authMethod === 'oauth') {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${input.token}`,
+      'Content-Type': 'application/json',
+    };
+    const accountId = extractChatGPTAccountId(input.token);
+    if (accountId) {
+      headers['chatgpt-account-id'] = accountId;
+    }
+
+    const response = await fetch('https://chatgpt.com/backend-api/codex/responses', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: input.model,
+        instructions: 'Reply with exactly: ok',
+        input: [{ role: 'user', content: [{ type: 'input_text', text: 'ping' }] }],
+        stream: true,
+        store: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await readProviderError(
+        response,
+        `ChatGPT backend request failed (${response.status})`,
+      ));
+    }
+
+    await response.text();
+    return {
+      latencyMs: Date.now() - startedAt,
+      message: 'ChatGPT subscription token and model are reachable.',
+    };
+  }
+
+  const requestBody: Record<string, unknown> = {
+    model: input.model,
+    messages: [{ role: 'user', content: 'ping' }],
+    temperature: 0,
+  };
+
+  if (isLikelyOpenAIReasoningModel(input.model)) {
+    requestBody.max_completion_tokens = 1;
+  } else {
+    requestBody.max_tokens = 1;
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${input.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProviderError(
+      response,
+      `OpenAI request failed (${response.status})`,
+    ));
+  }
+
+  await response.text();
+  return {
+    latencyMs: Date.now() - startedAt,
+    message: 'OpenAI API key and model are reachable.',
+  };
+}
+
+async function pingAnthropicModel(input: {
+  authMethod: ProviderAuthMethod;
+  token: string;
+  model: string;
+}): Promise<{ latencyMs: number; message: string }> {
+  const startedAt = Date.now();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'anthropic-version': '2023-06-01',
+  };
+
+  if (input.authMethod === 'oauth') {
+    headers.Authorization = `Bearer ${input.token}`;
+    headers['anthropic-beta'] = CLAUDE_OAUTH_BETA_HEADER;
+  } else {
+    headers['x-api-key'] = input.token;
+  }
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: input.model,
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'ping' }],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProviderError(
+      response,
+      `Anthropic request failed (${response.status})`,
+    ));
+  }
+
+  await response.text();
+  return {
+    latencyMs: Date.now() - startedAt,
+    message: 'Anthropic credential and model are reachable.',
+  };
+}
+
+async function pingOpenRouterModel(input: {
+  token: string;
+  model: string;
+}): Promise<{ latencyMs: number; message: string }> {
+  const startedAt = Date.now();
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${input.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: input.model,
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'ping' }],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readProviderError(
+      response,
+      `OpenRouter request failed (${response.status})`,
+    ));
+  }
+
+  await response.text();
+  return {
+    latencyMs: Date.now() - startedAt,
+    message: 'OpenRouter key and model are reachable.',
+  };
+}
+
+async function fetchOpenRouterQuota(token: string): Promise<ProviderQuota> {
+  try {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    };
+
+    const keyResponse = await fetch('https://openrouter.ai/api/v1/key', { headers });
+    if (!keyResponse.ok) {
+      return {
+        status: 'error',
+        remainingUsd: null,
+        limitUsd: null,
+        usageUsd: null,
+        totalCreditsUsd: null,
+        totalUsageUsd: null,
+        note: await readProviderError(
+          keyResponse,
+          `OpenRouter quota endpoint failed (${keyResponse.status})`,
+        ),
+      };
+    }
+
+    const keyPayload = await keyResponse.json() as Record<string, unknown>;
+    const keyData = (
+      keyPayload.data
+      && typeof keyPayload.data === 'object'
+      && !Array.isArray(keyPayload.data)
+    )
+      ? keyPayload.data as Record<string, unknown>
+      : {};
+
+    let totalCreditsUsd: number | null = null;
+    let totalUsageUsd: number | null = null;
+
+    try {
+      const creditsResponse = await fetch('https://openrouter.ai/api/v1/credits', { headers });
+      if (creditsResponse.ok) {
+        const creditsPayload = await creditsResponse.json() as Record<string, unknown>;
+        const creditsData = (
+          creditsPayload.data
+          && typeof creditsPayload.data === 'object'
+          && !Array.isArray(creditsPayload.data)
+        )
+          ? creditsPayload.data as Record<string, unknown>
+          : {};
+
+        totalCreditsUsd = numberOrNull(creditsData.total_credits);
+        totalUsageUsd = numberOrNull(creditsData.total_usage);
+      }
+    } catch {
+      // Ignore credits endpoint failures. /key still gives remaining/usage details.
+    }
+
+    const label = typeof keyData.label === 'string' ? keyData.label : null;
+    const isFreeTier = typeof keyData.is_free_tier === 'boolean' ? keyData.is_free_tier : null;
+
+    return {
+      status: 'available',
+      remainingUsd: numberOrNull(keyData.limit_remaining),
+      limitUsd: numberOrNull(keyData.limit),
+      usageUsd: numberOrNull(keyData.usage),
+      totalCreditsUsd,
+      totalUsageUsd,
+      note: label
+        ? `Key: ${label}${isFreeTier ? ' (free tier)' : ''}`
+        : (isFreeTier ? 'Free tier key' : null),
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      remainingUsd: null,
+      limitUsd: null,
+      usageUsd: null,
+      totalCreditsUsd: null,
+      totalUsageUsd: null,
+      note: error instanceof Error ? error.message : 'OpenRouter quota check failed.',
+    };
+  }
+}
+
 const OPENROUTER_MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
 const openRouterModelCache = new Map<string, {
   expiresAt: number;
@@ -224,6 +550,177 @@ export const apiKeysRouter = router({
       .where(eq(apiKeys.userId, userDbId));
 
     return keys;
+  }),
+
+  /**
+   * Provider diagnostics:
+   * - Verifies that each provider's active model is reachable
+   * - Returns quota usage if the provider exposes it (OpenRouter)
+   */
+  diagnostics: authedProcedure.query(async ({ ctx }) => {
+    const userDbId = await resolveUserDbId(ctx.userId);
+    const keys = await db
+      .select({
+        provider: apiKeys.provider,
+        model: apiKeys.model,
+        isActive: apiKeys.isActive,
+        authMethod: apiKeys.authMethod,
+        lastUsedAt: apiKeys.lastUsedAt,
+      })
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, userDbId));
+
+    const caller = apiKeysRouter.createCaller(ctx);
+
+    const diagnostics = await Promise.all(PROVIDERS.map(async (provider): Promise<ProviderDiagnostic> => {
+      const providerKeys = keys.filter((key) => key.provider === provider);
+      const activeKey = providerKeys.find((key) => key.isActive);
+      const fallbackKey = providerKeys[0];
+      const selectedKey = activeKey ?? fallbackKey;
+
+      if (!selectedKey) {
+        return {
+          provider,
+          configured: false,
+          active: false,
+          status: 'not_configured',
+          model: null,
+          authMethod: null,
+          latencyMs: null,
+          message: 'No key configured.',
+          lastUsedAt: null,
+          quota: null,
+        };
+      }
+
+      const model = selectedKey.model?.trim() || DEFAULT_MODEL_BY_PROVIDER[provider];
+      const authMethod = selectedKey.authMethod === 'oauth' ? 'oauth' : 'api_key';
+
+      if (!selectedKey.isActive) {
+        return {
+          provider,
+          configured: true,
+          active: false,
+          status: 'inactive',
+          model,
+          authMethod,
+          latencyMs: null,
+          message: 'Key exists but is inactive.',
+          lastUsedAt: selectedKey.lastUsedAt,
+          quota: null,
+        };
+      }
+
+      const keyForProvider = await caller.getKeyForProvider({ provider });
+      if (!keyForProvider.found || !keyForProvider.apiKey) {
+        return {
+          provider,
+          configured: true,
+          active: true,
+          status: 'error',
+          model,
+          authMethod,
+          latencyMs: null,
+          message: 'Active key could not be resolved.',
+          lastUsedAt: selectedKey.lastUsedAt,
+          quota: provider === 'openrouter'
+            ? {
+              status: 'error',
+              remainingUsd: null,
+              limitUsd: null,
+              usageUsd: null,
+              totalCreditsUsd: null,
+              totalUsageUsd: null,
+              note: 'OpenRouter key could not be resolved.',
+            }
+            : {
+              status: 'unavailable',
+              remainingUsd: null,
+              limitUsd: null,
+              usageUsd: null,
+              totalCreditsUsd: null,
+              totalUsageUsd: null,
+              note: 'Provider does not expose remaining quota on standard API keys.',
+            },
+        };
+      }
+
+      const resolvedAuthMethod = keyForProvider.authMethod === 'oauth' ? 'oauth' : 'api_key';
+
+      try {
+        const health = provider === 'openai'
+          ? await pingOpenAIModel({
+            authMethod: resolvedAuthMethod,
+            token: keyForProvider.apiKey,
+            model,
+          })
+          : provider === 'anthropic'
+            ? await pingAnthropicModel({
+              authMethod: resolvedAuthMethod,
+              token: keyForProvider.apiKey,
+              model,
+            })
+            : await pingOpenRouterModel({
+              token: keyForProvider.apiKey,
+              model,
+            });
+
+        const quota = provider === 'openrouter'
+          ? await fetchOpenRouterQuota(keyForProvider.apiKey)
+          : {
+            status: 'unavailable' as const,
+            remainingUsd: null,
+            limitUsd: null,
+            usageUsd: null,
+            totalCreditsUsd: null,
+            totalUsageUsd: null,
+            note: 'Provider does not expose remaining quota on standard API keys.',
+          };
+
+        return {
+          provider,
+          configured: true,
+          active: true,
+          status: 'ok',
+          model,
+          authMethod: resolvedAuthMethod,
+          latencyMs: health.latencyMs,
+          message: health.message,
+          lastUsedAt: selectedKey.lastUsedAt,
+          quota,
+        };
+      } catch (error) {
+        const quota = provider === 'openrouter'
+          ? await fetchOpenRouterQuota(keyForProvider.apiKey)
+          : {
+            status: 'unavailable' as const,
+            remainingUsd: null,
+            limitUsd: null,
+            usageUsd: null,
+            totalCreditsUsd: null,
+            totalUsageUsd: null,
+            note: 'Provider does not expose remaining quota on standard API keys.',
+          };
+
+        return {
+          provider,
+          configured: true,
+          active: true,
+          status: 'error',
+          model,
+          authMethod: resolvedAuthMethod,
+          latencyMs: null,
+          message: error instanceof Error ? error.message : 'Health check failed.',
+          lastUsedAt: selectedKey.lastUsedAt,
+          quota,
+        };
+      }
+    }));
+
+    return {
+      checkedAt: new Date(),
+      providers: diagnostics,
+    };
   }),
 
   /**
@@ -387,7 +884,7 @@ export const apiKeysRouter = router({
                 const { email } = await upsertOpenAIOAuthCredential({
                   clerkUserId: userId,
                   tokens,
-                  defaultModel: 'gpt-5.2',
+                  defaultModel: DEFAULT_MODEL_BY_PROVIDER.openai,
                   defaultReasoningEffort: 'medium',
                 });
                 console.log(`[oauth] Successfully stored OAuth tokens for user ${userId}${email ? ` (${email})` : ''}`);

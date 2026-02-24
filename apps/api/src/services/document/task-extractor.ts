@@ -52,6 +52,9 @@ export interface AIProviderConfig {
 const OPENAI_REASONING_MODELS = new Set([
   'o3', 'o3-pro', 'o3-mini', 'o4-mini',
   'o1', 'o1-mini', 'o1-pro',
+  'gpt-5.3-codex', 'gpt-5.2-codex',
+  'gpt-5.1-codex', 'gpt-5.1-codex-max',
+  'gpt-5-codex',
   'gpt-5.2', 'gpt-5.2-pro', 'gpt-5.1', 'gpt-5', 'gpt-5-mini',
 ]);
 
@@ -637,7 +640,7 @@ export async function extractTasksFromText(
     } else {
       const envApiKey = process.env.OPENAI_API_KEY;
       if (!envApiKey) throw new Error('OPENAI_API_KEY is not configured');
-      modelName = process.env.OPENAI_MODEL || 'gpt-4o';
+      modelName = process.env.OPENAI_MODEL || 'gpt-5.2';
       providerName = 'openai';
       console.log(`[task-extractor] Using OpenAI (${modelName}) with env API key`);
       rawResult = await extractWithOpenAI(envApiKey, modelName, userPrompt);

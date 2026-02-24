@@ -196,7 +196,10 @@ test.describe('Invitation Management - Edge Cases', () => {
     const section = await openInvitationSection(page);
     const acceptedRow = await getInvitationRowByStatus(section, 'Accepted');
 
-    test.skip(!acceptedRow, 'No accepted invitation present in this environment.');
+    if (!acceptedRow) {
+      test.skip(true, 'No accepted invitation present in this environment.');
+      return;
+    }
     await expect(acceptedRow.getByRole('button', { name: /Resend|Cancel/i })).toHaveCount(0);
   });
 

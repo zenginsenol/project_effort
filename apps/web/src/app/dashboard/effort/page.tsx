@@ -88,7 +88,7 @@ export default function EffortPage(): React.ReactElement {
   const [monthlyInfraOpsCost, setMonthlyInfraOpsCost] = useState(15000);
   const [annualDomainCost, setAnnualDomainCost] = useState(1200);
   const [monthlyMaintenanceHours, setMonthlyMaintenanceHours] = useState(80);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectIdFromQuery);
   const [includeCompleted, setIncludeCompleted] = useState(false);
   const [autoApplyKanban, setAutoApplyKanban] = useState(true);
   const [autoMoveFirstWeekToTodo, setAutoMoveFirstWeekToTodo] = useState(true);
@@ -96,6 +96,8 @@ export default function EffortPage(): React.ReactElement {
   const [showTasks, setShowTasks] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>('summary');
   const autoAppliedSignatureRef = useRef<string | null>(null);
+  const autoSelectedInitialProjectRef = useRef(false);
+  const previousQueryProjectIdRef = useRef(projectIdFromQuery);
   const [analysisName, setAnalysisName] = useState('');
   const [analysisDescription, setAnalysisDescription] = useState('');
   const [analysisAssumptionsText, setAnalysisAssumptionsText] = useState('');
@@ -281,9 +283,18 @@ export default function EffortPage(): React.ReactElement {
   }, [autoMoveFirstWeekToTodo, contingency, includeCompleted, selectedProjectId, workHoursPerDay]);
 
   useEffect(() => {
-    if (projectIdFromQuery && projectIdFromQuery !== selectedProjectId) {
-      setSelectedProjectId(projectIdFromQuery);
+    const previousQueryProjectId = previousQueryProjectIdRef.current;
+    previousQueryProjectIdRef.current = projectIdFromQuery;
+
+    // Sync URL -> state only when URL param actually changed (e.g. back/forward navigation).
+    // This prevents selection flicker while router.replace is still updating search params.
+    if (previousQueryProjectId === projectIdFromQuery) {
+      return;
     }
+    if (projectIdFromQuery === selectedProjectId) {
+      return;
+    }
+    setSelectedProjectId(projectIdFromQuery);
   }, [projectIdFromQuery, selectedProjectId]);
 
   useEffect(() => {
@@ -301,6 +312,22 @@ export default function EffortPage(): React.ReactElement {
     const query = params.toString();
     router.replace(query ? `/dashboard/effort?${query}` : '/dashboard/effort', { scroll: false });
   }, [router, searchParams, selectedProjectId]);
+
+  useEffect(() => {
+    if (autoSelectedInitialProjectRef.current) {
+      return;
+    }
+    if (projectIdFromQuery || selectedProjectId) {
+      return;
+    }
+    const firstProjectId = allProjectsQuery.data?.[0]?.id;
+    if (!firstProjectId) {
+      return;
+    }
+
+    setSelectedProjectId(firstProjectId);
+    autoSelectedInitialProjectRef.current = true;
+  }, [allProjectsQuery.data, projectIdFromQuery, selectedProjectId]);
 
   useEffect(() => {
     setKanbanSyncNotice('');
@@ -674,8 +701,9 @@ export default function EffortPage(): React.ReactElement {
         <h2 className="text-lg font-semibold mb-4">Step 1: Project & Calculation Parameters</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Project</label>
+            <label htmlFor="effort-project-select" className="block text-sm font-medium text-muted-foreground mb-1">Project</label>
             <select
+              id="effort-project-select"
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
               className="w-full rounded-md border bg-background/85 px-3 py-2 text-sm"
@@ -687,9 +715,10 @@ export default function EffortPage(): React.ReactElement {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Hourly Rate</label>
+            <label htmlFor="effort-hourly-rate" className="block text-sm font-medium text-muted-foreground mb-1">Hourly Rate</label>
             <div className="flex items-center gap-2">
               <input
+                id="effort-hourly-rate"
                 type="number"
                 value={hourlyRate}
                 onChange={(e) => setHourlyRate(Number(e.target.value))}
@@ -708,8 +737,9 @@ export default function EffortPage(): React.ReactElement {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Contingency %</label>
+            <label htmlFor="effort-contingency" className="block text-sm font-medium text-muted-foreground mb-1">Contingency %</label>
             <input
+              id="effort-contingency"
               type="number"
               value={contingency}
               onChange={(e) => setContingency(Number(e.target.value))}
@@ -719,8 +749,9 @@ export default function EffortPage(): React.ReactElement {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Work Hours/Day</label>
+            <label htmlFor="effort-work-hours" className="block text-sm font-medium text-muted-foreground mb-1">Work Hours/Day</label>
             <input
+              id="effort-work-hours"
               type="number"
               value={workHoursPerDay}
               onChange={(e) => setWorkHoursPerDay(Number(e.target.value))}
@@ -792,8 +823,9 @@ export default function EffortPage(): React.ReactElement {
           <h3 className="text-sm font-semibold">Operational Cost Inputs (Year-1 Projection)</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Infra/Ops Monthly</label>
+              <label htmlFor="effort-infra-ops-monthly" className="block text-xs font-medium text-muted-foreground mb-1">Infra/Ops Monthly</label>
               <input
+                id="effort-infra-ops-monthly"
                 type="number"
                 value={monthlyInfraOpsCost}
                 onChange={(event) => setMonthlyInfraOpsCost(Number(event.target.value))}
@@ -802,8 +834,9 @@ export default function EffortPage(): React.ReactElement {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Domain/SSL Annual</label>
+              <label htmlFor="effort-domain-ssl-annual" className="block text-xs font-medium text-muted-foreground mb-1">Domain/SSL Annual</label>
               <input
+                id="effort-domain-ssl-annual"
                 type="number"
                 value={annualDomainCost}
                 onChange={(event) => setAnnualDomainCost(Number(event.target.value))}
@@ -812,8 +845,9 @@ export default function EffortPage(): React.ReactElement {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Maintenance Hours / Month</label>
+              <label htmlFor="effort-maintenance-hours-month" className="block text-xs font-medium text-muted-foreground mb-1">Maintenance Hours / Month</label>
               <input
+                id="effort-maintenance-hours-month"
                 type="number"
                 value={monthlyMaintenanceHours}
                 onChange={(event) => setMonthlyMaintenanceHours(Number(event.target.value))}
@@ -1346,8 +1380,9 @@ export default function EffortPage(): React.ReactElement {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Analysis Name</label>
+                <label htmlFor="effort-analysis-name" className="block text-xs font-medium text-muted-foreground mb-1">Analysis Name</label>
                 <input
+                  id="effort-analysis-name"
                   type="text"
                   value={analysisName}
                   onChange={(event) => setAnalysisName(event.target.value)}
@@ -1356,8 +1391,9 @@ export default function EffortPage(): React.ReactElement {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
+                <label htmlFor="effort-analysis-description" className="block text-xs font-medium text-muted-foreground mb-1">Description</label>
                 <input
+                  id="effort-analysis-description"
                   type="text"
                   value={analysisDescription}
                   onChange={(event) => setAnalysisDescription(event.target.value)}
@@ -1366,8 +1402,9 @@ export default function EffortPage(): React.ReactElement {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Assumptions (one per line)</label>
+                <label htmlFor="effort-analysis-assumptions" className="block text-xs font-medium text-muted-foreground mb-1">Assumptions (one per line)</label>
                 <textarea
+                  id="effort-analysis-assumptions"
                   value={analysisAssumptionsText}
                   onChange={(event) => setAnalysisAssumptionsText(event.target.value)}
                   placeholder={'Single squad, 8h/day\nNo major architecture rewrite\nProd monitoring included'}
@@ -1406,8 +1443,9 @@ export default function EffortPage(): React.ReactElement {
             )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Provider</label>
+                <label htmlFor="effort-ai-provider" className="block text-xs font-medium text-muted-foreground mb-1">Provider</label>
                 <select
+                  id="effort-ai-provider"
                   value={aiProvider}
                   onChange={(event) => setAiProvider(event.target.value as AIProviderOption)}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -1457,8 +1495,9 @@ export default function EffortPage(): React.ReactElement {
                 </button>
               </div>
               <div className="sm:col-span-2 lg:col-span-4">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">AI Project Context (optional)</label>
+                <label htmlFor="effort-ai-project-context" className="block text-xs font-medium text-muted-foreground mb-1">AI Project Context (optional)</label>
                 <input
+                  id="effort-ai-project-context"
                   type="text"
                   value={aiProjectContext}
                   onChange={(event) => setAiProjectContext(event.target.value)}
@@ -1467,8 +1506,9 @@ export default function EffortPage(): React.ReactElement {
                 />
               </div>
               <div className="sm:col-span-2 lg:col-span-4">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Requirements / Scope Text</label>
+                <label htmlFor="effort-ai-requirements" className="block text-xs font-medium text-muted-foreground mb-1">Requirements / Scope Text</label>
                 <textarea
+                  id="effort-ai-requirements"
                   value={aiInputText}
                   onChange={(event) => setAiInputText(event.target.value)}
                   placeholder="Paste PRD, scope notes, or analysis text..."
@@ -1721,8 +1761,9 @@ export default function EffortPage(): React.ReactElement {
                 {syncAnalysisToGithubMutation.isPending ? 'Syncing...' : 'Sync to GitHub'}
               </button>
               <div className="sm:col-span-2 lg:col-span-4">
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Repository Override (optional)</label>
+                <label htmlFor="effort-github-repository-override" className="block text-xs font-medium text-muted-foreground mb-1">Repository Override (optional)</label>
                 <input
+                  id="effort-github-repository-override"
                   type="text"
                   value={githubRepositoryOverride}
                   onChange={(event) => setGithubRepositoryOverride(event.target.value)}

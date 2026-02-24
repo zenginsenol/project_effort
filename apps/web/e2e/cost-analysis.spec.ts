@@ -5,16 +5,45 @@ test.describe('Cost Analysis', () => {
     await page.goto('/dashboard/effort');
     await expect(page.getByRole('heading', { name: 'Effort & Cost Workflow' })).toBeVisible();
     await expect(page.getByText('Step 1: Project & Calculation Parameters')).toBeVisible();
-    await expect(page.getByText('Step 1')).toBeVisible();
-    await expect(page.getByText('Step 2')).toBeVisible();
-    await expect(page.getByText('Step 3')).toBeVisible();
-    await expect(page.getByText('Step 4')).toBeVisible();
+    await expect(page.getByText(/^Step 1$/)).toBeVisible();
+    await expect(page.getByText(/^Step 2$/)).toBeVisible();
+    await expect(page.getByText(/^Step 3$/)).toBeVisible();
+    await expect(page.getByText(/^Step 4$/)).toBeVisible();
   });
 
   test('project selection dropdown is visible', async ({ page }) => {
     await page.goto('/dashboard/effort');
     await expect(page.getByRole('combobox', { name: /project/i })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calculate' })).toBeVisible();
+  });
+
+  test('project selection remains stable after changing project', async ({ page }) => {
+    await page.goto('/dashboard/effort');
+
+    const projectSelect = page.getByRole('combobox', { name: /project/i });
+    const projectOptions = await projectSelect.locator('option').evaluateAll((options) =>
+      options
+        .map((option) => option.getAttribute('value') ?? '')
+        .filter((value) => value.length > 0)
+    );
+
+    test.skip(projectOptions.length < 2, 'At least two projects are required for this scenario.');
+
+    const currentProjectId = await projectSelect.inputValue();
+    const targetProjectId = projectOptions.find((value) => value !== currentProjectId) ?? projectOptions[0];
+    if (!targetProjectId) {
+      test.skip(true, 'No selectable project found.');
+      return;
+    }
+
+    await projectSelect.selectOption(targetProjectId);
+    await expect(projectSelect).toHaveValue(targetProjectId);
+    await expect.poll(() => new URL(page.url()).searchParams.get('projectId')).toBe(targetProjectId);
+
+    // Guard against URL<->state sync loops that revert the selection shortly after change.
+    await page.waitForTimeout(1200);
+    await expect(projectSelect).toHaveValue(targetProjectId);
+    await expect.poll(() => new URL(page.url()).searchParams.get('projectId')).toBe(targetProjectId);
   });
 
   test('calculation parameters are configurable', async ({ page }) => {
@@ -29,6 +58,7 @@ test.describe('Cost Analysis', () => {
 
   test('empty state shows when no project selected', async ({ page }) => {
     await page.goto('/dashboard/effort');
+    await page.getByRole('combobox', { name: /project/i }).selectOption('');
     await expect(page.getByRole('heading', { name: 'Select a Project' })).toBeVisible();
     await expect(page.getByText('Choose a project above to calculate effort and cost.')).toBeVisible();
   });
@@ -150,7 +180,7 @@ test.describe('Cost Analysis - Additional Costs', () => {
 
     // Verify all fields are present
     await expect(page.getByPlaceholder('Additional cost label')).toBeVisible();
-    await expect(page.getByPlaceholder('Notes')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Notes' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
   });
 

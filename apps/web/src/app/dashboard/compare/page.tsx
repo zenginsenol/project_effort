@@ -6,9 +6,12 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
-
-type Provider = 'openai' | 'anthropic' | 'openrouter';
-type ReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh';
+import {
+  type AIProvider as Provider,
+  type AIReasoningEffort as ReasoningEffort,
+  getDefaultModel,
+  getModelsForProvider,
+} from '@/lib/ai-model-catalog';
 
 interface ProviderSelection {
   id: string;
@@ -46,39 +49,6 @@ interface CompareProviderError {
   code: 'missing_config' | 'provider_error' | 'internal_error';
 }
 
-const PROVIDER_MODELS: Record<Provider, Array<{ id: string; name: string; reasoning: boolean }>> = {
-  openai: [
-    { id: 'gpt-5.2', name: 'GPT-5.2', reasoning: true },
-    { id: 'gpt-5.2-pro', name: 'GPT-5.2 Pro', reasoning: true },
-    { id: 'gpt-5', name: 'GPT-5', reasoning: true },
-    { id: 'gpt-5-mini', name: 'GPT-5 Mini', reasoning: true },
-    { id: 'o3', name: 'o3', reasoning: true },
-    { id: 'o4-mini', name: 'o4-mini', reasoning: true },
-    { id: 'gpt-4.1', name: 'GPT-4.1', reasoning: false },
-    { id: 'gpt-4.1-mini', name: 'GPT-4.1 Mini', reasoning: false },
-    { id: 'gpt-4o', name: 'GPT-4o', reasoning: false },
-  ],
-  anthropic: [
-    { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', reasoning: true },
-    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', reasoning: true },
-    { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', reasoning: true },
-    { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', reasoning: true },
-    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', reasoning: true },
-    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', reasoning: false },
-  ],
-  openrouter: [
-    { id: 'openai/gpt-5.2', name: 'OpenAI GPT-5.2', reasoning: true },
-    { id: 'openai/o3', name: 'OpenAI o3', reasoning: true },
-    { id: 'openai/o4-mini', name: 'OpenAI o4-mini', reasoning: true },
-    { id: 'anthropic/claude-opus-4-6', name: 'Claude Opus 4.6', reasoning: true },
-    { id: 'anthropic/claude-sonnet-4-6', name: 'Claude Sonnet 4.6', reasoning: true },
-    { id: 'google/gemini-2.5-pro-preview', name: 'Gemini 2.5 Pro', reasoning: true },
-    { id: 'deepseek/deepseek-r1', name: 'DeepSeek R1', reasoning: true },
-    { id: 'deepseek/deepseek-chat', name: 'DeepSeek V3', reasoning: false },
-    { id: 'meta-llama/llama-3.3-70b', name: 'Llama 3.3 70B', reasoning: false },
-  ],
-};
-
 const PROVIDER_INFO: Record<Provider, { label: string; icon: string }> = {
   openai: { label: 'OpenAI', icon: '🤖' },
   anthropic: { label: 'Anthropic', icon: '🧠' },
@@ -95,9 +65,9 @@ function ProviderConfigCard({
   isAvailable: boolean;
 }) {
   const info = PROVIDER_INFO[selection.provider];
-  const models = PROVIDER_MODELS[selection.provider];
+  const models = getModelsForProvider(selection.provider);
   const currentModel = models.find(m => m.id === selection.model);
-  const showEffort = currentModel?.reasoning ?? false;
+  const showEffort = currentModel?.supportsReasoning ?? false;
 
   return (
     <div className={cn(
@@ -124,11 +94,21 @@ function ProviderConfigCard({
         <div className="mt-3 space-y-2">
           <select
             value={selection.model}
-            onChange={(e) => onChange({ ...selection, model: e.target.value })}
+            onChange={(e) => {
+              const nextModel = e.target.value;
+              const modelDef = models.find((model) => model.id === nextModel);
+              onChange({
+                ...selection,
+                model: nextModel,
+                reasoningEffort: modelDef?.supportsReasoning
+                  ? (selection.reasoningEffort ?? 'medium')
+                  : null,
+              });
+            }}
             className="w-full rounded-md border bg-background px-3 py-1.5 text-sm"
           >
             {models.map(m => (
-              <option key={m.id} value={m.id}>{m.name} {m.reasoning ? '🧠' : ''}</option>
+              <option key={m.id} value={m.id}>{m.name} {m.supportsReasoning ? '🧠' : ''}</option>
             ))}
           </select>
           {showEffort && (
@@ -325,9 +305,9 @@ export default function ComparePage(): React.ReactElement {
   );
 
   const [selections, setSelections] = useState<ProviderSelection[]>([
-    { id: '1', provider: 'openai', model: 'gpt-5.2', reasoningEffort: 'medium', enabled: true },
-    { id: '2', provider: 'anthropic', model: 'claude-sonnet-4-6', reasoningEffort: 'medium', enabled: true },
-    { id: '3', provider: 'openrouter', model: 'openai/gpt-5.2', reasoningEffort: 'medium', enabled: false },
+    { id: '1', provider: 'openai', model: getDefaultModel('openai'), reasoningEffort: 'medium', enabled: true },
+    { id: '2', provider: 'anthropic', model: getDefaultModel('anthropic'), reasoningEffort: 'medium', enabled: true },
+    { id: '3', provider: 'openrouter', model: getDefaultModel('openrouter'), reasoningEffort: 'medium', enabled: false },
   ]);
 
   useEffect(() => {

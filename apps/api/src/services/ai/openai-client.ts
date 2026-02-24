@@ -57,7 +57,7 @@ export async function generateEstimationSuggestion(
 
   const response = await withRetry(() =>
     openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-5.2',
       temperature: 0.3,
       response_format: { type: 'json_object' },
       messages: [
@@ -137,7 +137,7 @@ export async function generateCalibrationRecommendations(historicalData: {
 
   const response = await withRetry(() =>
     openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.OPENAI_MODEL || 'gpt-5.2',
       temperature: 0.3,
       response_format: { type: 'json_object' },
       messages: [
